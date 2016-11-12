@@ -316,7 +316,7 @@ class DistributedFishingSpot(DistributedObject.DistributedObject):
             self.ripples = Ripples.Ripples(self.nodePath)
             self.ripples.setScale(0.4)
             self.ripples.hide()
-        if self.splashSounds == None:
+        if self.splashSounds is None:
             self.splashSounds = (base.loadSfx('phase_4/audio/sfx/TT_splash1.ogg'), base.loadSfx('phase_4/audio/sfx/TT_splash2.ogg'))
         return
 
