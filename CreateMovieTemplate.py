@@ -68,7 +68,7 @@ def waitForPreloading(task):
 
     # Spawning a Toon through NPCToons
 
-    surlee = NPCToons.createLocalNPC(2020)
+    surlee = NPCToons.createLocalNPC(2019)
     surlee.reparentTo(render)
     surlee.animFSM.request('neutral')
     surlee.setPosHpr(0, 0, 0, 0, 0, 0)
@@ -100,6 +100,11 @@ def waitForPreloading(task):
     # suit.setH(180)
     # suit.show()
     # suit.find('**/drop_shadow*').removeNode()
+
+    # Actor Example
+
+    # pieActor = Actor('phase_5/models/char/tt_r_prp_ext_piePackage.bam', {'fightBoost': 'phase_5/models/char/tt_a_prp_ext_piePackage_fightBoost.bam'})
+    # pieActor.reparentTo(mailbox)
 
     # Camera/Object Placement
 
