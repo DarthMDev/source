@@ -35,7 +35,6 @@ class DNAModelCache:
 
 
 class DNAStorage:
-    notify = directNotify.newCategory('DNAStorage')
 
     def __init__(self):
         self.modelCache = DNAModelCache()
