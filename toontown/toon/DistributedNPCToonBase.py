@@ -47,7 +47,6 @@ class DistributedNPCToonBase(DistributedToon.DistributedToon):
         self.startLookAround()
 
     def generateToon(self):
-        self.setLODs()
         self.generateToonLegs()
         self.generateToonHead()
         self.generateToonTorso()

@@ -1,19 +1,23 @@
-# Boot up just a portion of Toontown
-
 import gc
 import random
 
+
 gc.disable()
 
+
 from pandac.PandaModules import *
+
 
 loadPrcFile('config/general.prc')
 loadPrcFile('config/distribution/dev.prc')
 
+
 import __builtin__
+
 
 __builtin__.settings = {}
 __builtin__.process = 'client'
+
 
 from toontown.launcher.TTILauncher import TTILauncher
 launcher = TTILauncher()
@@ -33,119 +37,95 @@ DirectGuiGlobals.setDefaultDialogGeom(loader.loadModel('phase_3/models/gui/dialo
 base.initNametagGlobals()
 __builtin__.loader = base.loader
 
+
 from toontown.toon import Toon
-from toontown.suit import Suit
+
 
 Toon.preload()
-Suit.preload()
 
 gc.enable()
 gc.collect()
+
 
 class ClientRepository:
     def __getattr__(self, item):
         return None
 
+
 __builtin__.cr = ClientRepository()
 base.cr = cr
 
+
 from toontown.toon import ToonDNA
-from toontown.toon import NPCToons
-from toontown.suit import SuitDNA
 from direct.actor.Actor import Actor
 from direct.interval.IntervalGlobal import *
+from toontown.util.PlacerTool3D import PlacerTool3D
 
-# The Scene our actors will play a part in
-scene = loader.loadModel('phase_3.5/models/modules/tt_m_ara_int_toonhall.bam')
+# Scene
+scene = loader.loadModel('toontown_central_2100.bam')
 scene.reparentTo(render)
 
-ropes = loader.loadModel('phase_4/models/modules/tt_m_ara_int_ropes')
-ropes.reparentTo(scene)
+# Mailbox
+mailbox = Actor('phase_5/models/char/tt_r_ara_ttc_mailbox.bam',{"boost": 'phase_5/models/char/tt_a_ara_ttc_mailbox_fightBoost.bam', "idle": 'phase_5/models/char/tt_a_ara_ttc_mailbox_idle0.bam'})
+mailbox.reparentTo(render)
+mailbox.setPos(-309.92, -103.49, 0)
+
+# Pie Actor
+pieActor = Actor('phase_5/models/char/tt_r_prp_ext_piePackage.bam',{'fightBoost': 'phase_5/models/char/tt_a_prp_ext_piePackage_fightBoost.bam'})
+pieActor.reparentTo(mailbox)
 
 def waitForPreloading(task):
     if preloader.requests:
         return task.cont
 
-    # Spawning a Toon through NPCToons
-
-    surlee = NPCToons.createLocalNPC(2019)
-    surlee.reparentTo(render)
-    surlee.animFSM.request('neutral')
-    surlee.setPosHpr(0, 0, 0, 0, 0, 0)
-
-    # Spawning a Toon through ToonDNA
-
+    # Flippy
     toon = Toon.Toon()
     dna = ToonDNA.ToonDNA()
     dna.newToonFromProperties('dss', 'ms', 'm', 'm', 17, 0, 17, 17, 3, 3, 3, 3, 7, 2)
     toon.setDNA(dna)
     toon.reparentTo(render)
-    toon.setPickable(0)
+    #toon.setPickable(0)
     # toon.find('**/drop_shadow*').removeNode()
-    toon.setPos(0, 0, 0)
+    toon.setPos(-303.92, -103.49, 0)
     toon.setH(180)
-    toon.hide()
 
-    # Spawning a Cog
+    pie = loader.loadModel('phase_3.5/models/props/tart.bam')
+    hand = toon.find('**/rightHand')
+    pie.reparentTo(hand)
 
-    # suit = Suit.Suit()
-    # dna = SuitDNA.SuitDNA()
-    # dna.newSuit('f')
-    # suit.setDNA(dna)
-    # suit.reparentTo(render)
-    # suit.setDisplayName('')
-    # suit.setPickable(0)
-    # suit.loop('neutral')
-    # suit.pose('landing', 20)
-    # suit.setH(180)
-    # suit.show()
-    # suit.find('**/drop_shadow*').removeNode()
-
-    # Actor Example
-
-    # pieActor = Actor('phase_5/models/char/tt_r_prp_ext_piePackage.bam', {'fightBoost': 'phase_5/models/char/tt_a_prp_ext_piePackage_fightBoost.bam'})
-    # pieActor.reparentTo(mailbox)
-
-    # Camera/Object Placement
-
-    # base.camera.setPos(-302.92, -112.49, 2.5)
+    # base.camera.setPos(-303.92, -109.49, 2.5)
     # PlacerTool3D(camera, increment=0.5)
-    # PlacerTool3D(toon, increment=0.5)
 
     # Create the lerp interval needed for the camera to move.
-    """
-    cameraZoomInterval = camera.posInterval(1.3,
-                                           Point3(0, 0, 0),
-                                           startPos=Point3(0, 0, 0))
+    cameraZoomInterval = camera.posInterval(1.2,
+                                           Point3(-309.92, -117.49, 2.5),
+                                           startPos=Point3(-304.92, -120.49, 3.5))
 
-    cameraInterval2 = camera.posInterval(0.7,
-                                           Point3(0, 0, 0),
-                                           startPos=Point3(0, 0, 0))
+    cameraShiftRightInterval = camera.posInterval(0.8,
+                                           Point3(-303.92, -109.49, 2.5),
+                                           startPos=Point3(-309.92, -117.49, 2.5))
 
     # Create and play the sequence that coordinates the intervals.
-    cameraPace = Sequence(cameraInterval, cameraInterval2)
-    """
+    cameraPace = Sequence(cameraZoomInterval, cameraShiftRightInterval)
 
+    base.camera.setPos(-304.92, -120.49, 3.5)
 
     # Movie
+
+    toon.setPlayRate(2.25, 'throw')
+
     movie = Sequence(
         Wait(10),
         Parallel(
-            Func(toon.hide),
-            Func(pie.hide),
             Func(cameraPace.start),
+            Func(pie.hide),
+            Func(toon.play, 'bored', fromFrame=125),
             Func(mailbox.play, 'boost', fromFrame=26),
             Func(pieActor.play, 'fightBoost', fromFrame=26)),
-        Wait(1.2),
-        Parallel(
-            Func(pie.show),
-            Func(toon.show),
-            Func(toon.play, 'throw', fromFrame=30)),
-        Wait(1),
-        Parallel(
-            Func(mailbox.loop, 'idle'),
-            Func(pieActor.hide)),
-        Wait(0.45),
+        Wait(1.4),
+        Func(pie.show),
+        Func(toon.play, 'throw'),
+        Wait(1.4),
         Func(pie.hide))
 
     sequence = Sequence(movie)
@@ -153,11 +133,14 @@ def waitForPreloading(task):
 
     return task.done
 
-
 taskMgr.add(waitForPreloading, 'waitForPreloadingTask')
 
 # Green Screen
-
 base.setBackgroundColor(0,255,0)
-base.oobe()
 base.run()
+
+# TODO: Create camera pos interval to simulate the Disney version of the outro.
+
+# DONE
+# TODO: Animate mailbox and pie actor.
+# TODO: Attach pie to Flippy's hand.
