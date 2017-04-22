@@ -66,90 +66,42 @@ def waitForPreloading(task):
     if preloader.requests:
         return task.cont
 
-    # Spawning a Toon through NPCToons
-
-    surlee = NPCToons.createLocalNPC(2019)
-    surlee.reparentTo(render)
-    surlee.animFSM.request('neutral')
-    surlee.setPosHpr(0, 0, 0, 0, 0, 0)
-
-    # Spawning a Toon through ToonDNA
-
-    toon = Toon.Toon()
-    dna = ToonDNA.ToonDNA()
-    dna.newToonFromProperties('dss', 'ms', 'm', 'm', 17, 0, 17, 17, 3, 3, 3, 3, 7, 2)
-    toon.setDNA(dna)
-    toon.reparentTo(render)
-    toon.setPickable(0)
-    # toon.find('**/drop_shadow*').removeNode()
-    toon.setPos(0, 0, 0)
-    toon.setH(180)
-    toon.hide()
-
-    # Spawning a Cog
-
-    # suit = Suit.Suit()
-    # dna = SuitDNA.SuitDNA()
-    # dna.newSuit('f')
-    # suit.setDNA(dna)
-    # suit.reparentTo(render)
-    # suit.setDisplayName('')
-    # suit.setPickable(0)
-    # suit.loop('neutral')
-    # suit.pose('landing', 20)
-    # suit.setH(180)
-    # suit.show()
-    # suit.find('**/drop_shadow*').removeNode()
-
     # Actor Example
 
-    # pieActor = Actor('phase_5/models/char/tt_r_prp_ext_piePackage.bam', {'fightBoost': 'phase_5/models/char/tt_a_prp_ext_piePackage_fightBoost.bam'})
-    # pieActor.reparentTo(mailbox)
+     # The Silly Meter
+    sillyMeter = Actor('phase_4/models/props/tt_a_ara_ttc_sillyMeter_default',
+                       {'arrowTube': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_arrowFluid',
+                        'phaseOne': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseOne',
+                        'phaseTwo': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseTwo',
+                        'phaseThree': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseThree',
+                        'phaseFour': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseFour',
+                        'phaseFourToFive': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseFourToFive',
+                        'phaseFive': 'phase_4/models/props/tt_a_ara_ttc_sillyMeter_phaseFive'})
+    sillyMeter.reparentTo(render)
 
-    # Camera/Object Placement
+    smPhase1 = sillyMeter.find('**/stage1')
+    smPhase2 = sillyMeter.find('**/stage2')
+    smPhase3 = sillyMeter.find('**/stage3')
+    smPhase4 = sillyMeter.find('**/stage4')
 
-    # base.camera.setPos(-302.92, -112.49, 2.5)
-    # PlacerTool3D(camera, increment=0.5)
-    # PlacerTool3D(toon, increment=0.5)
+    smPhase2.hide()
+    smPhase3.hide()
+    smPhase4.hide()
 
-    # Create the lerp interval needed for the camera to move.
-    """
-    cameraZoomInterval = camera.posInterval(1.3,
-                                           Point3(0, 0, 0),
-                                           startPos=Point3(0, 0, 0))
+    thermometerLocator = sillyMeter.findAllMatches('**/uvj_progressBar')[1]
+    thermometerMesh = sillyMeter.find('**/tube')
+    thermometerMesh.setTexProjector(thermometerMesh.findTextureStage('default'), thermometerLocator, sillyMeter)
+    sillyMeter.flattenMedium()
+    sillyMeter.makeSubpart('arrow', ['uvj_progressBar*', 'def_springA'])
+    sillyMeter.makeSubpart('meter', ['def_pivot'], ['uvj_progressBar*', 'def_springA'])
 
-    cameraInterval2 = camera.posInterval(0.7,
-                                           Point3(0, 0, 0),
-                                           startPos=Point3(0, 0, 0))
+    animSeq = Parallel(
+        ActorInterval(sillyMeter, 'arrowTube', partName='arrow', constrainedLoop=1,
+                      startFrame=1, endFrame=30))
 
-    # Create and play the sequence that coordinates the intervals.
-    cameraPace = Sequence(cameraInterval, cameraInterval2)
-    """
+    sillyMeter.loop('phaseOne', partName='meter')
 
-
-    # Movie
-    movie = Sequence(
-        Wait(10),
-        Parallel(
-            Func(toon.hide),
-            Func(pie.hide),
-            Func(cameraPace.start),
-            Func(mailbox.play, 'boost', fromFrame=26),
-            Func(pieActor.play, 'fightBoost', fromFrame=26)),
-        Wait(1.2),
-        Parallel(
-            Func(pie.show),
-            Func(toon.show),
-            Func(toon.play, 'throw', fromFrame=30)),
-        Wait(1),
-        Parallel(
-            Func(mailbox.loop, 'idle'),
-            Func(pieActor.hide)),
-        Wait(0.45),
-        Func(pie.hide))
-
-    sequence = Sequence(movie)
-    sequence.start()
+    animSeq.loop()
 
     return task.done
 
