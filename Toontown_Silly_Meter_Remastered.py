@@ -932,12 +932,12 @@ def waitForPreloading(task):
             Func(randomNPC30.animFSM.request, 'neutral')),
         Wait(2))
 
-    # sequence = Sequence(movie)
-    # sequence.loop()
-    prepostera.reparentTo(render)
-    base.camera.setPosHpr(0, -10, 4.15, 0, -10, 0)
-    prepostera.animFSM.request('ScientistEmcee')
-    base.camLens.setFov(40)
+    sequence = Sequence(movie)
+    sequence.loop()
+    # prepostera.reparentTo(render)
+    # base.camera.setPosHpr(0, -10, 4.15, 0, -10, 0)
+    # prepostera.animFSM.request('ScientistEmcee')
+    # base.camLens.setFov(40)
 
     # PlacerTool3D(camera, increment=1)
 
