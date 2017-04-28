@@ -948,6 +948,6 @@ def waitForPreloading(task):
 taskMgr.add(waitForPreloading, 'waitForPreloadingTask')
 
 
-base.setBackgroundColor(0,255,0)
+# base.setBackgroundColor(0,255,0)
 # base.oobe()
 base.run()
