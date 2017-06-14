@@ -36,11 +36,11 @@ class ShtikerBook(DirectFrame, StateData.StateData):
         self.setPos(0, 0, 0.1)
         self.pageOrder = [
             TTLocalizer.OptionsPageTitle,
-            # TTLocalizer.ShardPageTitle,
+            TTLocalizer.ShardPageTitle,
             TTLocalizer.MapPageTitle,
             TTLocalizer.InventoryPageTitle,
             TTLocalizer.QuestPageToonTasks,
-            # TTLocalizer.TrackPageShortTitle,
+            TTLocalizer.TrackPageShortTitle,
             TTLocalizer.SuitPageTitle,
             TTLocalizer.FishPageTitle,
             TTLocalizer.KartPageTitle,
@@ -141,9 +141,9 @@ class ShtikerBook(DirectFrame, StateData.StateData):
         self.nextArrow = DirectButton(parent=self, relief=None, image=(bookModel.find('**/arrow_button'), bookModel.find('**/arrow_down'), bookModel.find('**/arrow_rollover')), scale=(0.1, 0.1, 0.1), pos=(0.838, 0, -0.661), command=self.__pageChange, extraArgs=[1])
         self.prevArrow = DirectButton(parent=self, relief=None, image=(bookModel.find('**/arrow_button'), bookModel.find('**/arrow_down'), bookModel.find('**/arrow_rollover')), scale=(-0.1, 0.1, 0.1), pos=(-0.838, 0, -0.661), command=self.__pageChange, extraArgs=[-1])
         bookModel.removeNode()
-        self.openSound = base.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_open.ogg')
-        self.closeSound = base.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_delete.ogg')
-        self.pageSound = base.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_turn.ogg')
+        self.openSound = loader.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_open.ogg')
+        self.closeSound = loader.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_delete.ogg')
+        self.pageSound = loader.loadSfx('phase_3.5/audio/sfx/GUI_stickerbook_turn.ogg')
         return
 
     def unload(self):
@@ -222,10 +222,10 @@ class ShtikerBook(DirectFrame, StateData.StateData):
             iconModels = loader.loadModel('phase_3.5/models/gui/sos_textures')
             iconGeom = iconModels.find('**/switch')
             iconModels.detachNode()
-        # elif pageName == TTLocalizer.ShardPageTitle:
-            # iconModels = loader.loadModel('phase_3.5/models/gui/sos_textures')
-            # iconGeom = iconModels.find('**/district')
-            # iconModels.detachNode()
+        elif pageName == TTLocalizer.ShardPageTitle:
+            iconModels = loader.loadModel('phase_3.5/models/gui/sos_textures')
+            iconGeom = iconModels.find('**/district')
+            iconModels.detachNode()
         elif pageName == TTLocalizer.MapPageTitle:
             iconModels = loader.loadModel('phase_3.5/models/gui/sos_textures')
             iconGeom = iconModels.find('**/teleportIcon')
@@ -240,11 +240,11 @@ class ShtikerBook(DirectFrame, StateData.StateData):
             iconGeom = iconModels.find('**/questCard')
             iconScale = 0.9
             iconModels.detachNode()
-        # elif pageName == TTLocalizer.TrackPageShortTitle:
-            # iconGeom = iconModels = loader.loadModel('phase_3.5/models/gui/filmstrip')
-            # iconScale = 1.1
-            # iconColor = Vec4(0.7, 0.7, 0.7, 1)
-            # iconModels.detachNode()
+        elif pageName == TTLocalizer.TrackPageShortTitle:
+            iconGeom = iconModels = loader.loadModel('phase_3.5/models/gui/filmstrip')
+            iconScale = 1.1
+            iconColor = Vec4(0.7, 0.7, 0.7, 1)
+            iconModels.detachNode()
         elif pageName == TTLocalizer.SuitPageTitle:
             iconModels = loader.loadModel('phase_3.5/models/gui/sos_textures')
             iconGeom = iconModels.find('**/gui_gear')

@@ -13,12 +13,12 @@ from direct.fsm import State
 import string
 from otp.otpbase import OTPLocalizer
 from otp.otpbase import OTPGlobals
-from toontown.shtiker.OptionsPage import speedChatStyles
+from toontown.shtiker.OptionsPageGlobals import speedChatStyles
 from toontown.toonbase import TTLocalizer
 from toontown.parties.PartyGlobals import ActivityIds, DecorationIds
 from toontown.toonbase import ToontownGlobals
 scStructure = [
- [OTPLocalizer.SCMenuAlpha,
+ [OTPLocalizer.SCMenuInfinite,
   [OTPLocalizer.SCMenuBugs,
    30507,
    30508,

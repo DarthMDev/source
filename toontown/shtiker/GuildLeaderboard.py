@@ -1,11 +1,12 @@
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel, DirectScrolledList, DGG
-from panda3d.core import CardMaker, TransparencyAttrib, NodePath, Vec4, TextNode
+from panda3d.core import Vec4, TextNode
 from toontown.toonbase import ToontownGlobals, TTLocalizer, EventGlobals
+from toontown.util import TTCardMaker
 
 
 class GuildLeaderboard(DirectFrame):
     def __init__(self, parent, text, pos=(0.0, 0.0, 0.0), scale=(1.0, 1.0, 1.0), backCommand=None):
-        self.parent = parent
+        self._parent = parent
         self.text = text
         self.scale = scale
         self.pos = pos
@@ -23,16 +24,9 @@ class GuildLeaderboard(DirectFrame):
         secondaryColor = (0.5, 0.6, 1, 1)
         self.buttonColor = secondaryColor
 
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
         
-        self.mainFrame = DirectFrame(self.parent, relief=None, image=background, image_scale=(0.0009, 1, 0.0009), image_color=primaryColor, scale=scale, pos=pos)
+        self.mainFrame = DirectFrame(self._parent, relief=None, image=background, image_scale=(0.0009, 1, 0.0009), image_color=primaryColor, scale=scale, pos=pos)
         self.title = DirectLabel(self.mainFrame, relief=None, pos=(0.0, 0.0, 0.65), text=text, text_scale=(0.06, 0.1, 0.5), text_font=ToontownGlobals.getMinnieFont())
         
         self.entryList = DirectScrolledList(parent=self.mainFrame,
@@ -124,7 +118,7 @@ class GuildLeaderboard(DirectFrame):
 
 class LeaderboardEntry(DirectButton):
     def __init__(self, parent, doId, rank, name, points, index, listObject):
-        self.parent = parent
+        self._parent = parent
         self.doId = doId
         self.rank = rank
         self.name = name

@@ -7,7 +7,7 @@ from toontown.battle import SuitBattleGlobals
 from toontown.nametag import NametagGlobals
 from direct.task.Task import Task
 from toontown.battle import BattleProps
-from toontown.toonbase import TTLocalizer
+from toontown.toonbase import TTLocalizer, SettingsGlobals
 from pandac.PandaModules import VirtualFileMountHTTP, VirtualFileSystem, Filename, DSearchPath
 from direct.showbase import AppRunnerGlobal
 from toontown.nametag import NametagGroup
@@ -198,21 +198,6 @@ def loadSuits(level):
 def unloadSuits(level):
     unloadDialog(level)
 
-def cogExists(filePrefix):
-    searchPath = DSearchPath()
-    if AppRunnerGlobal.appRunner:
-        searchPath.appendDirectory(Filename.expandFrom('$TT_3_5_ROOT/phase_3.5'))
-    else:
-        basePath = os.path.expandvars('$TTMODELS') or './ttmodels'
-        searchPath.appendDirectory(Filename.fromOsSpecific(basePath + '/built/phase_3.5'))
-    filePrefix = filePrefix.strip('/')
-    pfile = Filename(filePrefix)
-    found = vfs.resolveFilename(pfile, searchPath)
-    if not found:
-        return False
-    return True
-
-
 def loadSuitAnims(suit, flag = 1):
     if suit in SuitDNA.suitHeadTypes:
         try:
@@ -244,7 +229,7 @@ def loadDialog(level):
          'COG_VO_statement',
          'COG_VO_question']
         for file in SuitDialogFiles:
-            SuitDialogArray.append(base.loadSfx(loadPath + file + '.ogg'))
+            SuitDialogArray.append(loader.loadSfx(loadPath + file + '.ogg'))
 
         SuitDialogArray.append(SuitDialogArray[2])
         SuitDialogArray.append(SuitDialogArray[2])
@@ -438,7 +423,8 @@ class Suit(Avatar.Avatar):
         self.getGeomNode().setScale(self.scale)
         self.generateHealthBar()
         self.generateCorporateMedallion()
-        self.setBlend(frameBlend=True)
+        if settings.get(SettingsGlobals.AnimationSmoothing):
+            self.setBlend(frameBlend=True)
 
     def generateAprilFoolsDNA(self):
         dna = self.style
@@ -774,7 +760,8 @@ class Suit(Avatar.Avatar):
         self.loseActor.setScale(self.scale)
         self.loseActor.setPos(self.getPos())
         self.loseActor.setHpr(self.getHpr())
-        self.loseActor.setBlend(frameBlend=True)
+        if settings.get(SettingsGlobals.AnimationSmoothing):
+            self.loseActor.setBlend(frameBlend=True)
         shadowJoint = self.loseActor.find('**/joint_shadow')
         dropShadow = loader.loadModel('phase_3/models/props/drop_shadow')
         dropShadow.setScale(0.45)

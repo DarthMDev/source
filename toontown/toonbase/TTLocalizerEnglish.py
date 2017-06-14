@@ -1,11 +1,17 @@
 from toontown.toonbase.TTLocalizerEnglishProperty import *
 from toontown.catalog import CatalogAccessoryItemGlobals
 from otp.otpbase import OTPLocalizer as OL
+import sys, os
+
 OL.SpeedChatStaticText = OL.SpeedChatStaticTextToontown.copy()
 for key in OL.SpeedChatStaticTextCommon.iterkeys():
     OL.SpeedChatStaticText[key] = OL.SpeedChatStaticTextCommon[key]
 
-commitmantst = 'kptmptest - removable'
+if sys.platform == 'android':
+    CurrentDirectory = '/sdcard/TTI'
+else:
+    CurrentDirectory = os.getcwd()
+
 InterfaceFont = 'phase_3/models/fonts/ImpressBT.ttf'
 ToonFont = 'phase_3/models/fonts/ImpressBT.ttf'
 SuitFont = 'phase_3/models/fonts/vtRemingtonPortable.ttf'
@@ -51,7 +57,7 @@ NametagFontNames = (
 )
 NametagLabel = ' Nametag'
 UnpaidNameTag = 'Basic'
-ScreenshotPath = 'screenshots/'
+ScreenshotPath = os.path.join(CurrentDirectory, 'screenshots')
 GM_NAMES = (
  'TOON COUNCIL',
  'TOON TROOPER',
@@ -78,10 +84,10 @@ Dale = 'Dale'
 JailbirdDale = 'JailbirdDale'
 PoliceChip = 'PoliceChip'
 lTheBrrrgh = 'The Brrrgh'
-lDaisyGardens = 'The Gardens'
-lDonaldsDock = "The Docks"
+lDaisyGardens = 'Daisy Gardens'
+lDonaldsDock = "The Harbor"
 lDonaldsDreamland = "Dreamland"
-lMinniesMelodyland = "Melodyland"
+lMinniesMelodyland = "Musical Melodyland"
 lToontownCentral = 'Toontown Central'
 lToonHQ = 'Toon HQ'
 lSellbotHQ = 'Sellbot HQ'
@@ -89,7 +95,6 @@ lGoofySpeedway = 'Toontown Speedway'
 lOutdoorZone = "Acorn Acres"
 lGolfZone = "Toontown MiniGolf"
 lPartyHood = 'Party Grounds'
-lResistanceGrounds = 'Resistance Grounds'
 GlobalStreetNames = {20000: ('to', 'on', 'Tutorial Terrace'),
  1000: ('to the', 'in the', 'Neighborhood'),
  1100: ('to', 'on', 'Barnacle Boulevard'),
@@ -147,7 +152,6 @@ OutdoorZone = ('to', 'in', lOutdoorZone)
 FunnyFarm = ('to', 'in', 'The Unpainted Neighborhood')
 GoofySpeedway = ('to', 'in', lGoofySpeedway)
 DonaldsDreamland = ('to', 'in', lDonaldsDreamland)
-ResistanceGrounds = ('to the', 'in the', lResistanceGrounds)
 BossbotHQ = ('to', 'in', 'Bossbot HQ')
 SellbotHQ = ('to', 'in', 'Sellbot HQ')
 CashbotHQ = ('to', 'in', 'Cashbot HQ')
@@ -706,7 +710,7 @@ QuestDialogDict = {160: {GREETING: '',
         LEAVING: '',
         COMPLETE: "Adding machines all fixed up?\x07Nice work.  I'm sure I've got something around here to reward you with..."},
  1054: {QUEST: '_toNpcName_ needs some help with his clown cars._where_'},
- 1055: {QUEST: "Yowza!  I can't find the tires to this here clown car anywhere!\x07Do ya think you could help me out?\x07I think Loopy Bob may have tossed them in the pond in the " + lToontownCentral + ' neighborhood.\x07If you stand on one of the docks there you can try and fish out the tires for me.',
+ 1055: {QUEST: "Yowza!  I can't find the tires to this here clown car anywhere!\x07Do ya think you could help me out?\x07I think Loopy Bob may have tossed them in the pond in the " + lToontownCentral + ' neighborhood.\x07If you stand on one of The Harbor there you can try and fish out the tires for me.',
         GREETING: 'Woohoo!',
         LEAVING: '',
         INCOMPLETE_PROGRESS: 'Are you having trouble fishing out all 4 tires?'},
@@ -1002,7 +1006,7 @@ QuestDialogDict = {160: {GREETING: '',
  2420: {QUEST: "Thank you!\x07Now I can send out this order.\x07Take down a building on this street to prevent the Cogs from doing this again and I'll get you your reward.",
         LEAVING: '',
         GREETING: ''},
- 2422: {QUEST: "I need help rebuilding my ship as my current one has sunken off the coast of The Docks from the Cogs!\x07How am I here?\x07Well I didn't say I was on it!\x07Go see Heave Ho.",
+ 2422: {QUEST: "I need help rebuilding my ship as my current one has sunken off the coast of The Harbor from the Cogs!\x07How am I here?\x07Well I didn't say I was on it!\x07Go see Heave Ho.",
         LEAVING: ''},
  2423: {QUEST: "A couple of tough looking Cogs have taken my oars!\x07If you Find them you can take them to Brian.",
         LEAVING: '',
@@ -3860,7 +3864,7 @@ SuperGoofyChatter = (['Welcome to my Super Speedway!',
   "It's fun to dress up for Halloween!",
   'I hope you are enjoying our Halloween fun!'], ['Gotta fly!',
   'Hi-Ho and away I go!',
-  "Should I fly or drive to The Docks?",
+  "Should I fly or drive to The Harbor?",
   'Gawrsh, have a Happy Halloween!'])
 DonaldChatter = (['Welcome to Dreamland.', "Hi, my name is %s. What's yours?" % Donald], ['Sometimes this place gives me the creeps.',
   'Be sure and try the maze in ' + lDaisyGardens + '.',
@@ -4605,20 +4609,22 @@ PartyPlannerInvitationWhoseSentence = '%s Party'
 PartyPlannerInvitationTheme = 'Theme'
 PartyPlannerInvitationWhenSentence = 'It will be on %s,\nat %s Toontown Time.\nHope you can make it!'
 PartyPlannerInvitationWhenSentenceNoFriends = 'It will be on %s,\nat %s Toontown Time.\nToontastic!'
-PartyPlannerComingSoon = 'Coming Soon'
+PartyPlannerUnavailable = 'Unavailable'
 PartyPlannerCantBuy = "Can't Buy"
 PartyPlannerGenericName = 'Party Planner'
 PartyJukeboxOccupied = 'Someone else is using the jukebox. Try again later.'
 PartyJukeboxNowPlaying = 'The song you chose is now playing on the jukebox!'
 MusicEncntrGeneralBg = 'Encounter With Cogs'
-MusicTcSzActivity = 'Toontorial Medley'
-MusicTcSz = 'Strolling Along'
 MusicCreateAToon = 'The New Toon in Town'
 MusicTtiTheme = 'The Toontown Infinite Theme'
 MusicTtTheme = 'The Toontown Theme'
+MusicEstateTheme = 'Estate Theme'
+MusicEstateInteriorTheme = 'Estate Interior Theme'
 MusicMinigameRace = 'Slow and Steady'
 MusicMgPairing = 'Remember Me?'
 MusicTcNbrhood = 'Toontown Central'
+MusicTcSzActivity = 'Toontorial Medley'
+MusicTcSz = 'Strolling Along'
 MusicMgDiving = 'Treasure Lullaby'
 MusicMgCannonGame = 'Fire the Cannons!'
 MusicMgTwodgame = 'Running Toon'
@@ -4628,35 +4634,39 @@ MusicMgTugOWar = 'Tug-of-War'
 MusicMgVine = 'The Jungle Swing'
 MusicMgIcegame = 'Slippery Situation'
 MusicMgToontag = 'Minigame Medley'
-MusicMMatchBg2 = 'Jazzy Minnie'
+MusicMMatchBg2 = 'Jazzy Allen'
 MusicMgTarget = "Soarin' Over Toontown"
 MusicFfSafezone = 'The Funny Farm'
-MusicDdSz = 'Waddling Way'
-MusicMmNbrhood = "Melodyland"
-MusicGzPlaygolf = "Let's Play Golf!"
 MusicGsSz = 'Toontown Speedway'
-MusicOzSz = "Chip n' Dale's Acres"
+MusicOzSz = "Acorn Acres"
 MusicGsRaceCc = 'Downtown Driving'
-MusicGsRaceSs = 'Ready, Set, Go!'
 MusicGsRaceRr = 'Route 66'
+MusicGsRaceSs = 'Ready, Set, Go!'
 MusicGzSz = 'The Putt-Putt Polka'
+MusicGzPlaygolf = "Let's Play Golf!"
+MusicMmNbrhood = "Musical Melodyland"
 MusicMmSz = 'Dancing in the Streets'
 MusicMmSzActivity = 'Here Comes Treble'
-MusicDdNbrhood = "The Docks"
-MusicGsKartshop = 'Mr. Goofywrench'
+MusicDdNbrhood = "The Harbor"
+MusicDdSz = 'Waddling Way'
 MusicDdSzActivity = 'Sea Shanty'
+MusicThemeSong = "Toontown Infinite Theme"
+MusicChristmasThemeSong = "Infinite Christmas Theme"
+MusicHalloweenThemeSong = "Infinite Halloween Theme"
+MusicGagShop = "Gag Shop"
+MusicGsKartshop = 'Mr. Goofwrench'
 MusicEncntrGeneralBgIndoor = 'Building Excitement'
 MusicTtElevator = 'Going Up?'
 MusicEncntrToonWinningIndoor = 'Toons Unite!'
 MusicEncntrGeneralSuitWinningIndoor = 'Cog-tastrophe!'
 MusicTbNbrhood = 'The Brrrgh'
-MusicDlNbrhood = "Dreamland"
-MusicDlSzActivity = 'Counting Sheep'
-MusicDgSz = 'Waltz of the Flowers'
-MusicDlSz = 'Sleepwalking'
-MusicTbSzActivity = 'Snow Problem'
 MusicTbSz = 'Shiver and Shimmy'
-MusicDgNbrhood = "Daisy's Garden"
+MusicTbSzActivity = 'Snow Problem'
+MusicDlNbrhood = "Dreamland"
+MusicDlSz = 'Sleepwalking'
+MusicDlSzActivity = 'Counting Sheep'
+MusicDgNbrhood = "The Gardens"
+MusicDgSz = 'Waltz of the Flowers'
 MusicEncntrHallOfFame = 'The Hall of Fame'
 MusicEncntrSuitHqNbrhood = 'Dollars and Cents'
 MusicChqFactBg = 'Cog Factory'
@@ -4664,17 +4674,43 @@ MusicCoghqFinale = 'Triumph of the Toons'
 MusicEncntrToonWinning = 'Cashing In!'
 MusicEncntrSuitWinning = 'Selling You Short'
 MusicEncntrHeadSuitTheme = 'The Big Boss'
+MusicSbCourtyard = 'Sellbot Courtyard'
+MusicSbBossIntro = 'Sellbot Tower Heist'
+MusicSbBossBattle1 = 'Sellbot Tower Battle 1'
+MusicSbBossBattle2 = 'Sellbot Tower Battle 2'
+MusicSbBossBattle3 = 'Sellbot Tower Finale'
+MusicCbCourtyard = 'Cashbot Shipping Station'
+MusicCbSSEncounter = 'Shipping Station Encounter'
+MusicCbMint = 'Raiding the Mints'
+MusicCfoBattle1 = 'Cashbot Vault Battle 1'
+MusicCfoBattle2 = 'Cashbot Vault Battle 2'
+MusicCfoBattle3 = 'Cashbot Vault Finale'
 MusicLbJurybg = 'Court is in Session'
 MusicLbCourtyard = 'Balancing Act'
-MusicBossbotCeoV2 = 'Head Honcho'
+MusicLbCourtyardEncounter = 'Losing Balance'
+MusicLbCjFinale = 'Order in the Court'
 MusicBossbotFactoryV1 = 'Cog Waltz'
+MusicBossbotFactoryV2 = 'Cog Waltz 2'
+MusicBossbotFactoryV3 = 'Cog Waltz 3'
 MusicBossbotCeoV1 = 'Bossing You Around'
+MusicBossbotCeoV2 = 'Head Honcho'
+MusicBossbotEntryV1 = 'Bossbot HQ Entry V1'
+MusicBossbotEntryV2 = 'Bossbot HQ Entry V2'
+MusicBossbotEntryV3 = 'Bossbot HQ Entry V3'
 MusicPartyOriginalTheme = 'Party Time'
 MusicPartyPolkaDance = 'Party Polka'
 MusicPartySwingDance = 'Party Swing'
 MusicPartyWaltzDance = 'Party Waltz'
 MusicPartyGenericThemeJazzy = 'Party Jazz'
 MusicPartyGenericTheme = 'Party Jingle'
+MusicTcEncounter = 'Toontown Central Battle'
+MusicDdEncounter = 'Encounter at The Harbor'
+MusicDgEncounter = 'Encounter in The Gardens'
+MusicMmEncounter = 'Musical Melodyland Encounter'
+MusicTbEncounter = 'Encounter in The Brrrgh'
+MusicDlEncounter = 'Dreamland Encounter'
+JellyfishJam = 'Jellyfish Jam'
+CatDogTheme = 'CatDog Theme'
 JukeboxAddSong = 'Add\nSong'
 JukeboxReplaceSong = 'Replace\nSong'
 JukeboxQueueLabel = 'Playing Next:'
@@ -4723,7 +4759,7 @@ PartyActivityNameDict = {0: {'generic': 'Jukebox',
  8: {'generic': 'Deluxe Jukebox',
      'invite': 'a deluxe jukebox',
      'editor': 'Deluxe Jukebox',
-     'description': 'Your own deluxe jukebox with double the tunes for double the deal!'},
+     'description': 'Listen to music with your own deluxe jukebox!'},
  9: {'generic': 'Dance Floor\n20 moves',
      'invite': 'a 20 move Dance Floor',
      'editor': 'Dance Floor - 20',
@@ -4974,9 +5010,10 @@ OptionsPageTitle = 'Options'
 MoreOptionsPageTitle = 'More Options'
 OptionsTabTitle = 'Options\n& Codes'
 OptionsPagePurchase = 'Subscribe'
-OptionsPageLogout = 'Logout'
+OptionsPageLogout = 'Log Out'
 OptionsGoBack = 'Back'
 OptionsDisconnect = 'Disconnect'
+OptionsLeaveServer = 'Leave Server'
 OptionsReturnToToonSelect = 'Toon Select'
 OptionsPageMusicOnLabel = 'Music is on.'
 OptionsPageMusicOffLabel = 'Music is off.'
@@ -4996,8 +5033,34 @@ OptionsPageToggleOff = 'Turn Off'
 OptionsPageChange = 'Change'
 OptionsPageDisplaySettings = 'Display: %(screensize)s, %(api)s'
 OptionsPageDisplaySettingsNoApi = 'Display: %(screensize)s'
-OptionsPageExitConfirm = 'Are you sure you want to disconnect?'
+OptionsPageExitConfirmSingleplayer = 'Are you sure you want to disconnect?'
+OptionsPageExitConfirmMultiplayer = 'Are you sure you want to leave this server?'
+OptionsPageExitConfirmMultiplayerHost = 'Are you sure you want to disconnect the server? All Toons currently playing will also be disconnected.'
 OptionsPagePickAToonConfirm = 'Are you sure you want to return to the Pick-A-Toon screen?'
+OptionsPageResolution = 'Resolution:'
+OptionsPageVideo = 'Video'
+OptionsPageSound = 'Sound'
+OptionsPageGameplay = 'Gameplay'
+OptionsPageSocial = 'Social'
+OptionsPageVolume = 'Volume'
+OptionsPageChat = 'Chat'
+OptionsPageFriends = 'Friends'
+OptionsPageControls = 'Controls'
+OptionsPageConfigure = 'Configure'
+OptionsPageFullscreen = 'Fullscreen'
+OptionsPageWindow = 'Window'
+OptionsPageApply = 'Apply'
+OptionsPageCustomControls = 'Custom Controls'
+OptionsPageAcceptingFriends = 'Accepting Friends'
+OptionsPageAcceptingWhispers = 'Accepting Whispers'
+OptionsPageFromStrangers = 'From Strangers'
+OptionsPageFromFriends = 'From Friends'
+OptionsPageEnableMusic = 'Enable Music'
+OptionsPageVSync = 'VSync'
+OptionsPageShowFps = 'Show FPS'
+OptionsPageAnimationSmoothing = 'Animation Smoothing'
+OptionsPageRequiresRestart = 'Requires Restart'
+OptionsPageClassicMusic = 'Classic Soundtrack'
 SocialPageTitle = 'Social'
 GuildPageTitle = 'Guilds'
 GuildPagePromote = 'Promote'
@@ -5269,6 +5332,7 @@ NPCForceAcknowledgeMessage6 = 'Great job defeating those Cogs!\n\n\n\n\n\n\n\n\n
 NPCForceAcknowledgeMessage7 = "Don't forget to make a friend!\n\n\n\n\n\n\nClick on another player and use the New Friend button."
 NPCForceAcknowledgeMessage8 = 'Great! You made a new friend!\n\n\n\n\n\n\n\n\nYou should go back at Toon Headquarters now.'
 NPCForceAcknowledgeMessage9 = 'Good job using the phone!\n\n\n\n\n\n\n\n\nReturn to Toon Headquarters to claim your reward.'
+TTIAlphaWelcomeMessage = "Welcome to the Toontown Infinite Alpha!\n\nIf you find any bugs, please immediately report them on our Discord server in the #bug-report text channel.\n\nThis is just the beginning. As time goes on, we'll be updating the game with more content.\n\nThanks for helping us test the game!"
 ToonSleepString = '. . . ZZZ . . .'
 MovieTutorialReward1 = 'You received 1 Throw point! When you get 10, you will get a new gag!'
 MovieTutorialReward2 = 'You received 1 Squirt point! When you get 10, you will get a new gag!'
@@ -5470,7 +5534,7 @@ TownBattleSOSPetSearchTitle = 'Searching for doodle\n%s...'
 TownBattleSOSPetInfoTitle = '%s is %s'
 TownBattleSOSPetInfoOK = lOK
 TrolleyHFAMessage = 'You may not board the trolley until your Laff meter is smiling.'
-TrolleyCSMessage = 'Trolley Games are coming soon! Check back later!'
+TrolleyCSMessage = 'This Trolley Station is under construction.'
 TrolleyTFAMessage = 'You may not board the trolley until ' + Mickey + ' says so.'
 TrolleyHopOff = 'Hop off'
 FishingExit = 'Exit'
@@ -5712,7 +5776,7 @@ CogThiefPerfect = 'PERFECT!'
 MinigameRulesPanelPlay = 'PLAY'
 GagShopName = "Gag Shop"
 GagShopPlayAgain = 'PLAY\nAGAIN'
-GagShopBackToPlayground = 'EXIT BACK TO THE\nNEIGHBORHOOD'
+GagShopBackToPlayground = 'GO BACK TO THE\nNEIGHBORHOOD'
 GagShopYouHave = 'You have %s Jellybeans to spend'
 GagShopYouHaveOne = 'You have 1 Jellybean to spend'
 GagShopTooManyProps = 'Sorry, you have too many props'
@@ -5815,9 +5879,9 @@ NameShopNameMaster = 'NameMasterEnglish.txt'
 NameShopPay = 'Subscribe'
 NameShopPlay = 'Free Trial'
 NameShopOnlyPaid = 'Only paid users\nmay name their Toons.\nUntil you subscribe\nyour name will be\n'
-NameShopContinueSubmission = 'Continue Submission'
+NameShopContinueSubmission = 'Enter Toontown'
 NameShopChooseAnother = 'Choose Another Name'
-NameShopToonCouncil = 'The Toon Council\nwill review your\nname.  ' + 'Review may\ntake a few days.\nWhile you wait\nyour name will be\n '
+NameShopToonCouncil = 'The Toon Council\nhas approved your\nname!'
 PleaseTypeName = 'Please type your name:'
 AllNewNames = 'All new names must be\napproved by the Toon Council.'
 NameMessages = 'Be creative, and remember:\nno NPC names, please.'
@@ -6001,7 +6065,7 @@ QuestScriptTutorialBlocker_3 = "Oh! You don't know how to use SpeedChat!"
 QuestScriptTutorialBlocker_4 = 'Click on the button to say something.'
 QuestScriptTutorialBlocker_5 = 'Very good!\x07Where you are going there are many Toons to talk to.'
 QuestScriptTutorialBlocker_6 = "If you want to chat with other Toons using the keyboard, there's another button you can use."
-QuestScriptTutorialBlocker_7 = "It's called the SpeedChat Plus button. You need to turn on Speedchat Plus in your Account Manager on the Toontown Infinite Website to use it."
+QuestScriptTutorialBlocker_7 = "It's called the SpeedChat Plus button."
 QuestScriptTutorialBlocker_8 = 'Good luck! See you later!'
 QuestScriptGagShop_1 = 'Welcome to the Gag Shop!'
 QuestScriptGagShop_1a = 'This is where Toons come to buy gags to use against the Cogs.'
@@ -6085,6 +6149,7 @@ ResistanceToonToonupAllInstructions = 'all the Toons near you will gain full Laf
 ResistanceToonMoneyInstructions = 'all the Toons near you will gain %s Jellybeans'
 ResistanceToonMoneyAllInstructions = 'all the Toons near you will fill their Jellybean jars'
 ResistanceToonRestockInstructions = 'all the Toons near you will restock their "%s" gags'
+ResistanceToonDanceInstructions = 'all the Toons near you will start to dance'
 ResistanceToonRestockAllInstructions = 'all the Toons near you will restock all their gags'
 ResistanceToonHPBoost = "\x07You've done a lot of work for the Resistance.\x07The Toon Council has decided to give you another Laff point. Congratulations!"
 ResistanceToonLevelPromotion = "\x07Say--that C.F.O. Cog left behind your promotion papers.\x07I'll file them for you on the way out, so you'll get your promotion!"
@@ -9819,9 +9884,9 @@ GolfTimeTieBreakWinner = '%(name)s wins the total aiming time tie breaker!!!'
 RoamingTrialerWeekendStart = 'Tour Toontown is starting! Free players may now enter any neighborhood!'
 RoamingTrialerWeekendOngoing = 'Welcome to Tour Toontown! Free players may now enter any neighborhood!'
 RoamingTrialerWeekendEnd = "That's all for Tour Toontown."
-MoreXpHolidayStart = 'Good news! Exclusive Test Toon double gag experience time has started.'
-MoreXpHolidayOngoing = 'Welcome! Exclusive Test Toon double gag experience time is currently ongoing.'
-MoreXpHolidayEnd = 'Exclusive Test Toon double gag experience time has ended. Thanks for helping us Test things!'
+MoreXpHolidayStart = 'Good news! Double gag experience time has started.'
+MoreXpHolidayOngoing = 'Welcome! Double gag experience time is currently ongoing.'
+MoreXpHolidayEnd = 'Double gag experience time has ended.'
 DoubleProgressionHolidayStart = 'Good news! Double game progression time is live!'
 DoubleProgressionHolidayEnd = "Double game progression has ended. We hope you enjoyed the event!"
 JellybeanDayHolidayStart = "It's Jellybean Day! Get Double Jellybean rewards at Parties!"
@@ -10333,11 +10398,11 @@ achievementInfo = {
     5: ('Grand Goodbye',
         'Complete Toontown Central'),
     6: ('Bon Voyage!',
-        "Complete The Docks"),
+        "Complete The Harbor"),
     7: ('Blooming',
         'Complete The Gardens'),
     8: ('Warming symphonies',
-        "Complete Melodyland"),
+        "Complete Musical Melodyland"),
     9: ('You cold Yeti?',
         'Complete The Brrrgh'),
     10: ("Dreaming Goodbyes",
@@ -10455,7 +10520,8 @@ def getAchievementClassifier(classifier):
 RemapPrompt = 'Choose the keys you wish to remap.'
 RemapPopup = 'Press the button you wish to remap this control to.'
 Controls = ['Move Up:', 'Move Left:', 'Move Down:', 'Move Right:',
-            'Jump:', 'Action Key:', 'Options Hotkey:', 'Chatbox Hotkey:']
+            'Jump:', 'Action Key:', 'Options Hotkey:', 'Chatbox Hotkey:',
+            'Screenshot Key:']
 
 GuildChatWarning = 'You are currently not in a Guild. Use "/all" to return to normal chat.'
 GuildDialogMovieStart = 'Are you here to create your very own Guild?'
@@ -10664,18 +10730,39 @@ Jellybeans = 'Jellybeans'
 
 BossLeaderboardLabel = 'Current Damage'
 
-StartingServer = 'Starting %s...'
+# Main Menu
+WelcomeMessage = 'Welcome to Toontown Infinite!'
+LogIn = "Already have an account? Log in!"
+SignUp = "New to Toontown Infinite? Sign Up!"
+Username = "Username"
+Password = "Password"
+Birthday = "Birthday"
+Email = "Email"
+Warning = "By clicking Sign Up, you are indicating that\nyou have read and agreed to the Terms of Service."
+EnterAddress = "Enter a Server Address"
+Help = "The help page is coming soon.\n\nCheck back later!"
+ServerRunningAlready = 'A Singleplayer session is already in progress.'
+MultiServerRunningAlready = 'You are already hosting a Multiplayer session.'
+
+ServerRunningAlready = 'A single player session is already in progress.'
+MultiServerRunningAlready = 'You are already hosting a multiplayer session.'
+StartingServerLive = 'Loading...'
+StartingServerDev = 'Starting %s...'
+DedicatedServerDone = 'Done. This server is now live.'
 StartingGame = 'Starting the game momentarily...'
-StartingFailed = 'The %s has failed to start.\n\nPlease make sure the "astron" folder is not missing from your game installation.'
-StartingQuestion = 'Seems like the single player server is already running!\n\nWould you like to restart the server, or join it with a new user?'
-StartingJoin = 'Join'
-StartingRestart = 'Restart'
+StartingFailed = 'The %s has failed to start.\n\nSee logs for more information.'
+
+# Debug for Dev Distribution
 MongoDB = 'MongoDB Server'
 Astron = 'Astron Server'
 District = 'District'
 Uberdog = 'Uberdog Server'
 
 ServerDown = 'Oops! The %s has gone down! A game restart is highly recommended.'
+ServerDownRestart = 'Oops! the %s has gone down! The server will restart momentarily...'
+JukeboxQueueTitle = 'Queue'
+JukeboxSongSelectorTitle = 'Song Picker'
+JukeboxCurrentlyPlayingTitle = 'Currently Playing'
 
 EffectName = {
  0: 'None',
@@ -10687,3 +10774,5 @@ BehaviorName = {
  0: 'None',
  1: 'Having a picnic'
 }
+
+AndroidGolfMessage = 'Sorry, but the golf courses are temporarily closed on the Android platform.'

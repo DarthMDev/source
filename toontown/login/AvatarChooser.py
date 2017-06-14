@@ -8,19 +8,21 @@ from toontown.toonbase import TTLocalizer
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 import random
+from toontown.toontowngui import TTDialog
+
 MAX_AVATARS = 6
 POSITIONS = (Vec3(-0.860167, 0, 0.359333),
- Vec3(0, 0, 0.346533),
- Vec3(0.848, 0, 0.3293),
- Vec3(-0.863554, 0, -0.445659),
- Vec3(0.00799999, 0, -0.5481),
- Vec3(0.894907, 0, -0.445659))
+             Vec3(0, 0, 0.346533),
+             Vec3(0.848, 0, 0.3293),
+             Vec3(-0.863554, 0, -0.445659),
+             Vec3(0.00799999, 0, -0.5481),
+             Vec3(0.894907, 0, -0.445659))
 COLORS = (Vec4(0.917, 0.164, 0.164, 1),
- Vec4(0.152, 0.75, 0.258, 1),
- Vec4(0.598, 0.402, 0.875, 1),
- Vec4(0.133, 0.59, 0.977, 1),
- Vec4(0.895, 0.348, 0.602, 1),
- Vec4(0.977, 0.816, 0.133, 1))
+          Vec4(0.152, 0.75, 0.258, 1),
+          Vec4(0.598, 0.402, 0.875, 1),
+          Vec4(0.133, 0.59, 0.977, 1),
+          Vec4(0.895, 0.348, 0.602, 1),
+          Vec4(0.977, 0.816, 0.133, 1))
 chooser_notify = DirectNotifyGlobal.directNotify.newCategory('AvatarChooser')
 
 PreloadModels = (
@@ -47,7 +49,10 @@ class AvatarChooser(StateData.StateData):
         StateData.StateData.__init__(self, doneEvent)
         self.choice = None
         self.avatarList = avatarList
-        self.fsm = ClassicFSM.ClassicFSM('AvatarChooser', [State.State('Choose', self.enterChoose, self.exitChoose, ['CheckDownload']), State.State('CheckDownload', self.enterCheckDownload, self.exitCheckDownload, ['Choose'])], 'Choose', 'Choose')
+        self.fsm = ClassicFSM.ClassicFSM('AvatarChooser',
+                                         [State.State('Choose', self.enterChoose, self.exitChoose, ['CheckDownload']),
+                                          State.State('CheckDownload', self.enterCheckDownload, self.exitCheckDownload,
+                                                      ['Choose'])], 'Choose', 'Choose')
         self.fsm.enterInitialState()
         self.parentFSM = parentFSM
         self.parentFSM.getCurrentState().addChild(self.fsm)
@@ -58,7 +63,7 @@ class AvatarChooser(StateData.StateData):
         base.disableMouse()
         self.title.reparentTo(aspect2d)
         # if base.cr.loginInterface.supportsRelogin():
-            # self.logoutButton.show()
+        # self.logoutButton.show()
         self.pickAToonBG.setBin('background', 1)
         self.pickAToonBG.reparentTo(aspect2d)
         base.setBackgroundColor(Vec4(0.145, 0.368, 0.78, 1))
@@ -81,6 +86,7 @@ class AvatarChooser(StateData.StateData):
         self.disconnectButton.hide()
         self.pickAToonBG.reparentTo(hidden)
         base.setBackgroundColor(ToontownGlobals.DefaultBackgroundColor)
+        base.ignore('confirmBack')
 
     def load(self):
         if self.isLoaded:
@@ -107,16 +113,27 @@ class AvatarChooser(StateData.StateData):
             fg=(1, 0.9, 0.1, 1), pos=(0.0, 0.82))
 
         quitHover = gui.find('**/QuitBtn_RLVR')
-        self.disconnectButton = DirectButton(
-            image=(quitHover, quitHover, quitHover), relief=None,
-            text=TTLocalizer.OptionsDisconnect,
-            text_font=ToontownGlobals.getSignFont(),
-            text_fg=(0.977, 0.816, 0.133, 1),
-            text_pos=TTLocalizer.ACdisconnectButtonPos,
-            text_scale=TTLocalizer.ACdisconnectButton, image_scale=1,
-            image1_scale=1.05, image2_scale=1.05, scale=1.05,
-            pos=(-0.25, 0, 0.075), command = self.__back)
-        self.disconnectButton.reparentTo(base.a2dBottomRight)
+        if (base.isSinglePlayer or base.isHosting):
+            self.disconnectButton = DirectButton(
+                image=(quitHover, quitHover, quitHover), relief=None,
+                text=TTLocalizer.OptionsDisconnect,
+                text_font=ToontownGlobals.getSignFont(),
+                text_fg=(0.977, 0.816, 0.133, 1),
+                text_pos=TTLocalizer.ACdisconnectButtonPos,
+                text_scale=TTLocalizer.ACdisconnectButton, image_scale=1,
+                image1_scale=1.05, image2_scale=1.05, scale=1.05,
+                pos=(0.25, 0, 0.075), command=self.__back)
+        else:
+            self.disconnectButton = DirectButton(
+                image=(quitHover, quitHover, quitHover), relief=None,
+                text=TTLocalizer.OptionsLeaveServer,
+                text_font=ToontownGlobals.getSignFont(),
+                text_fg=(0.977, 0.816, 0.133, 1),
+                text_pos=TTLocalizer.ACdisconnectButtonPos,
+                text_scale=TTLocalizer.ACleaveButton, image_scale=1,
+                image1_scale=1.05, image2_scale=1.05, scale=1.05,
+                pos=(0.25, 0, 0.075), command=self.__back)
+        self.disconnectButton.reparentTo(base.a2dBottomLeft)
 
         """
         self.logoutButton = DirectButton(
@@ -256,7 +273,7 @@ class AvatarChooser(StateData.StateData):
         TexturePool.garbageCollect()
         base.setBackgroundColor(ToontownGlobals.DefaultBackgroundColor)
 
-    def __handlePanelDone(self, panelDoneStatus, panelChoice = 0):
+    def __handlePanelDone(self, panelDoneStatus, panelChoice=0):
         self.doneStatus = {}
         self.doneStatus['mode'] = panelDoneStatus
         self.choice = panelChoice
@@ -311,6 +328,28 @@ class AvatarChooser(StateData.StateData):
 
     def __handleLogoutWithoutConfirm(self):
         base.cr.loginFSM.request('login')
-    
+
     def __back(self):
+        if base.isHosting:
+            self.confirm = TTDialog.TTGlobalDialog(
+                doneEvent='confirmBack',
+                message=TTLocalizer.OptionsPageExitConfirmMultiplayerHost,
+                style=TTDialog.TwoChoice)
+            self.confirm.show()
+            base.accept('confirmBack', self.__backConfirm)
+            return
+
+        elif base.isSinglePlayer:
+            base.cr.mainMenu.LocalSinglePlayerStart.killThreads()
+
         base.cr.loginFSM.request('mainMenu')
+
+    def __backConfirm(self):
+        status = self.confirm.doneStatus
+        self.ignore('confirmDone')
+        self.confirm.cleanup()
+        del self.confirm
+        if status == 'ok':
+            if base.isSinglePlayer or base.isHosting:
+                base.cr.mainMenu.LocalSinglePlayerStart.killThreads()
+            base.cr.loginFSM.request('mainMenu')

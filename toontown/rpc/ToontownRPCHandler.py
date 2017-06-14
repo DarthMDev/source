@@ -1,4 +1,3 @@
-import semidbm
 import datetime
 import re
 
@@ -22,11 +21,6 @@ from toontown.guilds.GuildGlobals import GUILD_NAME_REJECTED
 class ToontownRPCHandler(ToontownRPCHandlerBase):
     def __init__(self, air):
         ToontownRPCHandlerBase.__init__(self, air)
-
-        accountBridgePath = config.GetString(
-            'account-bridge-filename', 'account-bridge')
-        self.accountBridge = semidbm.open(accountBridgePath, 'c')
-
         self.shardStatus = ShardStatusReceiver(air)
 
     # --- TESTS ---
@@ -174,7 +168,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
         if channel == self.air.ourChannel:
             self.air.handleReloadConfig(self.air.ourChannel)
         else:
-            self.air.netMessenger.send('reloadConfig', [channel])
+            self.air.sendNetEvent('reloadConfig', [channel])
 
     # --- MESSAGES ---
 
@@ -468,9 +462,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             On success: 100000000
             On failure: None
         """
-        self.accountBridge.sync()
-        if str(userId) in self.accountBridge:
-            return int(self.accountBridge[str(userId)])
+        return self.air.csm.accountDB.lookupUserId(userId)['accountId'] or None
 
     @rpcmethod(accessLevel=MODERATOR)
     def rpc_getUserAvatars(self, userId):
@@ -854,7 +846,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             <int flags> = Extra invasion flags.
             <int type> = The invasion type.
         """
-        self.air.netMessenger.send(
+        self.air.sendNetEvent(
             'startInvasion',
             [shardId, suitDeptIndex, suitTypeIndex, flags, type])
 
@@ -868,7 +860,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             [int shardId] = The ID of the shard that is running the invasion to
                 be terminated.
         """
-        self.air.netMessenger.send('stopInvasion', [shardId])
+        self.air.sendNetEvent('stopInvasion', [shardId])
 
     # --- NAME REVIEW ---
 

@@ -173,10 +173,10 @@ class DistributedPartyCatchActivity(DistributedPartyActivity, DistributedPartyCa
         self.dropObjModels = {}
         if loadModels:
             self.__loadDropModels()
-        self.sndGoodCatch = base.loadSfx('phase_4/audio/sfx/SZ_DD_treasure.ogg')
-        self.sndOof = base.loadSfx('phase_4/audio/sfx/MG_cannon_hit_dirt.ogg')
-        self.sndAnvilLand = base.loadSfx('phase_4/audio/sfx/AA_drop_anvil_miss.ogg')
-        self.sndPerfect = base.loadSfx('phase_4/audio/sfx/ring_perfect.ogg')
+        self.sndGoodCatch = loader.loadSfx('phase_4/audio/sfx/SZ_DD_treasure.ogg')
+        self.sndOof = loader.loadSfx('phase_4/audio/sfx/MG_cannon_hit_dirt.ogg')
+        self.sndAnvilLand = loader.loadSfx('phase_4/audio/sfx/AA_drop_anvil_miss.ogg')
+        self.sndPerfect = loader.loadSfx('phase_4/audio/sfx/ring_perfect.ogg')
         self.__textGen = TextNode('partyCatchActivity')
         self.__textGen.setFont(ToontownGlobals.getSignFont())
         self.__textGen.setAlign(TextNode.ACenter)
@@ -215,7 +215,7 @@ class DistributedPartyCatchActivity(DistributedPartyActivity, DistributedPartyCa
         self.stopDropTask()
         del self.activityFSM
         del self.__textGen
-        for avId in self.toonSDs.keys():
+        for avId in self.toonSDs:
             if avId in self.toonSDs:
                 toonSD = self.toonSDs[avId]
                 toonSD.unload()

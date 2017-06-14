@@ -2,10 +2,12 @@ from direct.gui.DirectGui import DirectFrame, DirectButton, OnscreenText, DGG
 from panda3d.core import TextNode, NodePath, CardMaker, TransparencyAttrib
 from toontown.toonbase import ToontownGlobals
 from toontown.guilds import IconGlobals
+from toontown.util import TTCardMaker
+
 
 class IconSelectionDialog(DirectFrame):
     def __init__(self, parent, text, iconList, color=(1.0, 1.0, 1.0, 1.0), scale=(1.0, 1.0, 1.0), command=None):
-        self.parent = parent
+        self._parent = parent
         self.text = text
         self.command = command
         self.iconList = iconList        # List of iconIds to display
@@ -15,21 +17,13 @@ class IconSelectionDialog(DirectFrame):
         maxPages = float(len(iconList) / maxPerPage)
         self.maxPages = int(maxPages + 1)
 
-        DirectFrame.__init__(self, parent=self.parent, relief=None)
+        DirectFrame.__init__(self, parent=self._parent, relief=None)
 
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
-
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
         matchingGameGui = loader.loadModel('phase_3.5/models/gui/matching_game_gui')
         arrow = matchingGameGui.find('**/minnieArrow')
 
-        self.mainFrame = DirectFrame(self.parent, relief=None, image=background, image_color=color, image_scale=(0.0008, 1, 0.0008), scale=scale)
+        self.mainFrame = DirectFrame(self._parent, relief=None, image=background, image_color=color, image_scale=(0.0008, 1, 0.0008), scale=scale)
         self.heading = OnscreenText(parent=self.mainFrame, text=self.text, scale=0.08, wordwrap=10, align=TextNode.ACenter, pos=(0.0, 0.5, 0.0), font=ToontownGlobals.getMinnieFont())
         self.previousPage = DirectButton(self.mainFrame, relief=None, geom=arrow, geom_scale=-0.4, pos=(-0.6, 0.0, -0.615), command=self.__handlePreviousPage)
         self.previousPage.bind(DGG.WITHIN, self.__handleEnter, extraArgs=[self.previousPage])
@@ -87,7 +81,7 @@ class IconSelectionDialog(DirectFrame):
         self.iconButtonList = []
 
     def destroy(self):
-        self.parent = None
+        self._parent = None
         self.mainFrame.destroy()
         DirectFrame.destroy(self)
 
@@ -142,10 +136,11 @@ class IconSelectionDialog(DirectFrame):
     def __handleExit(self, button, e):
         button['geom_color'] = (1, 1, 1, 1)
 
+
 class IconSelector(DirectButton):
     def __init__(self, parent, iconId, pos, color, command):
 
-        self.parent = parent
+        self._parent = parent
         self.iconId = iconId
         self.pos = pos
         self.command = command
@@ -153,14 +148,7 @@ class IconSelector(DirectButton):
 
         DirectButton.__init__(self, parent, relief=None, pos=pos)
 
-        filepath = 'phase_3/maps/gui-circle.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/gui-circle.png')
 
         # Use icon Id to load this
         modelPath = IconGlobals.ICON_ID_TO_MODEL[iconId]
@@ -188,7 +176,7 @@ class IconSelector(DirectButton):
             self.disable()
 
     def destroy(self):
-        self.parent = None
+        self._parent = None
         self.command = None
         if self.mainButton is not None:
             self.mainButton.destroy()

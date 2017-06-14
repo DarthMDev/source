@@ -27,7 +27,7 @@ from toontown.coghq import CogDisguiseGlobals
 from toontown.distributed import DelayDelete
 from toontown.nametag.NametagGlobals import *
 from toontown.toonbase import TTLocalizer
-from toontown.toonbase import ToontownGlobals
+from toontown.toonbase import ToontownGlobals, SettingsGlobals
 
 OneBossCog = None
 TTL = TTLocalizer
@@ -273,7 +273,8 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         self.resistanceToon.suit.loop('neutral')
         base.camera.setPos(0, 21, 7)
         self.reparentTo(render)
-        self.setBlend(frameBlend=True)
+        if settings.get(SettingsGlobals.AnimationSmoothing):
+            self.setBlend(frameBlend=True)
         self.setPosHpr(*ToontownGlobals.BossbotBossBattleOnePosHpr)
         self.loop('Ff_neutral')
         base.camLens.setMinFov(ToontownGlobals.CEOElevatorFov / (4. / 3.))
@@ -791,8 +792,9 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         self.stopMoveTask()
         taskMgr.remove('chaseTask')
         if hasattr(self, 'tableIndex'):
-            table = self.tables[self.tableIndex]
-            table.tableGroup.hide()
+            table = self.tables.get(self.tableIndex, None)
+            if table is not None:
+                table.tableGroup.hide()
         self.loop('neutral')
         localAvatar.setCameraFov(ToontownGlobals.BossBattleCameraFov)
         self.clearChat()
@@ -1152,10 +1154,6 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             self.setDizzy(0)
             self.interruptMove()
             self.doMoveAttack(avId)
-        elif attackCode == ToontownGlobals.BossCogChaseAttack:
-            self.setDizzy(0)
-            self.interruptMove()
-            self.doChaseToonAttack(avId)
         elif attackCode == ToontownGlobals.BossCogGolfAttack:
             self.setDizzy(0)
             self.interruptMove()
@@ -1177,11 +1175,6 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         elif attackCode == ToontownGlobals.BossCogSwatRight:
             self.setDizzy(0)
             self.doAnimate('rtSwing', now=1)
-        elif attackCode == ToontownGlobals.BossCogAreaAttack:
-            self.saySomething(TTLocalizer.BossbotJumpTaunt)
-            base.playSfx(self.warningSfx)
-            self.setDizzy(0)
-            self.doAnimate('areaAttack', now=1)
         elif attackCode == ToontownGlobals.BossCogFrontAttack:
             self.setDizzy(0)
             self.doAnimate('frontAttack', now=1)

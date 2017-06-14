@@ -41,7 +41,6 @@ class DistributedPartyActivity(DistributedObject.DistributedObject):
         self.difficultyOverride = None
         self.trolleyZoneOverride = None
         self._localToonRequestStatus = None
-        return
 
     def localToonExiting(self):
         self._localToonRequestStatus = PartyGlobals.ActivityRequestStatus.Exiting
@@ -438,7 +437,7 @@ class DistributedPartyActivity(DistributedObject.DistributedObject):
         return
 
     def setPartyDoId(self, partyDoId):
-        self.party = base.cr.doId2do[partyDoId]
+        self.party = base.cr.doId2do.get(partyDoId)
 
     def setX(self, x):
         self.x = x

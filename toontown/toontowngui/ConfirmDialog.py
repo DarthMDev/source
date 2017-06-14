@@ -1,33 +1,27 @@
 from direct.gui.DirectGui import DirectFrame, OnscreenText, DirectButton, DGG
 from panda3d.core import TextNode, NodePath, CardMaker, TransparencyAttrib
 from toontown.toonbase import ToontownGlobals, TTLocalizer
+from toontown.util import TTCardMaker
 
 
 class ConfirmDialog(DirectFrame):
     def __init__(self, parent=aspect2d, text=TTLocalizer.AreYouSure, buttonTexts=(TTLocalizer.lYes, TTLocalizer.lCancel), color=(1.0, 1.0, 1.0, 0.95), scale=(1.0, 1.0, 1.0), commands=(None, None)):
-        self.parent = parent
+        self._parent = parent
         self.text = text
         self.buttonTexts = buttonTexts
         self.commands = commands
 
-        DirectFrame.__init__(self, parent=self.parent, relief=None)
-
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
+        DirectFrame.__init__(self, parent=self._parent, relief=None)
 
         buttonModels = preloader.getModel('phase_3.5/models/gui/inventory_gui')
         upButton = buttonModels.find('**/InventoryButtonUp')
         downButton = buttonModels.find('**/InventoryButtonDown')
         rolloverButton = buttonModels.find('**/InventoryButtonRollover')
 
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
 
         self.mainFrame = DirectFrame(
-            self.parent,
+            self._parent,
             relief=None,
             scale=scale,
             image=background,
@@ -72,7 +66,7 @@ class ConfirmDialog(DirectFrame):
         background.removeNode()
 
     def destroy(self):
-        self.parent = None
+        self._parent = None
 
         self.mainFrame.destroy()
         DirectFrame.destroy(self)

@@ -3,59 +3,91 @@ distribution live
 
 # Server:
 server-version SERVER_VERSION
-shard-low-pop 100
-shard-mid-pop 150
-client-agents 8
+accountdb-type production
 
-# Temporary configuration for SP Alpha
-# until we get our web account API up and running.
-force-access-level 100
+# Temporary configuration for Alpha
+access-level-clamp 100 400
+
+# MongoDB:
+mongodb-url mongodb://localhost/game
+
+# UberDOG:
+generate-root-object #t
+generate-global-object 4688 CentralLogger
+generate-global-object 4665 ClientServicesManager
+generate-global-object 4681 ChatAgent
+generate-global-object 4501 FriendManager
+generate-global-object 4686 AvatarFriendsManager
+generate-global-object 4687 PlayerFriendsManager
+generate-global-object 4666 TTIFriendsManager
+generate-global-object 4712 TTSpeedchatRelay
+generate-global-object 4683 DistributedDeliveryManager
+generate-global-object 4695 TTCodeRedemptionMgr
+generate-global-object 4477 GlobalPartyManager
+generate-global-object 4683 DistributedDeliveryManager
+# generate-global-object 4701 GuildManager
+# generate-global-object 4478 GlobalGroupTracker
+generate-global-object 4901 MegaInvasionManager
+
+# Web API:
+want-web-api #f
+web-api-endpoint https://localhost:8000/api/
+web-api-token invalid
 
 # Core features:
-want-grouptracker #f
-want-game-tables #f
-want-true-friends #f
+want-multiplayer #t
+want-pets #t
+want-parties #t
 want-achievements #f
-want-parties #f
-force-skip-tutorial #t
+want-grouptracker #f
 
 # Safe zones:
 want-safe-zones #t
 want-toontown-central #t
-want-donalds-dock #f
-want-daisys-garden #f
-want-minnies-melodyland #f
-want-the-burrrgh #f
-want-donalds-dreamland #f
-want-goofy-speedway #f
-want-outdoor-zone #f
-want-golf-zone #f
+want-donalds-dock #t
+want-daisys-garden #t
+want-minnies-melodyland #t
+want-the-burrrgh #t
+want-donalds-dreamland #t
+want-goofy-speedway #t
+want-outdoor-zone #t
+want-golf-zone #t
 want-resistance-grounds #f
 
-# Chat:
-want-whitelist #t
-want-blacklist #t
+# Cog headquarters:
+want-cog-headquarters #t
+
+# Cog buildings:
+want-cogbuildings #t
+want-cogdominiums #t
 
 # Sellbot boss:
 disable-sos-card 91917
 disable-sos-card 91918
 
-# Holidays:
-base-xp-multiplier 1.0
+# Trolley minigames:
+want-ttc-trolley #t
+want-photo-game #f
+want-travel-game #f
 
-# Optional
-want-phone-quest #f
-want-yin-yang #f
-want-heartbeat #f
+# Chat:
+want-whitelist #t
+want-blacklist #t
 
 # Developer options:
+want-yin-yang #t
+force-skip-tutorial #t
 show-population #f
+want-phone-quest #f
+want-heartbeat #f
 
 # Debug tools:
 want-leak-graph-ai #f
 want-leak-graph-client #f
+want-dev-debug #f
 
-# Unlock timer:
-want-unlock-timer #t
-unlock-time Sun Dec 6 19:20:00 2015
-unlock-text Toontown Infinite will open in:
+# Safezone interactables:
+want-ttc-jukebox #t
+
+# Mod tools:
+want-mods #f

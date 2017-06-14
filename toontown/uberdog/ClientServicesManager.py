@@ -4,10 +4,11 @@ from direct.distributed.DistributedObjectGlobal import DistributedObjectGlobal
 
 from toontown.chat.WhisperPopup import WhisperPopup
 from toontown.chat.ChatGlobals import WTSystem
+from toontown.toonbase import ToontownGlobals
 
 from otp.distributed.PotentialAvatar import PotentialAvatar
 from otp.otpbase import OTPGlobals
-
+import sys
 
 def generateLookupTable(key):
     return [hex(ord(str(key)[i % len(str(key))]) & ord(key[4]) & i) for i in xrange(255)]
@@ -29,7 +30,12 @@ class ClientServicesManager(DistributedObjectGlobal):
     # --- LOGIN LOGIC ---
     def performLogin(self, doneEvent):
         self.loginDoneEvent = doneEvent
-        self.sendUpdate('requestAuthToken')
+        
+        mac = ToontownGlobals.getMac()
+        getIP = ToontownGlobals.getIp()
+        print 'requestAuthToken sending %s and %s' % (mac, getIP)
+
+        self.sendUpdate('requestAuthToken', [mac, getIP])
 
     def receiveAuthToken(self, authToken):
         lookupTable = generateLookupTable(authToken[::2])
@@ -98,13 +104,13 @@ class ClientServicesManager(DistributedObjectGlobal):
 
     # --- AVATAR CHOICE ---
     def sendChooseAvatar(self, avId):
-        self.sendUpdate('chooseAvatar', [avId])
+        self.sendUpdate('chooseAvatar', [avId, sys.platform])
 
     def systemMessage(self, message):
         whisper = WhisperPopup(message, OTPGlobals.getInterfaceFont(), WTSystem)
         whisper.manage(base.marginManager)
 
         if self.systemMessageSfx is None:
-            self.systemMessageSfx = base.loadSfx('phase_3/audio/sfx/clock03.ogg')
+            self.systemMessageSfx = loader.loadSfx('phase_3/audio/sfx/clock03.ogg')
 
         base.playSfx(self.systemMessageSfx)

@@ -37,7 +37,7 @@ class DirectNewsFrame(DirectObject.DirectObject):
         DirectObject.DirectObject.__init__(self)
         self.accept('newsSnapshot', self.doSnapshot)
         self.active = False
-        self.parent = parent
+        self._parent = parent
         self.issues = []
         self.accept('newsChangeWeek', self.changeWeek)
         self.curIssueIndex = 0
@@ -154,7 +154,7 @@ class DirectNewsFrame(DirectObject.DirectObject):
         upsellBackground = loader.loadModel('phase_3.5/models/gui/tt_m_gui_ign_newsStatusBackground')
         imageScaleX = self.FrameDimensions[1] - self.FrameDimensions[0]
         imageScaleY = self.FrameDimensions[3] - self.FrameDimensions[2]
-        self.backFrame = DirectFrame(parent=self.parent, image=upsellBackground, image_scale=(imageScaleX, 1, imageScaleY), frameColor=(1, 1, 1, 0), frameSize=self.FrameDimensions, pos=(0, 0, 0), relief=DGG.FLAT, text=TTLocalizer.NewsPageDownloadingNews1, text_scale=0.06, text_pos=(0, -0.4))
+        self.backFrame = DirectFrame(parent=self._parent, image=upsellBackground, image_scale=(imageScaleX, 1, imageScaleY), frameColor=(1, 1, 1, 0), frameSize=self.FrameDimensions, pos=(0, 0, 0), relief=DGG.FLAT, text=TTLocalizer.NewsPageDownloadingNews1, text_scale=0.06, text_pos=(0, -0.4))
 
     def addDownloadingTextTask(self):
         self.removeDownloadingTextTask()
@@ -369,23 +369,7 @@ class DirectNewsFrame(DirectObject.DirectObject):
                 self.redownloadNews()
 
     def getInGameNewsUrl(self):
-        result = base.config.GetString('fallback-news-url', 'http://cdn.toontown.disney.go.com/toontown/en/gamenews/')
-        override = base.config.GetString('in-game-news-url', '')
-        if override:
-            self.notify.info('got an override url,  using %s for in game news' % override)
-            result = override
-        else:
-            try:
-                launcherUrl = base.launcher.getValue('GAME_IN_GAME_NEWS_URL', '')
-                if launcherUrl:
-                    result = launcherUrl
-                    self.notify.info('got GAME_IN_GAME_NEWS_URL from launcher using %s' % result)
-                else:
-                    self.notify.info('blank GAME_IN_GAME_NEWS_URL from launcher, using %s' % result)
-            except:
-                self.notify.warning('got exception getting GAME_IN_GAME_NEWS_URL from launcher, using %s' % result)
-
-        return result
+        return base.config.GetString('fallback-news-url', 'http://cdn.toontown.disney.go.com/toontown/en/gamenews/')
 
     def calcIssueVersion(self, dateStr):
         majorVer = 1

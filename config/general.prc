@@ -32,9 +32,13 @@ backups-extension .json
 
 # Server:
 server-timezone EST/EDT/-5
-server-port 7199
+server-port 7000
 account-server-endpoint https://toontowninfinite.com/api/
-account-bridge-filename astron/databases/account-bridge.db
+
+# RPC:
+want-rpc-server #f
+rpc-server-endpoint http://localhost:8080/
+rpc-server-secret eWd54mrNYuREmTA6
 
 # Performance:
 sync-video #f
@@ -57,6 +61,8 @@ egg-object-type-model <Model> { 1 }
 egg-object-type-dcs <DCS> { 1 }
 
 # Core features:
+want-kaldron-network #f
+want-multiplayer #f
 want-guilds #f
 want-guild-quests #f
 want-emblems #f
@@ -78,7 +84,7 @@ want-resistance-grounds #f
 
 # Safe zone settings:
 want-treasure-planners #f
-want-suit-planners #f
+want-suit-planners #t
 
 # Classic characters:
 want-classic-chars #f
@@ -95,12 +101,13 @@ want-goofy #f
 want-minigames #t
 want-photo-game #f
 want-travel-game #f
+want-ttc-trolley #t
 
 # Picnic table board games:
 want-game-tables #f
 
 # Cog headquarters:
-want-cog-headquarters #f
+want-cog-headquarters #t
 want-sellbot-headquarters #t
 want-cashbot-headquarters #t
 want-lawbot-headquarters #t
@@ -113,10 +120,6 @@ want-resistance-dance #f
 
 # Cog battles:
 base-xp-multiplier 1.0
-
-# Cog buildings:
-want-cogbuildings #f
-want-cogdominiums #f
 
 # Optional:
 show-total-population #t
@@ -144,8 +147,10 @@ want-live-updates #t
 # Heartbeat
 want-heartbeat #t
 
-# Events
-want-storm-event #f
-
 # Toon patches:
 toon-patch-version 0
+
+# Intel:
+stencil-bits 1
+depth-bits 24
+allow-incomplete-render #f

@@ -20,7 +20,7 @@ from otp.avatar import ToontownControlManager
 from otp.otpbase import OTPGlobals
 from otp.otpbase import OTPLocalizer
 from toontown.chat.ChatGlobals import *
-from toontown.toonbase import ToontownGlobals
+from toontown.toonbase import ToontownGlobals, EventGlobals
 
 
 class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.DistributedSmoothNode):
@@ -381,35 +381,34 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
         self.b_setAnimState(state, 1.0)
         return Task.done
 
-    if 1:
-        def jumpLandAnimFix(self, jumpTime):
-            if self.playingAnim != 'run' and self.playingAnim != 'walk':
-                return taskMgr.doMethodLater(jumpTime, self.returnToWalk, self.uniqueName('walkReturnTask'))
+    def jumpLandAnimFix(self, jumpTime):
+        if self.playingAnim != 'run' and self.playingAnim != 'walk':
+            return taskMgr.doMethodLater(jumpTime, self.returnToWalk, self.uniqueName('walkReturnTask'))
 
-        def jumpHardLand(self):
-            if self.allowHardLand():
-                self.b_setAnimState('jumpLand', 1.0)
-                self.stopJumpLandTask()
-                self.jumpLandAnimFixTask = self.jumpLandAnimFix(1.0)
-            else:
-                self.jumpLandAnimFixTask = self.jumpLandAnimFix(0.01)
-            if self.d_broadcastPosHpr:
-                self.d_broadcastPosHpr()
-
-        def jumpLand(self):
+    def jumpHardLand(self):
+        if self.allowHardLand():
+            self.b_setAnimState('jumpLand', 1.0)
+            self.stopJumpLandTask()
+            self.jumpLandAnimFixTask = self.jumpLandAnimFix(1.0)
+        else:
             self.jumpLandAnimFixTask = self.jumpLandAnimFix(0.01)
-            if self.d_broadcastPosHpr:
-                self.d_broadcastPosHpr()
+        if self.d_broadcastPosHpr:
+            self.d_broadcastPosHpr()
+
+    def jumpLand(self):
+        self.jumpLandAnimFixTask = self.jumpLandAnimFix(0.01)
+        if self.d_broadcastPosHpr:
+            self.d_broadcastPosHpr()
 
     def setupAnimationEvents(self):
-        self.accept('jumpStart', self.jumpStart, [])
-        self.accept('jumpHardLand', self.jumpHardLand, [])
-        self.accept('jumpLand', self.jumpLand, [])
+        self.accept(EventGlobals.JumpStart, self.jumpStart, [])
+        self.accept(EventGlobals.JumpHardLand, self.jumpHardLand, [])
+        self.accept(EventGlobals.JumpLand, self.jumpLand, [])
 
     def ignoreAnimationEvents(self):
-        self.ignore('jumpStart')
-        self.ignore('jumpHardLand')
-        self.ignore('jumpLand')
+        self.ignore(EventGlobals.JumpStart)
+        self.ignore(EventGlobals.JumpHardLand)
+        self.ignore(EventGlobals.JumpLand)
 
     def allowHardLand(self):
         return not self.sleepFlag and self.hp > 0 and not self.isGoofy
@@ -1328,7 +1327,7 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
         return 0
 
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER)
+@magicWord(category=CATEGORY_USER2)
 def crash():
     """
     Crashes your client.
@@ -1336,7 +1335,7 @@ def crash():
     base.localAvatar = None
     return 'Crashed!'
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER)
+@magicWord(category=CATEGORY_USER2)
 def run():
     """
     Toggles debugging run speed.
@@ -1344,7 +1343,7 @@ def run():
     inputState.set('debugRunning', inputState.isSet('debugRunning') != True)
     return 'Toggled debug run speed.'
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER)
+@magicWord(category=CATEGORY_USER2)
 def collisionsOff():
     """
     Turns collisions off.
@@ -1352,7 +1351,7 @@ def collisionsOff():
     base.localAvatar.collisionsOff()
     return 'Collisions are disabled.'
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER)
+@magicWord(category=CATEGORY_USER2)
 def collisionsOn():
     """
     Turns collisions on.
@@ -1360,7 +1359,7 @@ def collisionsOn():
     base.localAvatar.collisionsOn()
     return 'Collisions are enabled.'
 
-@magicWord(category=CATEGORY_ADMINISTRATOR, types=[int])
+@magicWord(category=CATEGORY_USER2, types=[int])
 def gravity(value):
     """
     Modifies the invoker's gravity. For default, use 0.
@@ -1368,18 +1367,18 @@ def gravity(value):
     if value < 0:
         return 'Invalid gravity value!'
     if value == 0:
-        base.localAvatar.ToontownControlManager.currentControls.setGravity(ToontownGlobals.GravityValue * 2.0)
+        base.localAvatar.controlManager.currentControls.setGravity(ToontownGlobals.GravityValue * 2.0)
     else:
-        base.localAvatar.ToontownControlManager.currentControls.setGravity(value)
+        base.localAvatar.controlManager.currentControls.setGravity(value)
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER, types=[float, float, float])
+@magicWord(category=CATEGORY_USER2, types=[float, float, float])
 def xyz(x, y, z):
     """
     Modifies the position of the invoker.
     """
     base.localAvatar.setPos(x, y, z)
 
-@magicWord(category=CATEGORY_COMMUNITY_MANAGER, types=[float, float, float])
+@magicWord(category=CATEGORY_USER2, types=[float, float, float])
 def hpr(h, p, r):
     """
     Modifies the rotation of the invoker.

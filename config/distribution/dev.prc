@@ -9,81 +9,97 @@ model-path ../resources
 
 # Server:
 server-version dev
-shard-low-pop 25
-shard-mid-pop 50
 accountdb-type developer
-min-access-level 600
+access-level-clamp 400 400
 
 # MongoDB:
 mongodb-url mongodb://localhost/game
 
 # UberDOG:
 generate-root-object #t
+generate-global-object 4688 CentralLogger
 generate-global-object 4665 ClientServicesManager
 generate-global-object 4681 ChatAgent
+generate-global-object 4501 FriendManager
+generate-global-object 4686 AvatarFriendsManager
+generate-global-object 4687 PlayerFriendsManager
 generate-global-object 4666 TTIFriendsManager
+generate-global-object 4712 TTSpeedchatRelay
+generate-global-object 4683 DistributedDeliveryManager
+generate-global-object 4695 TTCodeRedemptionMgr
 generate-global-object 4477 GlobalPartyManager
 generate-global-object 4683 DistributedDeliveryManager
 # generate-global-object 4701 GuildManager
 # generate-global-object 4478 GlobalGroupTracker
 generate-global-object 4901 MegaInvasionManager
 
-# RPC:
-want-rpc-server #f
-rpc-server-endpoint http://localhost:8080/
-
 # Web API:
 want-web-api #f
 web-api-endpoint https://localhost:8000/api/
 web-api-token invalid
 
-# DClass files (in reverse order):
-dc-file astron/dclass/toon.dc
-dc-file astron/dclass/otp.dc
+# DC file:
+dc-file astron/dclass/vanilla.dc
 
 # Core features:
-want-pets #f
-want-parties #f
+want-multiplayer #t
+want-pets #t
+want-parties #t
 want-achievements #f
 want-grouptracker #f
+want-server-browser #f
 
-# Double progression:
-want-double-progression #t
+# Safe zones:
+want-safe-zones #t
+want-toontown-central #t
+want-donalds-dock #t
+want-daisys-garden #t
+want-minnies-melodyland #t
+want-the-burrrgh #t
+want-donalds-dreamland #t
+want-goofy-speedway #t
+want-outdoor-zone #t
+want-golf-zone #t
+want-resistance-grounds #f
 
-# Chat:
-want-whitelist #f
-want-blacklist #f
+# Cog headquarters:
+want-cog-headquarters #t
+
+# Cog buildings:
+want-cogbuildings #t
+want-cogdominiums #t
 
 # Cashbot boss:
 want-resistance-toonup #t
 want-resistance-restock #t
 want-resistance-dance #t
 
+# Trolley minigames:
+want-ttc-trolley #t
+want-photo-game #f
+want-travel-game #f
+
+# Chat:
+want-whitelist #f
+want-blacklist #f
+
+# Double progression:
+want-double-progression #t
+
 # Developer options:
-show-population #f
 force-skip-tutorial #t
+show-population #f
 want-instant-parties #t
 want-quest-verification #t
+want-heartbeat #f
+want-yin-yang #t
 
 # Debug tools:
 want-leak-graph-ai #f
 want-leak-graph-client #f
 
-# Safe zones:
-want-safe-zones #t
-want-toontown-central #t
-want-donalds-dock #f
-want-daisys-garden #f
-want-minnies-melodyland #f
-want-the-burrrgh #f
-want-donalds-dreamland #f
-want-goofy-speedway #f
-want-outdoor-zone #f
-want-golf-zone #f
-want-resistance-grounds #f
+# Safezone interactables:
+want-ttc-jukebox #t
 
-# Cog headquarters:
-want-cog-headquarters #f
-
-# Heartbeat
-want-heartbeat #f
+# Mod tools:
+want-mods #f

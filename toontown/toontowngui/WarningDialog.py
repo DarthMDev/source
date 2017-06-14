@@ -1,25 +1,19 @@
 from direct.gui.DirectGui import DirectFrame, OnscreenText, DirectButton, DGG
 from panda3d.core import TextNode, NodePath, CardMaker, TransparencyAttrib
 from toontown.toonbase import ToontownGlobals, TTLocalizer
+from toontown.util import TTCardMaker
 
 
 class WarningDialog(DirectFrame):
     def __init__(self, parent, text, button_text=TTLocalizer.lOK, color=(1.0, 1.0, 1.0, 1.0), scale=(1.0, 1.0, 1.0), command=None):
-        self.parent = parent
+        self._parent = parent
         self.text = text
         self.button_text = button_text
         self.command = command
 
-        DirectFrame.__init__(self, parent=self.parent, relief=None)
+        DirectFrame.__init__(self, parent=self._parent, relief=None)
 
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
 
         buttonModels = preloader.getModel('phase_3.5/models/gui/inventory_gui')
         upButton = buttonModels.find('**/InventoryButtonUp')
@@ -27,7 +21,7 @@ class WarningDialog(DirectFrame):
         rolloverButton = buttonModels.find('**/InventoryButtonRollover')
 
         self.mainFrame = DirectFrame(
-            self.parent,
+            self._parent,
             relief=None,
             scale=scale,
             image=background,
@@ -61,7 +55,7 @@ class WarningDialog(DirectFrame):
         background.removeNode()
 
     def destroy(self):
-        self.parent = None
+        self._parent = None
         self.mainFrame.destroy()
         DirectFrame.destroy(self)
 

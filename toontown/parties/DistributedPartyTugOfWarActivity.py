@@ -408,6 +408,7 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         self.hideRopes()
 
     def startConclusion(self, losingTeam):
+        losingTeam = losingTeam[0]
         DistributedPartyTeamActivity.startConclusion(self, losingTeam)
         if self.isLocalToonPlaying:
             self._rewardFinishedSV.set(False)

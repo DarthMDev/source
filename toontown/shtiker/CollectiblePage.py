@@ -2,8 +2,9 @@ from pandac.PandaModules import *
 from direct.gui.DirectGui import DirectFrame, DirectLabel, DirectScrolledList, DGG, DirectButton
 from toontown.collectibles import CollectibleGlobals
 from toontown.collectibles.CollectibleInventoryGlobals import DefaultItems
-from toontown.toonbase import TTLocalizer, ToontownGlobals, EventGlobals
+from toontown.toonbase import TTLocalizer, EventGlobals
 from toontown.shtiker import ShtikerPage
+from toontown.util import TTCardMaker
 
 
 class CollectiblePage(ShtikerPage.ShtikerPage):
@@ -124,7 +125,7 @@ class CategoryItemsDisplay(DirectFrame):
 
     def __init__(self, parent, cItems):
         DirectFrame.__init__(self, parent=parent)
-        self.parent = parent
+        self._parent = parent
         self.cItems = cItems
 
         self.items = []
@@ -152,18 +153,11 @@ class CategoryItemsDisplay(DirectFrame):
         incButtonScale = (1.3, 1.3, -1.3)
         decButtonScale = (1.3, 1.3, 1.3)
 
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
 
         # Main
         self.mainFrame = DirectFrame(
-            self.parent,
+            self._parent,
             relief=DGG.FLAT,
             scale=1.0,
             image_color=(1.0, 1.0, 1.0, 1.0),
@@ -318,13 +312,8 @@ class CategoryItemsDisplay(DirectFrame):
             if page > pageCount:
                 page = pageCount
         self.currentPage = page
-        filepath = 'phase_3/maps/gui-circle.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+
+        background = TTCardMaker.makeCard('phase_3/maps/gui-circle.png')
 
         self.itemsHeading['text'] = category.name
         items = category.getOrderedItems(page*self.maxPerPage, (page+1)*self.maxPerPage)
@@ -444,7 +433,7 @@ class ItemDialog(DirectButton):
     StateEquipped = 3
 
     def __init__(self, parent, item, image, pos, color, command):
-        self.parent = parent
+        self._parent = parent
         self.item = item
         self.image = image
         self.pos = pos
@@ -480,7 +469,7 @@ class ItemDialog(DirectButton):
         self.updateButtonState()
 
     def destroy(self):
-        self.parent = None
+        self._parent = None
         self.command = None
         if self.mainButton is not None:
             self.mainButton.destroy()
@@ -610,7 +599,7 @@ class CollectibleItemDialog(ItemDialog):
 
 class ItemTooltip(DirectFrame):
     def __init__(self, parent, item, pos, scale, color):
-        self.parent = parent
+        self._parent = parent
         self.item = item
         self.pos = pos
         self.scale = scale
@@ -618,14 +607,7 @@ class ItemTooltip(DirectFrame):
 
         DirectFrame.__init__(self, parent, relief=None, pos=pos)
 
-        filepath = 'phase_3/maps/curved-gui-square.png'
-        tex = loader.loadTexture(filepath)
-        cm = CardMaker(filepath + ' card')
-        cm.setFrame(-tex.getOrigFileXSize(), tex.getOrigFileXSize(), -tex.getOrigFileYSize(), tex.getOrigFileYSize())
-
-        background = NodePath(cm.generate())
-        background.setTexture(tex)
-        background.setTransparency(TransparencyAttrib.MAlpha)
+        background = TTCardMaker.makeCard('phase_3/maps/curved-gui-square.png')
 
         self.mainFrame = DirectFrame(
             self,

@@ -1,27 +1,26 @@
 #!/usr/bin/env python2
 import gc
 
-
 # Due to the newer Panda3D versions being less stable on the C++ side of
 # things, we need to disable the garbage collector during startup or a thread
 # related error will cause an AttributeError.
 # ~ Chan
 gc.disable()
 
-
 import __builtin__
-
+import os, sys
 
 __builtin__.process = 'client'
 
+from panda3d.core import ConfigVariableString
+
+__builtin__.version = ConfigVariableString('server-version', 'n/a').getValue()
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
-
 
 __builtin__.directNotify = directNotify
 notify = directNotify.newCategory('ClientStart')
 notify.setInfo(True)
-
 
 if __debug__:
     from panda3d.core import loadPrcFile
@@ -31,98 +30,88 @@ if __debug__:
 
     try:
         import wx
-    except:
-        notify.warning('Failed to start injector - wx module missing!')
+    except ImportError as e:
+        notify.warning('Failed to start injector -- %s' % e.message)
     else:
         from otp.otpbase.OTPInjectorDev import Injector
 
         notify.info('Starting injector...')
         __builtin__.injector = Injector()
 
+from panda3d.core import *
 
-from panda3d.core import ConfigVariableString, loadPrcFileData
+for dtool in ('children', 'parent', 'name'):
+    del NodePath.DtoolClassDict[dtool]
+
+from panda3d.core import loadPrcFileData
 
 from otp.settings.Settings import Settings
+from toontown.toonbase import ToontownGlobals
 
+preferencesPath = os.path.join(ToontownGlobals.CurrentDirectory, ConfigVariableString('preferences-path', 'preferences.json').getValue())
+notify.info('Reading %s...' % preferencesPath)
+__builtin__.settings = Settings(preferencesPath)
+from toontown.toonbase import SettingsGlobals
+SettingsGlobals.loadInitialSettings()
 
-preferencesPath = ConfigVariableString('preferences-path', 'preferences.json')
-notify.info('Reading %s...' % preferencesPath.getValue())
-__builtin__.settings = Settings(preferencesPath.getValue())
-if 'fullscreen' not in settings:
-    settings['fullscreen'] = False
-if 'music' not in settings:
-    settings['music'] = True
-if 'sfx' not in settings:
-    settings['sfx'] = True
-if 'music-volume' not in settings:
-    settings['music-volume'] = 1.0
-if 'sound-volume' not in settings:
-    settings['sound-volume'] = 1.0
-if 'loadDisplay' not in settings:
-    settings['loadDisplay'] = 'pandagl'
-if 'toonChatSounds' not in settings:
-    settings['toonChatSounds'] = True
-if 'want-custom-controls' not in settings:
-    settings['want-custom-controls'] = False
-if 'keymap' not in settings:
-    settings['keymap'] = {
-        "ACTION_BUTTON": "delete",
-        "CHAT_HOTKEY": "t",
-        "JUMP": "control",
-        "MOVE_DOWN": "s",
-        "MOVE_LEFT": "a",
-        "MOVE_RIGHT": "d",
-        "MOVE_UP": "w",
-        "OPTIONS_PAGE_HOTKEY": "escape"
-    }
 loadPrcFileData('Settings: res',
-                'win-size %d %d' % tuple(settings.get('res', (800, 600))))
+                'win-size %d %d' % tuple(settings.get(SettingsGlobals.Resolution, (800, 600))))
 loadPrcFileData('Settings: fullscreen',
-                'fullscreen %s' % settings['fullscreen'])
-loadPrcFileData('Settings: music', 'audio-music-active %s' % settings['music'])
+                'fullscreen #%s' % 't' if settings[SettingsGlobals.Fullscreen] else 'f')
+loadPrcFileData('Settings: music', 'audio-music-active %s' % settings[SettingsGlobals.Music])
 loadPrcFileData('Settings: sfx',
-                'audio-sfx-active %s' % settings['sfx'])
+                'audio-sfx-active %s' % settings[SettingsGlobals.Sound])
 loadPrcFileData('Settings: musicVol',
-                'audio-master-music-volume %s' % settings.get('music-volume', 1.0))
+                'audio-master-music-volume %s' % settings[SettingsGlobals.MusicVolume])
 loadPrcFileData('Settings: sfxVol',
-                'audio-master-sfx-volume %s' % settings['sound-volume'])
-loadPrcFileData('Settings: loadDisplay',
-                'load-display %s' % settings['loadDisplay'])
-loadPrcFileData('Settings: toonChatSounds',
-                'toon-chat-sounds %s' % settings['toonChatSounds'])
+                'audio-master-sfx-volume %s' % settings[SettingsGlobals.SoundVolume])
+loadPrcFileData('Settings: showFps',
+                'show-frame-rate-meter %s' % (1 if settings[SettingsGlobals.ShowFps] else 0))
+loadPrcFileData('Settings: vsync',
+                'sync-video %s' % (1 if settings[SettingsGlobals.VSync] else 0))
+loadPrcFileData('Settings: animationSmoothing',
+                'interpolate-frames %s' % (1 if settings[SettingsGlobals.AnimationSmoothing] else 0))
 
-
-import os
+if sys.platform != 'android':
+    loadPrcFileData('Settings: loadDisplay',
+                    'load-display %s' % settings[SettingsGlobals.LoadDisplay])
+else:
+    loadPrcFileData('Settings: loadDisplay',
+                    'load-display pandagles')
 
 from toontown.toonbase.ContentPacksManager import ContentPacksManager
 
-
-contentPacksPath = ConfigVariableString('content-packs-path', 'contentpacks')
-if not os.path.exists(contentPacksPath.getValue()):
-    os.makedirs(contentPacksPath.getValue())
-__builtin__.contentPacksMgr = ContentPacksManager(contentPacksPath.getValue())
+contentPacksPath = os.path.join(ToontownGlobals.CurrentDirectory, ConfigVariableString('content-packs-path', 'contentpacks').getValue())
+if not os.path.exists(contentPacksPath):
+    os.makedirs(contentPacksPath)
+__builtin__.contentPacksMgr = ContentPacksManager(contentPacksPath)
 contentPacksMgr.applyAll()
 
+if sys.platform != 'android':
+    if not os.path.isdir('astron/data/singleplayer'):
+        os.makedirs('astron/data/singleplayer')
+
+    if not os.path.isdir('astron/data/multiplayer'):
+        os.makedirs('astron/data/multiplayer')
 
 from toontown.launcher.TTILauncher import TTILauncher
 
-
 __builtin__.launcher = TTILauncher()
+
+if not __debug__:
+    # Check if an username is set or not.
+    if launcher.getPlayToken() is None:
+        notify.error("Username isn't set, please start the game from the launcher.  Aborting.")
 
 notify.info('Starting the game...')
 
-
 from direct.gui import DirectGuiGlobals
-from toontown.toonbase import ToontownGlobals
-
 
 DirectGuiGlobals.setDefaultFontFunc(ToontownGlobals.getInterfaceFont)
 
 launcher.setPandaErrorCode(7)
 
-
 from toontown.toonbase import ToonBase
-
 
 ToonBase.ToonBase()
 
@@ -130,69 +119,47 @@ if base.win is None:
     notify.error('Unable to open window; aborting.')
 
 launcher.setPandaErrorCode(0)
-launcher.setPandaWindowOpen()
-
 
 from panda3d.core import Vec4
-
 
 base.setBackgroundColor(Vec4(0, 0, 0, 0))
 base.graphicsEngine.renderFrame()
 
 DirectGuiGlobals.setDefaultRolloverSound(
-    base.loadSfx('phase_3/audio/sfx/GUI_rollover.ogg'))
+    loader.loadSfx('phase_3/audio/sfx/GUI_rollover.ogg'))
 DirectGuiGlobals.setDefaultClickSound(
-    base.loadSfx('phase_3/audio/sfx/GUI_create_toon_fwd.ogg'))
+    loader.loadSfx('phase_3/audio/sfx/GUI_create_toon_fwd.ogg'))
 DirectGuiGlobals.setDefaultDialogGeom(
     loader.loadModel('phase_3/models/gui/dialog_box_gui.bam'))
 
-
 from toontown.toon import Toon
-
 
 Toon.preload()
 
-
 from toontown.suit import Suit
-
 
 Suit.preload()
 
-
 from toontown.login import AvatarChooser
-
 
 AvatarChooser.preload()
 
-
 from toontown.shtiker import ShtikerGUI
-
 
 ShtikerGUI.preload()
 
-
 from toontown.toontowngui.Introduction import Introduction
-
 
 introduction = Introduction()
 
-
 from toontown.toontowngui.ClickToStart import ClickToStart
 
-
-version = ConfigVariableString('server-version', 'n/a')
-clickToStart = ClickToStart(version=version.getValue())
+clickToStart = ClickToStart(version=version)
 clickToStart.setColorScale(0, 0, 0, 0)
 
 music = None
 if base.musicManagerIsValid:
-    if ToontownGlobals.HALLOWEEN_PROPS in base.clientHolidayIdList:
-        music = loader.loadMusic('phase_3/audio/bgm/tti_theme_halloween.ogg')
-    if ToontownGlobals.WACKY_WINTER_DECORATIONS in base.clientHolidayIdList:
-        music = loader.loadMusic('phase_3/audio/bgm/tti_theme_christmas.ogg')
-    else:
-        music = loader.loadMusic('phase_3/audio/bgm/tti_theme.ogg')
-
+    music = loader.loadMusic('phase_3/audio/bgm/tti_theme.ogg')
 
 from toontown.toonbase import TTLocalizer
 from otp.otpbase import OTPLocalizer
@@ -257,7 +224,6 @@ def syncLoginFSM(task=None):
 
 from direct.interval.IntervalGlobal import Sequence, Func, Wait
 
-
 presentsTrack = Sequence(
     Func(introduction.request, 'Presents'),
     Wait(7),
@@ -269,20 +235,15 @@ disclaimerTrack = Sequence(
     Func(presentsTrack.start)
 )
 
-
 from toontown.distributed import ToontownClientRepository
 
-
-base.cr = ToontownClientRepository.ToontownClientRepository(
-    version.getValue(), launcher)
+base.cr = ToontownClientRepository.ToontownClientRepository(version, launcher)
 base.cr.music = music
 base.cr.introduction = introduction
 base.cr.clickToStart = clickToStart
 base.initNametagGlobals()
 
-
 from otp.distributed.OtpDoGlobals import OTP_DO_ID_FRIEND_MANAGER
-
 
 base.cr.generateGlobalObject(OTP_DO_ID_FRIEND_MANAGER, 'FriendManager')
 
@@ -292,20 +253,25 @@ else:
     base.startShow()
 
 __builtin__.loader = base.loader
-
-disclaimerTrack.start()
 if music is not None:
     base.playMusic(music, looping=1, volume=0.9)
 
+if __debug__:
+    # Skip the introduction if we are in dev mode
+    clickToStart.stop()
+    clickToStart.begin()
+else:
+    disclaimerTrack.start()
 
-def skip():
-    if disclaimerTrack.isPlaying():
-        disclaimerTrack.finish()
-    elif presentsTrack.isPlaying():
-        presentsTrack.finish()
+    def skip():
+        if disclaimerTrack.isPlaying():
+            disclaimerTrack.finish()
+        elif presentsTrack.isPlaying():
+            presentsTrack.finish()
+
+    base.accept('mouse1', skip)
 
 
-base.accept('mouse1', skip)
 
 # Now that everything is loaded we can enable the garbage collector again.
 gc.enable()

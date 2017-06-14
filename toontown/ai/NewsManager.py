@@ -39,6 +39,7 @@ class NewsManager(DistributedObject.DistributedObject):
         DistributedObject.DistributedObject.__init__(self, cr)
         self.population = 0
         self.invading = 0
+        self.invadingSuit = None
 
         forcedHolidayDecorations = base.config.GetString('force-holiday-decorations', '')
         self.decorationHolidayIds = []
@@ -53,7 +54,6 @@ class NewsManager(DistributedObject.DistributedObject):
 
         self.holidayDecorator = None
         self.holidayIdList = []
-        self.stormEnabled = False
         base.cr.newsManager = self
         if hasattr(base, 'localAvatar') and base.localAvatar is not None:
             base.localAvatar.inventory.setInvasionCreditMultiplier(1)
@@ -173,6 +173,9 @@ class NewsManager(DistributedObject.DistributedObject):
 
     def getInvading(self):
         return self.invading
+
+    def getInvadingSuit(self):
+        return self.invadingSuit
 
     def startHoliday(self, holidayId):
         if holidayId not in self.holidayIdList:
@@ -725,12 +728,6 @@ class NewsManager(DistributedObject.DistributedObject):
                 result.append(tuple(nItem))
 
         return result
-    
-    def setStormEnabled(self, stormEnabled):
-        self.stormEnabled = stormEnabled
-    
-    def isStormEnabled(self):
-        return self.stormEnabled
 
     def dayForWeekday(self, year, month, weekday, repNum):
         monthDays = calendar.monthcalendar(year, month)
