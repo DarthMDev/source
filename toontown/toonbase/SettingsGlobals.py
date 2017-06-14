@@ -16,6 +16,7 @@ Fullscreen = 'fullscreen'
 AnimationSmoothing = 'animation-smoothing'
 ProcessFailback = 'process-failback'
 ClassicMusic = 'classic-music'
+NewFootsteps = 'surface-footsteps'
 
 InitialSettings = {
     # Initial setting
@@ -32,6 +33,7 @@ InitialSettings = {
     AnimationSmoothing: True,
     ProcessFailback: 60,
     ClassicMusic: False,
+    NewFootsteps: True,
     Keymap: {
         "ACTION_BUTTON": "delete",
         "CHAT_HOTKEY": "t",

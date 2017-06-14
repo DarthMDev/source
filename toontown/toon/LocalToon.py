@@ -2097,13 +2097,16 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
         if walkLoopSfx is None:
             walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
-
+        if not settings.get(SettingsGlobals.NewFootsteps, True):
+            runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
+            walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
         self.updateRunSound(runLoopSfx)
         self.updateWalkSound(walkLoopSfx)
 
     def updateRunSound(self, sfx):
         if self.soundRun == sfx:
             return
+        
         status = self.soundRun.status()
         if status == self.soundRun.PLAYING:
             self.soundRun.stop()
@@ -2151,7 +2154,9 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
         self.oldRunSfx = runLoopSfx
         self.oldWalkSfx = walkLoopSfx
-
+        if not settings.get(SettingsGlobals.NewFootsteps, True):
+            runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
+            walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
         self.updateRunSound(runLoopSfx)
         self.updateWalkSound(walkLoopSfx)
 
@@ -2167,6 +2172,9 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             runLoopSfx = self.oldRunSfx
             walkLoopSfx = self.oldWalkSfx
         if not self.isDisguised:
+            if not settings.get(SettingsGlobals.NewFootsteps, True):
+                runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
+                walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
             self.updateRunSound(runLoopSfx)
             self.updateWalkSound(walkLoopSfx)
 
