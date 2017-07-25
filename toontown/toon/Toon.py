@@ -746,23 +746,25 @@ class Toon(Avatar.Avatar, ToonHead):
                 height *= ToontownGlobals.GiantToonScale
             self.setHeight(height)
 
-    def generateToonLegs(self, copy=1):
+    def generateToonLegs(self, copy = 1):
         legStyle = self.style.legs
         filePrefix = LegDict.get(legStyle)
         if filePrefix is None:
-            self.notify.error('unknown leg style: ' + legStyle)
-        for lodName in ('1000', '500', '250'):
-            modelPath = 'phase_3' + filePrefix + lodName + '.bam'
-            self.loadModel(
-                preloader.getModel(modelPath), 'legs', lodName, True)
+            self.notify.error('unknown leg style: %s' % legStyle)
+        self.loadModel('phase_3' + filePrefix + '1000', 'legs', '1000', copy)
+        self.loadModel('phase_3' + filePrefix + '500', 'legs', '500', copy)
+        self.loadModel('phase_3' + filePrefix + '250', 'legs', '250', copy)
         if not copy:
-            for lodName in ('1000', '500', '250'):
-                self.showPart('legs', lodName)
-        for lodName in ('1000', '500', '250'):
-            self.loadAnims(LegsAnimDict[legStyle], 'legs', lodName)
+            self.showPart('legs', '1000')
+            self.showPart('legs', '500')
+            self.showPart('legs', '250')
+        self.loadAnims(LegsAnimDict[legStyle], 'legs', '1000')
+        self.loadAnims(LegsAnimDict[legStyle], 'legs', '500')
+        self.loadAnims(LegsAnimDict[legStyle], 'legs', '250')
         self.findAllMatches('**/boots_short').stash()
         self.findAllMatches('**/boots_long').stash()
         self.findAllMatches('**/shoes').stash()
+        return
 
     def swapToonLegs(self, legStyle, copy = 1):
         self.unparentToonParts()
@@ -782,22 +784,28 @@ class Toon(Avatar.Avatar, ToonHead):
         self.initializeDropShadow()
         self.initializeNametag3d()
 
-    def generateToonTorso(self, copy=1, genClothes=1):
+    def generateToonTorso(self, copy = 1, genClothes = 1):
         torsoStyle = self.style.torso
         filePrefix = TorsoDict.get(torsoStyle)
         if filePrefix is None:
-            self.notify.error('unknown torso style: ' + torsoStyle)
-        for lodName in ('1000', '500', '250'):
-            modelPath = 'phase_3' + filePrefix + lodName + '.bam'
-            self.loadModel(
-                preloader.getModel(modelPath), 'torso', lodName, True)
+            self.notify.error('unknown torso style: %s' % torsoStyle)
+        self.loadModel('phase_3' + filePrefix + '1000', 'torso', '1000', copy)
+        if len(torsoStyle) == 1:
+            self.loadModel('phase_3' + filePrefix + '1000', 'torso', '500', copy)
+            self.loadModel('phase_3' + filePrefix + '1000', 'torso', '250', copy)
+        else:
+            self.loadModel('phase_3' + filePrefix + '500', 'torso', '500', copy)
+            self.loadModel('phase_3' + filePrefix + '250', 'torso', '250', copy)
         if not copy:
-            for lodName in ('1000', '500', '250'):
-                self.showPart('torso', lodName)
-        for lodName in ('1000', '500', '250'):
-            self.loadAnims(TorsoAnimDict[torsoStyle], 'torso', lodName)
-        if genClothes:
+            self.showPart('torso', '1000')
+            self.showPart('torso', '500')
+            self.showPart('torso', '250')
+        self.loadAnims(TorsoAnimDict[torsoStyle], 'torso', '1000')
+        self.loadAnims(TorsoAnimDict[torsoStyle], 'torso', '500')
+        self.loadAnims(TorsoAnimDict[torsoStyle], 'torso', '250')
+        if genClothes == 1 and not len(torsoStyle) == 1:
             self.generateToonClothes()
+        return
 
     def swapToonTorso(self, torsoStyle, copy = 1, genClothes = 1):
         self.unparentToonParts()

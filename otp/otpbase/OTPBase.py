@@ -251,12 +251,6 @@ class OTPBase(ShowBase):
             raise
         except:
             self.notify.warning('Handling Python exception.')
-            if getattr(self, 'cr', None):
-                if self.cr.timeManager:
-                    from otp.otpbase import OTPGlobals
-                    self.cr.timeManager.setDisconnectReason(OTPGlobals.DisconnectPythonError)
-                    self.cr.timeManager.setExceptionInfo()
-                self.cr.sendDisconnect()
             self.notify.info('Exception exit.\n')
             self.destroy()
             import traceback
