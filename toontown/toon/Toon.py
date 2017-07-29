@@ -1604,12 +1604,10 @@ class Toon(Avatar.Avatar, ToonHead):
             self.goofy.setPlayRate(animMultiplier, 'run')
         self.loop('run')
         self.setPlayRate(animMultiplier, 'run')
-        Emote.globalEmote.disableBody(self, 'toon, enterRun')
         self.setActiveShadow(1)
 
     def exitRun(self):
         self.stop()
-        Emote.globalEmote.releaseBody(self, 'toon, exitRun')
 
     def enterSwim(self, animMultiplier = 1, ts = 0, callback = None, extraArgs = []):
         if self.isGoofy or self.aboutToBeGoofy:
