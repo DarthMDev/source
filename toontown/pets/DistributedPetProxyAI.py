@@ -319,7 +319,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
         self.d_setTrickAptitudes(aptitudes)
 
     def d_setTrickAptitudes(self, aptitudes):
-        while len(aptitudes) < len(EPetTricks.ETrick) - 1:
+        while len(aptitudes) < len(PetTricks.ETrick) - 1:
             aptitudes.append(0.0)
 
         self.sendUpdate('setTrickAptitudes', [aptitudes])
