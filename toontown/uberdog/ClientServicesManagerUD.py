@@ -689,6 +689,7 @@ class GetAvatarsFSM(AvatarOperationFSM):
                 nameState = 2
             elif wishNameState == 'APPROVED':
                 nameState = 3
+                name = fields.get('WishName', [''])[0] or name
             elif wishNameState == 'REJECTED':
                 nameState = 4
 
