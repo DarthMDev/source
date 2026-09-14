@@ -250,6 +250,20 @@ class QuestManagerAI:
             # Update the toon with the reward
             reward = Quests.getReward(rewardId)
 
+            if reward is None:
+                # The player is carrying a task whose reward id cannot be
+                # resolved. Retire the task so they are not stuck. Their promised reward was already recorded
+                self.notify.warning("completeQuest: unresolvable rewardId: %s avId: %s, npcId: %s, questId: %s" %
+                                    (rewardId, av.getDoId(), npc.getNpcId(), questId))
+                self.air.writeServerEvent('questBadReward', av.getDoId(), "%s|%s" %
+                                          (questId, rewardId))
+                av.removeQuest(questId)
+                av.toonUp(av.maxHp)
+                # there is no reward to announce
+                npc.completeQuest(av.getDoId(), questId, 0)
+                self.incrementReward(av)
+                return
+
             # Clothing quests should have been handled by the Tailor.
             # Just to make sure
             if (reward.getType() == Quests.ClothingTicketReward):
@@ -274,11 +288,13 @@ class QuestManagerAI:
                 reward.__class__.__name__, reward.getAmount())
 
         else:
+            nextRewardId = Quests.getQuestReward(nextQuestId, av)
+            if nextRewardId == Quests.Any:
+                nextRewardId = Quests.getAvatarRewardId(av, questId)
             # Full heal for completing part of a multistage quest
             av.toonUp(av.maxHp)
             # The user is not presented with a choice here
             av.removeQuest(questId)
-            nextRewardId = Quests.getQuestReward(nextQuestId, av)
             if npc.getHq():
                 fromNpcId = Quests.ToonHQ
             else:
