@@ -642,7 +642,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
          gui.find('**/CloseBtn_UP')), relief=None, scale=2, text=TTLocalizer.BossbotPitcherLeave, text_scale=0.04, text_pos=(0, -0.07), text_fg=VBase4(1, 1, 1, 1), pos=(1.05, 0, -0.82), command=self.__exitPitcher)
         self.accept('escape', self.__exitPitcher)
         self.accept(base.JUMP, self.__controlPressed)
-        self.accept('control-up', self.__controlReleased)
+        self.accept(base.JUMP + '-up', self.__controlReleased)
         self.accept('InputState-forward', self.__upArrow)
         self.accept('InputState-reverse', self.__downArrow)
         self.accept('InputState-turnLeft', self.__leftArrow)
