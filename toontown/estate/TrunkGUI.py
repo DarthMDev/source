@@ -10,6 +10,7 @@ from toontown.toontowngui import TTDialog
 from toontown.toon import ToonDNA
 from toontown.makeatoon.MakeAToonGlobals import *
 from toontown.makeatoon import ShuffleButton
+ROTATE_SPEED = 100
 
 class TrunkGUI(StateData.StateData):
     notify = directNotify.newCategory('TrunkGUI')
@@ -90,7 +91,7 @@ class TrunkGUI(StateData.StateData):
         self.rotateR.bind(DGG.B1RELEASE, self.__rotateRUp)
         if self.isOwner:
             trashcanGui = loader.loadModel('phase_3/models/gui/trashcan_gui.bam')
-            trashImage = (trashcanGui.find('**/TrashCan_CLSD'), trashcanGui.find('**/TrashCan_OPEN_default'), trashcanGui.find('**/TrashCan_RLVR_default'))
+            trashImage = (trashcanGui.find('**/TrashCan_CLSD'), trashcanGui.find('**/TrashCan_OPEN'), trashcanGui.find('**/TrashCan_RLVR'))
             self.trashPanel = DirectFrame(parent=base.a2dTopLeft, image=DGG.getDefaultDialogGeom(), image_color=(1, 1, 0.75, 0.8), image_scale=(0.36, 0, 1.2), pos=(0.473333, 0, -0.9), relief=None)
 
             def addTrashButton(posZ, text, extraArg):
@@ -298,11 +299,11 @@ class TrunkGUI(StateData.StateData):
             self.shoesTrashButton['state'] = DGG.NORMAL
 
     def rotateToonL(self, task):
-        self.toon.setH(self.toon.getH() - 4)
+        self.toon.setH(self.toon.getH() - ROTATE_SPEED * globalClock.getDt())
         return Task.cont
 
     def rotateToonR(self, task):
-        self.toon.setH(self.toon.getH() + 4)
+        self.toon.setH(self.toon.getH() + ROTATE_SPEED * globalClock.getDt())
         return Task.cont
 
     def __rotateLUp(self, event):

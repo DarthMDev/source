@@ -85,7 +85,7 @@ class DistributedTrunk(DistributedCloset.DistributedCloset):
         else:
             lLid.wrtReparentTo(lNode)
             self.lid = lNode
-        if not lNode.isEmpty():
+        if not lLid.isEmpty():
             self.scale = lLid.getScale()[0] * 0.6
         return
 
