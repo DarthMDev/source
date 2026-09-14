@@ -343,7 +343,7 @@ class Movie(DirectObject.DirectObject):
         """
         self.track.finish()
 
-    def playReward(self, ts, name, callback):
+    def playReward(self, ts, name, callback, noSkip = False):
         self.rewardHasBeenReset = 0
         ptrack = Sequence()
         camtrack = Sequence()
@@ -359,7 +359,8 @@ class Movie(DirectObject.DirectObject):
             self.rewardPanel,
             1,
             self.uberList,
-            self.helpfulToonsList)
+            self.helpfulToonsList,
+            noSkip=noSkip)
         if (victory):
             skipper.setIvals((ptrack, camtrack), ptrack.getDuration())
             ptrack.append(victory)
