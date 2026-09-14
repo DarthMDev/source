@@ -6,10 +6,14 @@ from toontown.friends.TTIFriendsManagerUD import OperationFSM
 from toontown.guilds.GuildGlobals import *
 from toontown.guilds.GuildUD import *
 from toontown.util import ThreadedCall
+from toontown.web.ChatLog import websiteUserId
 
 guildDBPath = ConfigVariableString(
     'guild-db-path', 'astron/databases/guilds',
     'The path to the database that will store Guild IDs.')
+
+NAME_RETRY_SECONDS = 300
+GUILD_NOT_PENDING = 'The Guild is no longer awaiting that name.'
 
 
 class GuildDB:
@@ -41,8 +45,8 @@ class GuildDB:
 # -- Create Guild --
 class CreateGuildOperation(OperationFSM):
     def enterStart(self, name, iconId):
-        self.nameStatus = GUILD_NAME_NONE
-        self.name = name
+        self.nameStatus = GUILD_NAME_PENDING
+        self.name = ''
         self.iconId = iconId
         self.pendingName = name
 
@@ -86,10 +90,7 @@ class CreateGuildOperation(OperationFSM):
 
         self.mgr.guildDB.update(guildId, self.sender)
 
-        takenNames = self.mgr.getTakenNames(guildId)
-
-        # TODO: Replace with future API route
-        self.mgr.nameResponse(guildId, guild.pendingName not in takenNames)
+        self.mgr.submitName(guild, self.sender)
         # Go off, we're done!
         self.demand('Off')
 
@@ -109,6 +110,10 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         self.guildDB = GuildDB()
         self.topTen = []
         self.leaderboardListeners = []
+
+        self.loaded = False
+        self.whenLoaded = []
+
         taskMgr.add(self.retrieveGuilds, 'guildManagerUD-retrieveTask')
 
     def retrieveGuilds(self, task=None):
@@ -119,6 +124,17 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             self.notify.info('Done Retrieving Guilds! There is/are %d Guild(s) on this server...' % len(self.guilds))
             # Calculate ranks after retrieving all guilds
             self.calculateRanksThreaded()
+
+            self.loaded = True
+            for callback in self.whenLoaded:
+                callback()
+            self.whenLoaded = []
+
+            # The website may never have heard about names left pending before a restart
+            for guild in list(self.guilds.values()):
+                ownerId = guild.getOwnerId()
+                if guild.nameStatus == GUILD_NAME_PENDING and ownerId:
+                    self.sendName(guild, ownerId, resubmit=True)
 
         if not guildIds:
             finishRetrieved()
@@ -295,12 +311,9 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
         guild.pendingName = guildName
         guild.nameStatus = GUILD_NAME_PENDING
+        guild.saveGuild()
 
-        takenNames = self.getTakenNames(guildId)
-
-        # TODO: Replace with future API route
-        self.notify.debug('Checking if guild name is taken')
-        self.nameResponse(guildId, guildName not in takenNames)
+        self.submitName(guild, avId)
 
     def requestRemoveMember(self, avId):
         senderId = self.air.getAvatarIdFromSender()
@@ -440,11 +453,83 @@ class GuildManagerUD(DistributedObjectGlobalUD):
     def requestCheckName(self, guildName):
         avId = self.air.getAvatarIdFromSender()
         self.notify.debug('Avatar %d requesting to check name %s' % (avId, guildName))
-        takenNames = self.getTakenNames()
 
-        # TODO: Replace with future API route
-        self.notify.debug('Checking if guild name is taken')
-        self.checkNameResponse(avId, guildName not in takenNames)
+        self.checkNameResponse(avId, not self.isNameRefused(guildName))
+
+    def isNameRefused(self, guildName, guildId=0):
+        if not guildName.strip():
+            return True
+
+        if guildName in self.getTakenNames(guildId):
+            return True
+
+        chatAgent = self.air.getGlobalObject('ChatAgent')
+        return bool(chatAgent.checkBadNames(guildName, nameCheck=True))
+
+    # Name Review
+    def submitName(self, guild, avId):
+        if self.isNameRefused(guild.pendingName, guild.id):
+            self.notify.info('Guild %d asked for a name the game refuses.' % guild.id)
+            guild.rejectName()
+            return
+
+        self.sendName(guild, avId, resubmit=False)
+
+    def sendName(self, guild, avId, resubmit):
+        name = guild.pendingName
+
+        def reviewed(decided):
+            if decided:
+                self.decideName(guild.id, name, True)
+
+        def failed(status):
+            self.notify.warning(
+                'Could not submit the name for guild %d (status %s); will retry.' % (guild.id, status))
+            taskMgr.doMethodLater(NAME_RETRY_SECONDS, retry, 'guildManagerUD-retryName-%d' % guild.id)
+
+        def retry(task):
+            if guild.nameStatus == GUILD_NAME_PENDING and guild.pendingName == name:
+                self.sendName(guild, avId, resubmit=True)
+            return task.done
+
+        userId = self.userIdFor(avId)
+        if not userId:
+            failed('no website account for avatar %d' % avId)
+            return
+
+        self.air.csm.accountDB.submitGuildNameRequest(
+            userId, guild.id, avId, name, resubmit, reviewed, failed)
+
+    def userIdFor(self, avId):
+        objects = self.air.dbAstronCursor.objects
+        toon = objects.find_one({'_id': avId})
+        if not toon:
+            return None
+
+        account = objects.find_one({'_id': toon['fields'].get('setDISLid', {}).get('_0')})
+        return websiteUserId(account) if account else None
+
+    def decideName(self, guildId, name, approved):
+        guild = self.guilds.get(guildId)
+        if guild is None:
+            return 'There is no Guild %d.' % guildId
+
+        if guild.nameStatus != GUILD_NAME_PENDING or guild.pendingName != name:
+            return GUILD_NOT_PENDING
+
+        if approved:
+            guild.approveName()
+        else:
+            guild.rejectName()
+
+        self.calculateRanksThreaded()
+        return None
+
+    def callWhenLoaded(self, callback):
+        if self.loaded:
+            callback()
+        else:
+            self.whenLoaded.append(callback)
 
     def getTakenNames(self, guildId=0):
         takenNames = []

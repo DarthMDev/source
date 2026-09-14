@@ -510,6 +510,12 @@ class GuildUD:
     def getMember(self, avId):
         return self.avId2Member.get(avId)
 
+    def getOwnerId(self):
+        for entry in self.members:
+            if entry[GUILD_MEMBER_ENTRY_ROLE] == GUILD_ROLE_ID_OWNER:
+                return entry[GUILD_MEMBER_ENTRY_ID]
+        return 0
+
     def getMemberCount(self):
         return len(list(self.avId2Member.keys()))
 

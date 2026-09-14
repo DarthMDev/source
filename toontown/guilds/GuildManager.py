@@ -46,10 +46,10 @@ class GuildManager(DistributedObjectGlobal):
             elif nameState == GuildGlobals.GUILD_NAME_REJECTED:
                 self.guild.name = name
                 self.guild.rejected = True
-            if localMember.getRoleId() == 0:
-                base.localAvatar.displayWhisper(0, TTLocalizer.GuildNameRejectedOwner, ChatGlobals.WTGuild)
-            else:
-                base.localAvatar.displayWhisper(0, TTLocalizer.GuildNameRejected, ChatGlobals.WTGuild)
+                if localMember.getRoleId() == 0:
+                    base.localAvatar.displayWhisper(0, TTLocalizer.GuildNameRejectedOwner, ChatGlobals.WTGuild)
+                else:
+                    base.localAvatar.displayWhisper(0, TTLocalizer.GuildNameRejected, ChatGlobals.WTGuild)
 
     # - Name Checking
     def checkNameResponse(self, valid):

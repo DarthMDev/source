@@ -33,6 +33,8 @@ class GameGateway(DirectObject):
         self.ops = {
             'approveName': self.approveName,
             'denyName': self.denyName,
+            'approveGuildName': lambda args, done: self.decideGuildName(args, done, True),
+            'denyGuildName': lambda args, done: self.decideGuildName(args, done, False),
             'claimLegacyAccount': self.claimLegacyAccount,
         }
 
@@ -130,6 +132,27 @@ class GameGateway(DirectObject):
             {'WishNameState': ('REJECTED',)},
             {'WishNameState': ('PENDING',)},
             rejected)
+
+    def decideGuildName(self, args, done, approved):
+        guildId = int(args['guildId'])
+        name = args['name']
+
+        guildManager = self.air.globalObjects.get('GuildManager')
+        if guildManager is None:
+            done(False, {'error': 'Guilds are not running on this UberDOG.'})
+            return
+
+        def apply():
+            error = guildManager.decideName(guildId, name, approved)
+            if error:
+                done(False, {'error': error})
+                return
+
+            if not approved:
+                self.whisper(int(args['toonId']), args['reason'])
+            done(True, {})
+
+        guildManager.callWhenLoaded(apply)
 
     def claimLegacyAccount(self, args, done):
         """

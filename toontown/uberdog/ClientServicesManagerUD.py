@@ -64,6 +64,10 @@ class AccountDB:
         """
         callback(NAME_APPROVED)
 
+    def submitGuildNameRequest(self, userId, guildId, avId, name, resubmit,
+                               callback, errback):
+        callback(True)
+
     def login(self, username, password, pepper, callback):
         pass
 
@@ -137,6 +141,7 @@ class WebAccountDB(AccountDB):
 
     VERIFY_PATH = 'api/game/verify-token'
     NAME_PATH = 'api/game/name-submission'
+    GUILD_NAME_PATH = 'api/game/guild-name-submission'
 
     def __init__(self, csm):
         AccountDB.__init__(self, csm)
@@ -208,6 +213,25 @@ class WebAccountDB(AccountDB):
             # A 200 we don't understand is a version skew, not a rejection
             self.notify.warning(
                 'Name review returned an unknown status: %s' % status)
+            errback(None)
+
+    def submitGuildNameRequest(self, userId, guildId, avId, name, resubmit,
+                               callback, errback):
+        self.service.post(
+            self.GUILD_NAME_PATH,
+            {'guildId': str(guildId), 'toonId': str(avId), 'name': name,
+             'accountId': str(userId), 'resubmit': bool(resubmit)},
+            lambda response: self.handleGuildNameResponse(response, callback, errback),
+            errback)
+
+    def handleGuildNameResponse(self, response, callback, errback):
+        status = response.get('status')
+
+        if status in ('pending', 'decided'):
+            callback(False)
+        else:
+            self.notify.warning(
+                'Guild name review returned an unknown status: %s' % status)
             errback(None)
 
     def handleVerifyFailure(self, status, callback):
