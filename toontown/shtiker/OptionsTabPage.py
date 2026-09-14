@@ -606,6 +606,8 @@ class OptionsTabPage(DirectFrame):
         self.vsyncLabel.show()
         self.animationSmoothingLabel.show()
         self.animationSmoothingCheckBox.show()
+        self.antiAliasingLabel.show()
+        self.antiAliasingCheckbox.show()
         if self.changedVsync:
             self.vsyncRequiresRestartLabel.show()
         if self.changedAnimationSmoothing:
@@ -631,6 +633,8 @@ class OptionsTabPage(DirectFrame):
         self.vsyncLabel.hide()
         self.animationSmoothingLabel.hide()
         self.animationSmoothingCheckBox.hide()
+        self.antiAliasingLabel.hide()
+        self.antiAliasingCheckbox.hide()
         self.requiresRestartLabel.hide()
         self.vsyncRequiresRestartLabel.hide()
         self.animationSmoothingRequiresRestartLabel.hide()

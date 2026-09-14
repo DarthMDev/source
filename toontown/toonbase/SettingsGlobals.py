@@ -71,7 +71,7 @@ InitialSettings = {
     TextureQuality: 3,
     CompressTextures: False,
     ThreadedRender: False,
-    AntiAliasing: False
+    AntiAliasing: True
 }
 
 TextureOptionToDimension = [128, 256, 1024, 4096]
