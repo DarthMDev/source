@@ -30,8 +30,8 @@ class EMenu(enum.Enum):
 
 class EMainMenuOption(enum.Enum):
     CANCEL = 0
-    BUY_ACCESSORY = 0
-    BUY_KART = 1
+    BUY_ACCESSORY = 1
+    BUY_KART = 2
 
 
 class EBuyKartOption(enum.Enum):
@@ -288,7 +288,7 @@ class KartShopGuiMgr(
                 geom=model.find('**/CancelIcon'),
                 scale=self.modelScale,
                 pressEffect=False,
-                command=lambda : messenger.send(doneEvent, [RK_OPTIONS.Cancel]))
+                command=lambda : messenger.send(doneEvent, [EReturnKartOption.CANCEL]))
             self.okButton = DirectButton(
                 parent=self,
                 relief=None,
@@ -296,7 +296,7 @@ class KartShopGuiMgr(
                 geom=model.find('**/CheckIcon'),
                 scale=self.modelScale,
                 pressEffect=False,
-                command=lambda : messenger.send(doneEvent, [RK_OPTIONS.ReturnKart]))
+                command=lambda : messenger.send(doneEvent, [EReturnKartOption.RETURN]))
             oldDNA = list(base.localAvatar.getKartDNA())
             for d in range(len(oldDNA)):
                 if d == EKartDNA.BODY_TYPE:
@@ -479,7 +479,7 @@ class KartShopGuiMgr(
                 image=(model.find('**/CancelButtonUp'), model.find('**/CancelButtonDown'), model.find('**/CancelButtonRollover')),
                 geom=model.find('**/CancelIcon'),
                 scale=self.modelScale,
-                command=lambda : messenger.send(doneEvent, [BA_OPTIONS.Cancel]),
+                command=lambda : messenger.send(doneEvent, [EBuyAccessoryOption.CANCEL]),
                 pressEffect=False)
             self.decalAccButton = DirectButton(
                 parent=self,
@@ -764,8 +764,8 @@ class KartShopGuiMgr(
             DirectFrame.__init__(self, relief=None, state='normal', geom=model, geom_scale=self.modelScale, frameSize=(-1, 1, -1, 1), pos=(0, 0, -0.01), text=TTLocalizer.KartShop_ConfirmBuy % (name, cost), text_wordwrap=14, text_scale=KS_TEXT_SIZE_SMALL, text_pos=(0, -0.25))
             self.initialiseoptions(KartShopGuiMgr.ConfirmBuyAccessoryDlg)
             self.ticketDisplay = DirectLabel(parent=self, relief=None, text=str(base.localAvatar.getTickets()), text_scale=KS_TEXT_SIZE_SMALL, text_fg=(0.95, 0.95, 0.0, 1.0), text_shadow=(0, 0, 0, 1), text_pos=(0.43, -0.5), text_font=ToontownGlobals.getSignFont())
-            self.cancelButton = DirectButton(parent=self, relief=None, image=(model.find('**/CancelButtonUp'), model.find('**/CancelButtonDown'), model.find('**/CancelButtonRollover')), geom=model.find('**/CancelIcon'), scale=self.modelScale, pressEffect=False, command=lambda : messenger.send(doneEvent, [CBA_OPTIONS.Cancel]))
-            self.okButton = DirectButton(parent=self, relief=None, image=(model.find('**/CheckButtonUp'), model.find('**/CheckButtonDown'), model.find('**/CheckButtonRollover')), geom=model.find('**/CheckIcon'), scale=self.modelScale, pressEffect=False, command=lambda : messenger.send(doneEvent, [CBA_OPTIONS.BuyAccessory]))
+            self.cancelButton = DirectButton(parent=self, relief=None, image=(model.find('**/CancelButtonUp'), model.find('**/CancelButtonDown'), model.find('**/CancelButtonRollover')), geom=model.find('**/CancelIcon'), scale=self.modelScale, pressEffect=False, command=lambda : messenger.send(doneEvent, [EConfirmBuyAccessoryOption.CANCEL]))
+            self.okButton = DirectButton(parent=self, relief=None, image=(model.find('**/CheckButtonUp'), model.find('**/CheckButtonDown'), model.find('**/CheckButtonRollover')), geom=model.find('**/CheckIcon'), scale=self.modelScale, pressEffect=False, command=lambda : messenger.send(doneEvent, [EConfirmBuyAccessoryOption.BUY]))
             self.kartView = DirectFrame(parent=self, relief=None, geom=model.find('**/KartViewerFrame'), scale=1.0)
             bounds = self.kartView.getBounds()
             radius = (bounds[3] - bounds[2]) / 3
@@ -907,7 +907,7 @@ class KartShopGuiMgr(
             case EMenu.CONFIRM_BUY_KART | EMenu.BOUGHT_KART:
                 self.dialog = eventDlg(eventType, self.kartID)
             case EMenu.CONFIRM_BUY_ACCESSORY | EMenu.BOUGHT_ACCESSORY:
-                self.dialog = eventDlg(eventType, self.accId)
+                self.dialog = eventDlg(eventType, self.accID)
             case EMenu.TEASER_PANEL:
                 self.dialog = eventDlg(pageName='karting', doneFunc=self.__doLastMenu)
             case _:
@@ -953,7 +953,7 @@ class KartShopGuiMgr(
 
     def __handleBuyAccessoryDlg(self, exitType, args = []):
         self.notify.debug('__handleBuyKartDlg: Handling BuyKart Dialog Selection.')
-        if exitType == BA_OPTIONS.Cancel:
+        if exitType == EBuyAccessoryOption.CANCEL:
             self.__doDialog(EMenu.MAIN_MENU)
         else:
             self.accID = exitType
@@ -961,17 +961,17 @@ class KartShopGuiMgr(
 
     def __handleReturnKartDlg(self, exitType, args = []):
         self.notify.debug('__handleReturnKartDlg: Handling ReturnKart Dialog Selection.')
-        if exitType == RK_OPTIONS.Cancel:
+        if exitType == EReturnKartOption.CANCEL:
             self.__doDialog(EMenu.BUY_KART)
-        elif exitType == RK_OPTIONS.ReturnKart:
+        elif exitType == EReturnKartOption.RETURN:
             self.__doDialog(EMenu.CONFIRM_BUY_KART)
 
     def __handleConfirmBuyAccessoryDlg(self, exitType, args = []):
         self.notify.debug('__handleConfirmBuyAccessoryDlg: Handling ConfirmBuyAccessory Dialog Selection.')
-        if exitType == CBA_OPTIONS.Cancel:
+        if exitType == EConfirmBuyAccessoryOption.CANCEL:
             self.__doDialog(EMenu.BUY_ACCESSORY)
             self.accID = -1
-        elif exitType == CBA_OPTIONS.BuyAccessory:
+        elif exitType == EConfirmBuyAccessoryOption.BUY:
             if self.accID != -1:
                 messenger.send(self.eventDict['buyAccessory'], [self.accID])
             oldTickets = base.localAvatar.getTickets()
