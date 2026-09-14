@@ -4626,6 +4626,9 @@ SEQUENCES = {
 }
 
 
+def cleanWord(word):
+    return word.lower().strip(',.!?\'\"')
+
 
 def containsBadWord(message):
     words = message.split()

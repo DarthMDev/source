@@ -118,6 +118,9 @@ want-dev #f
 want-pstats 0
 want-threaded-ai-start #f
 
+# Writes every chat message the client sees into the log:
+want-chat-log #f
+
 # Temporary:
 smooth-lag 0.4
 want-old-fireworks #t

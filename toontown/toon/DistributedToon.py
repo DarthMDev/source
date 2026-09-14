@@ -518,66 +518,37 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
             return Task.cont
 
 
-    def detectBadWords(self, message):
-        words = message.split()
-        for word in words:
-            if word.lower().strip(',.!?\'\"') in BLACKLIST or message.lower().strip(',.!?\'\"') in BLACKLIST:
-                return True
-
-            phrase = ''
-            for letter in word:
-                phrase += letter
-                if phrase.lower().strip(',.!?\'\"') in BLACKLIST:
-                    return True
-
-        return False
-
     def lookForSequences(self, words):
+        cleanWords = [cleanWord(word) for word in words]
         flaggedIndexes = []
-        seqCheckList = [(i, SEQUENCES.get(word.lower().strip(',.!?\'\"'))) for i, word in enumerate(words)
-                        if word.lower().strip(',.!?\'\"') in SEQUENCES and base.whiteList.isWord(word)]
-        for candidate in seqCheckList:
-            currentIndex = candidate[0]
-            strings = candidate[1]
-            for string in strings:
-                subseqStrings = string.split()
-                rangeEnd = len(subseqStrings) + 1
-                cleanSlice = [word.lower().strip(',.!?\'\"') for word in
-                              words[currentIndex + 1:currentIndex + rangeEnd]]
-                if not cleanSlice:
-                    break
-                if cleanSlice != subseqStrings:
-                    continue
-                flaggedIndexes.extend(list(range(currentIndex, currentIndex + rangeEnd)))
-                break
+        for i, word in enumerate(cleanWords):
+            if word not in SEQUENCES or not base.whiteList.isWord(words[i]):
+                continue
 
-        return [(i, ConfigVariableBool('want-whitelist', True).getValue()) for i in flaggedIndexes]
+            for sequence in SEQUENCES[word]:
+                subsequence = sequence.split()
+                if cleanWords[i + 1:i + 1 + len(subsequence)] == subsequence:
+                    flaggedIndexes.extend(range(i, i + 1 + len(subsequence)))
+                    break
+
+        return flaggedIndexes
 
     def messageCleaner(self, message):
-        modifications = []
         words = message.split(' ')
-        offset = 0
-        for word in words:
+
+        censored = set(self.lookForSequences(words))
+        for i, word in enumerate(words):
             if word and not base.whiteList.isWord(word):
-                modifications.append((offset, offset + len(word) - 1))
-            offset += len(word) + 1
+                censored.add(i)
 
-        seqMods = self.lookForSequences(words)
-        modifications.extend(seqMods)
-        cleanMessage = message
+        # The blacklist also holds phrases whose words are harmless on their own
+        if cleanWord(message) in BLACKLIST:
+            censored.update(range(len(words)))
 
-        for modStart, modStop in modifications:
-            cleanMessage = cleanMessage[:modStart] + '' * (modStop - modStart + 1) + cleanMessage[modStop + 1:]
+        for i in censored:
+            words[i] = '\x01WLDisplay\x01' + self.chatGarbler.garbleSingle(self, words[i]) + '\x02'
 
-        if self.detectBadWords(message):
-            if words > 2:
-                return '\x01WLDisplay\x01' + self.chatGarbler.garble(self, word) + '\x02'
-            return '\x01WLDisplay\x01' + self.chatGarbler.garbleSingle(self, word) + '\x02'
-
-        if not len(cleanMessage):
-            return '\x01WLDisplay\x01' + self.chatGarbler.garbleSingle(self, word) + '\x02'
-
-        return cleanMessage
+        return ' '.join(words)
 
     def setTalk(self, fromAV, fromAC, avatarName, chat, mods, flags, channel=0):
         friendsList = base.localAvatar.getFriendsList()
@@ -598,7 +569,6 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
 
         if base.cr.ttiFriendsManager.checkIgnored(self.doId):
             return
-        localTimestamp = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime())
         if ConfigVariableBool('want-sleep-reply-on-regular-chat', False).getValue():
             if base.localAvatar.sleepFlag == 1:
                 base.cr.ttiFriendsManager.d_sleepAutoReply(fromAV)
@@ -613,10 +583,12 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
             return
         self.displayTalk(newText)
 
-        if fromAV == 0:
-            print(':%s: setTalk: %r, %r, %r' % (localTimestamp, self.doId, self.name, newText))
-        else:
-            print(':%s: setTalk: %r, %r, %r' % (localTimestamp, fromAV, avatarName, newText))
+        if ConfigVariableBool('want-chat-log', False).getValue():
+            localTimestamp = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime())
+            if fromAV == 0:
+                print(':%s: setTalk: %r, %r, %r' % (localTimestamp, self.doId, self.name, newText))
+            else:
+                print(':%s: setTalk: %r, %r, %r' % (localTimestamp, fromAV, avatarName, newText))
 
         base.talkAssistant.receiveOpenTalk(fromAV, avatarName, fromAC, None, newText)
 
@@ -653,8 +625,9 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
                 base.cr.ttiFriendsManager.d_sleepAutoReply(fromAV)
         newText, scrubbed = self.scrubTalk(chat, mods)
         self.displayTalkWhisper(fromAV, avatarName, chat, mods)
-        timestamp = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime())
-        print(':%s: receiveWhisperTalk: %r, %r, %r, %r, %r, %r, %r' % (timestamp, fromAV, avatarName, fromAC, None, self.doId, self.getName(), newText))
+        if ConfigVariableBool('want-chat-log', False).getValue():
+            timestamp = time.strftime('%m-%d-%Y %H:%M:%S', time.localtime())
+            print(':%s: receiveWhisperTalk: %r, %r, %r, %r, %r, %r, %r' % (timestamp, fromAV, avatarName, fromAC, None, self.doId, self.getName(), newText))
         base.talkAssistant.receiveWhisperTalk(fromAV, avatarName, fromAC, None, self.doId, self.getName(), newText)
 
     def setSleepAutoReply(self, fromId):
