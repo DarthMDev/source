@@ -10,7 +10,10 @@ read -r ttiUsername
 # Export the environment variables:
 export ttiUsername=$ttiUsername
 export ttiPassword="password"
-export TTI_PLAYCOOKIE=$ttiUsername
+unset TTI_PLAYCOOKIE
+export TTI_SERVER_MODE="direct"
+export TTI_PROFILE="$ttiUsername"
+export TTI_PROFILE_KEY="$ttiPassword"
 export TTI_GAMESERVER="127.0.0.1:7198"
 
 echo "==============================="
