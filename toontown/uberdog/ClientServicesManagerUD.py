@@ -591,6 +591,7 @@ class CreateAvatarFSM(OperationFSM):
 
         # Otherwise, we're done!
         self.csm.air.writeServerEvent('avatarCreated', self.avId, self.target, self.dna.hex(), self.index)
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'createAvatarResp', [self.avId])
         self.demand('Off')
 
@@ -696,6 +697,7 @@ class GetAvatarsFSM(AvatarOperationFSM):
             potentialAvs.append([avId, name, fields['setDNAString'][0],
                                  index, nameState, guildId, lastHoodId])
 
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'setAvatars', [potentialAvs])
         self.demand('Off')
 
@@ -843,6 +845,7 @@ class SetNameTypedFSM(AvatarOperationFSM):
                 {'WishNameState': ('APPROVED',),
                  'WishName': (self.name,),
                  'setName': (self.name,)})
+            self.csm.syncToons(self.target)
         else:
             self.csm.air.dbInterface.updateObject(
                 self.csm.air.dbId,
@@ -922,6 +925,7 @@ class SetNamePatternFSM(AvatarOperationFSM):
              'setName': (name,)})
 
         self.csm.air.writeServerEvent('avatarNamed', self.avId, name)
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'setNamePatternResp', [self.avId, 1])
         self.demand('Off')
 
@@ -1271,6 +1275,11 @@ class ClientServicesManagerUD(DistributedObjectGlobalUD):
         flags['official'] = accountdbType == 'production'
 
         return json.dumps(flags)
+
+    def syncToons(self, accountId):
+        gateway = getattr(self.air, 'gateway', None)
+        if gateway is not None:
+            gateway.toonRoster.sync(accountId)
 
     def recordRequest(self, connId):
         now = time.time()

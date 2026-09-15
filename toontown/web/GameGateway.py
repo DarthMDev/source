@@ -6,6 +6,7 @@ from direct.showbase.DirectObject import DirectObject
 from otp.distributed import OtpDoGlobals
 from toontown.web.ChatLog import ChatLog
 from toontown.web.GatewaySocket import openSocket
+from toontown.web.ToonRoster import ToonRoster
 
 NOT_PENDING = 'The Toon is no longer awaiting a name.'
 
@@ -43,6 +44,7 @@ class GameGateway(DirectObject):
             self.socket.onCommand = self.apply
 
         self.chatLog = ChatLog(air, self.socket)
+        self.toonRoster = ToonRoster(air, self.socket)
 
         if self.socket is None:
             self.notify.warning('No gateway; name review will not reach the game.')
@@ -94,12 +96,14 @@ class GameGateway(DirectObject):
                 'Congratulations! The Toon Council has approved your name.'
                 ' You are now known as %s!' % name)
 
+            self.toonRoster.syncToon(avId)
             done(True, {'online': True})
 
         def offline(fields):
             if fields:
                 done(False, {'error': NOT_PENDING})
                 return
+            self.toonRoster.syncToon(avId)
             done(True, {'online': False})
 
         def activated(doId, isActivated):
@@ -198,6 +202,8 @@ class GameGateway(DirectObject):
             return
 
         self.mergeAccounts(legacy, current, userId, username)
+
+        self.toonRoster.sync(legacy['_id'])
 
         self.notify.info('Account %s claimed legacy account %s (%d).'
                          % (userId, legacyName, legacy['_id']))
