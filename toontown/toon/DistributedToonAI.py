@@ -3277,7 +3277,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if type == 'single':
             returnCode = self.doSummonSingleCog(suitIndex)
         elif type == 'building':
-            if random.random() < 0.25:
+            if simbase.air.wantCogdominiums and random.random() < 0.25:
                 suitDeptIndex = suitIndex // SuitDNA.suitsPerDept
                 department = SuitDNA.suitDepts[suitDeptIndex]
                 difficulty = random.randint(1, 9)
