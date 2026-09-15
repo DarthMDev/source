@@ -575,11 +575,7 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
 
         newText, scrubbed = self.scrubTalk(chat, mods)
         newText = newText.strip()
-        if Modifiers[channel] == GuildModifier and base.wantGuilds:
-            if base.localAvatar.doId == self.getDoId():
-                if base.cr.guildManager.guild is None:
-                    base.localAvatar.displayWhisper(0, TTLocalizer.GuildChatWarning, WTSystem)
-                base.cr.guildManager.d_sendTalkWhisperToGuild(newText)
+        if Modifiers[channel] == GuildModifier:
             return
         self.displayTalk(newText)
 
@@ -2437,7 +2433,7 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
         self.nametag.setChatText(chatString, timeout=bool(chatFlags & CFTimeout))
         self.playCurrentDialogue(dialogue, chatFlags - CFSpeech, interrupt)
 
-    def displayTalk(self, chatString, mods=None):
+    def displayTalk(self, chatString, mods=None, chatColor=None):
         flags = CFSpeech | CFTimeout
         self.nametag.setChatType(NametagGlobals.CHAT)
         if isThought(chatString):
@@ -2446,7 +2442,7 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
             chatString = base.talkAssistant.removeThoughtPrefix(chatString)
         else:
             self.nametag.setChatBalloonType(NametagGlobals.CHAT_BALLOON)
-        self.nametag.setChatText(chatString, timeout=(flags & CFTimeout))
+        self.nametag.setChatText(chatString, timeout=(flags & CFTimeout), chatColor=chatColor)
         if base.toonChatSounds:
             self.playCurrentDialogue(None, flags, interrupt=1)
 

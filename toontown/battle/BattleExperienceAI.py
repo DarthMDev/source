@@ -195,6 +195,6 @@ def assignRewards(activeToons, toonSkillPtsGained, suitsKilled, zoneId, helpfulT
         simbase.air.statManager.handleCogsDefeated(activeToonList, suitsKilled, zoneId)
 
     if simbase.air.wantGuildQuests and simbase.air.wantGuilds:
-        activeToonIds = [toon.doId for toon in activeToonList if not None]
+        activeToonIds = [toon.doId for toon in activeToonList if toon is not None]
         for suit in suitsKilled:
             simbase.air.guildManager.handleCogDefeated(activeToonIds, suit, zoneId)

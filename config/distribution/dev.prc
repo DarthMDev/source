@@ -29,7 +29,7 @@ generate-global-object 4684 DistributedDataStoreManager
 generate-global-object 4691 DistributedPartyManager
 generate-global-object 4695 TTCodeRedemptionMgr
 generate-global-object 4701 GuildManager
-# generate-global-object 4478 GlobalGroupTracker
+generate-global-object 4478 GlobalGroupTracker
 # generate-global-object 4950 ZoneManager
 
 # DC file:
@@ -39,7 +39,7 @@ dc-file astron/dclass/vanilla.dc
 want-multiplayer #t
 want-parties #t
 want-achievements #f
-want-grouptracker #f
+want-grouptracker #t
 want-server-browser #f
 
 # Cog buildings:

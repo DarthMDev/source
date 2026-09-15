@@ -5,6 +5,7 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 from toontown.guilds.Guild import Guild
 from toontown.guilds import GuildInvitee, GuildGlobals
 from toontown.chat import ChatGlobals
+from toontown.nametag import NametagGlobals
 from toontown.toonbase import TTLocalizer, EventGlobals
 from toontown.toontowngui.WarningDialog import WarningDialog
 from otp.ai.MagicWordGlobal import *
@@ -149,6 +150,8 @@ class GuildManager(DistributedObjectGlobal):
         name = member[GuildGlobals.GUILD_MEMBER_NAME]
         if adderName != '':
             base.localAvatar.displayWhisper(0, TTLocalizer.GuildMemberAddedBy % (name, adderName), ChatGlobals.WTGuild)
+        elif member[GuildGlobals.GUILD_MEMBER_ID] == base.localAvatar.doId:
+            base.localAvatar.displayWhisper(0, TTLocalizer.GuildMemberAddedTo % (name, self.guild.name), ChatGlobals.WTGuild)
         else:
             base.localAvatar.displayWhisper(0, TTLocalizer.GuildMemberJoined % name, ChatGlobals.WTGuild)
 
@@ -290,13 +293,32 @@ class GuildManager(DistributedObjectGlobal):
     # Chat
 
     def receiveTalkWhisperFromGuild(self, senderId, message):
-        member = self.guild.getMember(senderId)
+        member = self.guild.getMember(senderId) if self.guild is not None else None
         if member is None:
             self.notify.warning('Received whisper from non-existing member %d' % senderId)
             return
         
+        if base.cr.ttiFriendsManager.checkIgnored(senderId):
+            return
+
+        sender = base.cr.doId2do.get(senderId)
+        isToon = hasattr(sender, 'messageCleaner')
+
+        chat = message
+        if senderId != base.localAvatar.doId and not self.isTrueFriend(senderId):
+            chat = (sender if isToon else base.localAvatar).messageCleaner(message)
+
         name = member.getName()
-        base.localAvatar.displayWhisper(0, '[GUILD] %s: %s' % (name, message), ChatGlobals.WTGuild)
+        base.localAvatar.displayWhisper(0, '[GUILD] %s: %s' % (name, chat), ChatGlobals.WTGuild)
+
+        if isToon:
+            sender.displayTalk(chat, chatColor=NametagGlobals.GuildChatColor)
+
+    def isTrueFriend(self, avId):
+        for friendId, flags in base.localAvatar.getFriendsList():
+            if friendId == avId and flags:
+                return True
+        return False
         
     def guildError(self, errorId):
         errorText = GuildGlobals.GUILD_ERRORS_TO_STRING[errorId]
@@ -355,7 +377,7 @@ def guild(command, arg0=''):
 
     if command == 'create':
         name = arg0
-        base.cr.guildManager.d_requestCreateGuild(target.doId, name)
+        base.cr.guildManager.d_requestCreateGuild(name, 0)
         return 'Requested guild with name: %s' % name
     elif command == 'whisper':
         message = arg0

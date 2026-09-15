@@ -339,9 +339,9 @@ class GuildPage(DirectFrame):
 
     def sortMembers(self):
         if self.sortedState == self.SortName:
-            self.memberObjects = sorted(self.memberObjects, key=lambda member: member.name, reverse=False)
+            self.memberObjects = sorted(self.memberObjects, key=lambda member: member.memberName, reverse=False)
         elif self.sortedState == self.SortNameDn:
-            self.memberObjects = sorted(self.memberObjects, key=lambda member: member.name, reverse=True)
+            self.memberObjects = sorted(self.memberObjects, key=lambda member: member.memberName, reverse=True)
         elif self.sortedState == self.SortRole:
             self.memberObjects = sorted(self.memberObjects, key=lambda member: member.roleId, reverse=False)
         elif self.sortedState == self.SortRoleDn:
@@ -395,7 +395,7 @@ class GuildPageMember(DirectButton):
     def __init__(self, parent, avId, name, contribution, roleId, laff, online, index, listObject):
         self._parent = parent
         self.avId = avId
-        self.name = name
+        self.memberName = name
         self.contribution = contribution
         self.roleId = roleId
         self.laff = laff
@@ -458,7 +458,7 @@ class GuildPageMember(DirectButton):
         self.mainFrame['frameColor'] = frameColor
 
     def updateFromMember(self, member):
-        self.name = member.name
+        self.memberName = member.name
         self.contribution = member.contribution
         self.roleId = member.getRole().id
         self.laff = member.laff
@@ -477,7 +477,7 @@ class GuildPageMember(DirectButton):
 
     def getShortenedName(self):
         maxLength = 15
-        name = self.name
+        name = self.memberName
         if len(name) > maxLength:
             name = name[:maxLength]
             name += '...'
@@ -490,7 +490,7 @@ class GuildPageMember(DirectButton):
 
         def cancel():
             self.kickDialog = None
-        self.kickDialog = ConfirmDialog.ConfirmDialog(self.listObject, TTLocalizer.GuildKickConfirmation % self.name, commands=(self.handleKick, cancel))
+        self.kickDialog = ConfirmDialog.ConfirmDialog(self.listObject, TTLocalizer.GuildKickConfirmation % self.memberName, commands=(self.handleKick, cancel))
 
     def openTransferOwnershipDialog(self):
         if self.transferOwnershipDialog is not None:
@@ -499,7 +499,7 @@ class GuildPageMember(DirectButton):
 
         def cancel():
             self.transferOwnershipDialog = None
-        self.transferOwnershipDialog = ConfirmDialog.ConfirmDialog(self.listObject, TTLocalizer.GuildTransferOwnershipConfirmation % self.name, commands=(self.handleTransfer, cancel))
+        self.transferOwnershipDialog = ConfirmDialog.ConfirmDialog(self.listObject, TTLocalizer.GuildTransferOwnershipConfirmation % self.memberName, commands=(self.handleTransfer, cancel))
 
     def handlePromote(self):
         messenger.send(EventGlobals.WakeUp)

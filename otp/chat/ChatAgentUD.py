@@ -7,7 +7,7 @@ from direct.distributed.DistributedObjectGlobalUD import \
 from toontown.chat.TTWhiteList import TTWhiteList
 from otp.distributed import OtpDoGlobals
 from toontown.chat.TTBlacklist import SEQUENCES, containsBadWord
-from toontown.web.ChatLog import chatLogOf, kindForChannel
+from toontown.web.ChatLog import GUILD_CHANNEL, chatLogOf, kindForChannel
 import time
 
 
@@ -74,6 +74,12 @@ class ChatAgentUD(DistributedObjectGlobalUD):
                 senderId,
                 lambda parentId, zoneId: chatLog.setLocation(
                     event, parentId, zoneId))
+
+        if channel == GUILD_CHANNEL:
+            guildManager = self.air.globalObjects.get('GuildManager')
+            if guildManager is not None:
+                guildManager.sendGuildTalk(senderId, message)
+            return
 
         dclass = self.air.dclassesByName['DistributedAvatarUD']
         dg = dclass.aiFormatUpdate(

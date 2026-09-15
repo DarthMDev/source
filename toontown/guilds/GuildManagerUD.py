@@ -6,7 +6,7 @@ from toontown.friends.TTIFriendsManagerUD import OperationFSM
 from toontown.guilds.GuildGlobals import *
 from toontown.guilds.GuildUD import *
 from toontown.util import ThreadedCall
-from toontown.web.ChatLog import websiteUserId
+from toontown.web.ChatLog import GUILD_CHANNEL, websiteUserId
 
 guildDBPath = ConfigVariableString(
     'guild-db-path', 'astron/databases/guilds',
@@ -24,6 +24,14 @@ class GuildDB:
         self.dbm[str(guildId)] = str(ownerId)
         self.dbm.sync()
 
+    def remove(self, guildId):
+        try:
+            del self.dbm[str(guildId)]
+        except KeyError:
+            return
+
+        self.dbm.sync()
+
     def getGuildIds(self):
         return [int(guildId) for guildId in list(self.dbm.keys())]
 
@@ -34,7 +42,7 @@ class GuildDB:
         return int(self.dbm[str(guildId)])
 
     def getGuildIdFromOwnerId(self, ownerId):
-        for key, value in list(self.dbm.values()):
+        for key, value in list(self.dbm.items()):
             if int(value) == ownerId:
                 return int(key)
 
@@ -71,6 +79,13 @@ class CreateGuildOperation(OperationFSM):
         )
 
     def handleCreate(self, guildId):
+        if not guildId:
+            self.mgr.notify.warning('The database could not create a guild for avatar %d' % self.sender)
+            self.mgr.d_createGuildResult(self.sender, False)
+            self.callback = None
+            self.demand('Off')
+            return
+
         self.result = guildId
 
         # Give this Guild a temporary name if its name status is pending:
@@ -86,7 +101,7 @@ class CreateGuildOperation(OperationFSM):
         self.mgr.guilds[guildId] = guild
         self.mgr.avId2GuildId[self.sender] = guildId
 
-        guild.addNewMember([self.sender, GUILD_ROLE_ID_OWNER, 0], self.name)
+        guild.addNewMember([self.sender, GUILD_ROLE_ID_OWNER, 0], '')
 
         self.mgr.guildDB.update(guildId, self.sender)
 
@@ -115,6 +130,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         self.whenLoaded = []
 
         taskMgr.add(self.retrieveGuilds, 'guildManagerUD-retrieveTask')
+        self.scheduleQuestRollover()
 
     def retrieveGuilds(self, task=None):
         self.notify.info('Retrieving Guilds...')
@@ -170,10 +186,29 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         self.air.dbInterface.queryObject(self.air.dbId, guildId, handleRetrieved)
 
     def handleDestroy(self, guildId):
-        self.notify.debug('Handling the destruction of guild %d' % guildId)
-        # Re-sync the rankings TODO: Uncomment this when implemented the features below
-        # self.calculateRanks()
-        # TODO: Delete this guild from the db then remove it from self.guilds
+        self.notify.info('Guild %d has no members left and is disbanded' % guildId)
+        taskMgr.remove('guildManagerUD-retryName-%d' % guildId)
+
+        self.guilds.pop(guildId, None)
+        for avId in [avId for avId, memberGuildId in self.avId2GuildId.items() if memberGuildId == guildId]:
+            del self.avId2GuildId[avId]
+
+        self.guildDB.remove(guildId)
+        self.calculateRanksThreaded()
+
+    def d_createGuildResult(self, avId, success):
+        self.air.sendNetEvent('guildCreateResult', [avId, success])
+
+    def scheduleQuestRollover(self):
+        taskMgr.doMethodLater(GuildQuestGlobals.getSecondsUntilNextQuestDay() + 1, self.rolloverQuests,
+                              'guildManagerUD-questRollover')
+
+    def rolloverQuests(self, task):
+        for guild in list(self.guilds.values()):
+            guild.rolloverQuest()
+
+        self.scheduleQuestRollover()
+        return task.done
 
     # Handling Toon online status
     def toonOnline(self, avId, guildId):
@@ -206,7 +241,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         dgcleanup = self.dclass.aiFormatUpdate('toonOffline', self.doId, self.doId, self.air.ourChannel, [avId])
         dg = PyDatagram()
         dg.addServerHeader(clientChannel, self.air.ourChannel, CLIENTAGENT_ADD_POST_REMOVE)
-        dg.addString(dgcleanup.getMessage())
+        dg.addBlob(bytes(dgcleanup))
         self.air.send(dg)
 
         # Tell the guild that this member is online
@@ -232,7 +267,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
     def nameResponse(self, guildId, response):
         self.notify.debug('Received name response %s for guildId %d' % (response, guildId))
-        guild = self.guilds[guildId]
+        guild = self.guilds.get(guildId)
         if guild is None:
             self.notify.warning('Tried to respond to non existent guild %d' % guildId)
             return
@@ -248,17 +283,17 @@ class GuildManagerUD(DistributedObjectGlobalUD):
     # Whispers
     def sendTalkWhisperToGuild(self, message):
         avId = self.air.getAvatarIdFromSender()
-        guildId = self.avId2GuildId.get(avId, None)
-
-        if guildId is None:
+        guild = self.guilds.get(self.avId2GuildId.get(avId))
+        member = guild.getMember(avId) if guild is not None else None
+        if member is None:
             return
 
-        guild = self.guilds.get(guildId, None)
-        if guild is None:
-            self.sendUpdateToAvatarId(avId, 'guildError', [GUILD_FATAL_ERROR])
-            return
+        self.air.getGlobalObject('ChatAgent').chatMessage(message, member.name, GUILD_CHANNEL)
 
-        guild.handleTalkWhisper(avId, message)
+    def sendGuildTalk(self, avId, message):
+        guild = self.guilds.get(self.avId2GuildId.get(avId))
+        if guild is not None:
+            guild.handleTalkWhisper(avId, message)
 
     # Client Requests
     def requestCreateGuild(self, avId, name, iconId):
@@ -267,6 +302,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             if self.avId2GuildId[avId] in self.guilds:
                 # Tell the avatar that they are already in a guild
                 self.sendUpdateToAvatarId(avId, 'guildError', [GUILD_ALREADY_IN_GUILD_ERROR])
+                self.d_createGuildResult(avId, False)
 
                 # Log this as a warning
                 self.notify.warning('Avatar %d requested a new guild yet they are already part of one: %d' % (
@@ -275,6 +311,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
         def handleCreated(avId, guildId):
             self.notify.info('Avatar %d successfully created guild %d!' % (avId, guildId))
+            self.d_createGuildResult(avId, True)
 
         # Log that an avatar is creating a guild
         self.notify.info('Avatar %d requested a guild!' % avId)
@@ -430,11 +467,12 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
     def calculateRanks(self):
         self.notify.debug('Calculating Ranks for Guilds...')
-        descendingGuilds = sorted(self.guilds, key=lambda guildId: self.guilds[guildId].rankPoints, reverse=True)
+        guilds = dict(self.guilds)
+        descendingGuilds = sorted(guilds, key=lambda guildId: guilds[guildId].rankPoints, reverse=True)
         deadGuildCount = 0
         self.topTen = []
         for index, guildId in enumerate(descendingGuilds):
-            guild = self.guilds.get(guildId)
+            guild = guilds.get(guildId)
             if guild is None or guild.name == 'Infinite Staff' or len(guild.members) == 0 or guild.rankPoints == 0:
                 # This guild does not count, do not rank it
                 deadGuildCount += 1
@@ -574,7 +612,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             self.notify.warning('Could not retrieve matching guild for id %d' % guildId)
             return
 
-        for avId in avIds:
+        for avId in list(avIds):
             if guild.getMember(avId) is None:
                 self.notify.warning('Avatar %d not in guild but tried to get in this quest' % avId)
                 avIds.remove(avId)

@@ -84,8 +84,5 @@ class GlobalGroupTrackerAI(DistributedObjectGlobalAI):
                 recall()
 
     def getHoodAvIds(self, av):
-        memberIds = [av.doId]
-        for hood in self.air.hoods:
-            if hood.zoneId == av.zoneId:
-                memberIds = [doId for doId in hood.avIds]
-        return memberIds
+        return [doId for doId, do in list(self.air.doId2do.items())
+                if do.dclass.getName() == 'DistributedToon' and do.zoneId == av.zoneId]

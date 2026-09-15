@@ -6,7 +6,6 @@ from . import FishGlobals
 from toontown.hood import ZoneUtil
 from toontown.toonbase import ToontownGlobals
 
-# TODO: handle guild case
 class FishManagerAI:
     notify = DirectNotifyGlobal.directNotify.newCategory("FishManagerAI")
 
@@ -86,6 +85,8 @@ class FishManagerAI:
                     rodId = av.getFishingRod()
                     self.air.writeServerEvent("fishedFish", avId, "%s|%s|%s|%s|%s|%s" %
                                               (rodId, zoneId, genus, species, weight, fish.getValue()))
+                    if self.air.wantGuilds and self.air.wantGuildQuests:
+                        self.air.guildManager.handleFishCaptured(avId, fish)
                     if collectResult == FishGlobals.COLLECT_NO_UPDATE:
                         return (FishGlobals.FishItem, fish)
                     elif collectResult == FishGlobals.COLLECT_NEW_ENTRY:

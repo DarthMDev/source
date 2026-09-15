@@ -25,6 +25,7 @@ toondata/
 banned_players.txt
 tools/
 tti-server/
+databases/
 .gateway-env
 start-server-maintainer.sh
 

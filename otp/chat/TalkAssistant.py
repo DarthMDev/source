@@ -13,6 +13,7 @@ from otp.otpbase import OTPLocalizer
 from otp.speedchat import SCDecoders
 from toontown.chat.ChatGlobals import *
 from toontown.chat.TTWhiteList import TTWhiteList
+from toontown.toonbase import TTLocalizer
 
 
 class TalkAssistant(DirectObject.DirectObject):
@@ -572,6 +573,12 @@ class TalkAssistant(DirectObject.DirectObject):
                 if channel is not None:
                     self.channel = Modifiers.index(channel)
                 message = removeModifier(message)
+            if Modifiers[self.channel] == GuildModifier:
+                if base.cr.guildManager.guild is None:
+                    base.localAvatar.displayWhisper(0, TTLocalizer.GuildChatWarning, WTSystem)
+                else:
+                    base.cr.chatAgent.sendChatMessage(message, self.channel)
+                return error
             base.cr.chatAgent.sendChatMessage(message, self.channel)
             messenger.send('chatUpdate', [message, chatFlags])
         return error

@@ -303,7 +303,7 @@ class NametagGroup:
     def getChatPageIndex(self):
         return self.chatPageIndex
 
-    def setChatText(self, chatText, timeout=False):
+    def setChatText(self, chatText, timeout=False, chatColor=None):
         # If we are currently displaying chat text, we need to "stomp" it. In
         # other words, we need to clear the current chat text, pause for a
         # brief moment, and then display the new chat text:
@@ -312,10 +312,13 @@ class NametagGroup:
             self.stompChatText = chatText
             self.stompTask = taskMgr.doMethodLater(
                 self.CHAT_STOMP_DELAY, self.__chatStomp, self.stompTaskName,
-                extraArgs=[timeout])
+                extraArgs=[timeout, chatColor])
             return
 
         self.clearChatText()
+
+        for nametag in self.nametags:
+            nametag.setChatColor(chatColor or self.chatColor)
 
         self.chatPages = chatText.split('\x07')
         self.setChatPageIndex(0)
@@ -465,6 +468,6 @@ class NametagGroup:
         for nametag in self.nametags:
             nametag.showThought()
 
-    def __chatStomp(self, timeout=False):
-        self.setChatText(self.stompChatText, timeout=timeout)
+    def __chatStomp(self, timeout=False, chatColor=None):
+        self.setChatText(self.stompChatText, timeout=timeout, chatColor=chatColor)
         self.stompChatText = ''

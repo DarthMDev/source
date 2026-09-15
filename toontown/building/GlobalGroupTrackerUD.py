@@ -75,7 +75,7 @@ class GlobalGroupTrackerUD(GlobalOtpObjectUD):
     
     def showGroup(self, leaderId, show):
         if leaderId not in self.leader2Group:
-            self.notify.warning('Av %s tried to show group not in leader2Group' % avId)
+            self.notify.warning('Av %s tried to show group not in leader2Group' % leaderId)
             return
         self.leader2Group[leaderId][SHOW] = show
         self.d_updateListeners(leaderId)

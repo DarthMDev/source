@@ -4292,6 +4292,7 @@ GuildMemberOnline = '[GUILD] %s has come online.'
 GuildMemberOffline = '[GUILD] %s has gone offline.'
 GuildMemberJoined = '[GUILD] %s has joined the Guild.'
 GuildMemberAddedBy = '[GUILD] %s has been added to the Guild by %s.'
+GuildMemberAddedTo = '[GUILD] %s has been added to %s!'
 GuildMemberRemovedBy = '[GUILD] %s has been removed from the Guild by %s.'
 GuildMemberLeft = '[GUILD] %s has left the Guild.'
 GuildMemberKicked = '[GUILD] You have been removed from the Guild.'
@@ -10540,7 +10541,9 @@ Controls = ['Move Up:', 'Move Left:', 'Move Down:', 'Move Right:',
             'Jump:', 'Action Key:', 'Options Hotkey:', 'Chatbox Hotkey:',
             'Screenshot Key:', 'Interact Key:', 'View Gags:', 'View Tasks:']
 
-GuildChatWarning = 'You are currently not in a Guild. Use "/all" to return to normal chat.'
+GuildChatWarning = 'You are currently not in a Guild. Use "/a" to return to normal chat.'
+ChatPlaceholderAll = 'Talking in All chat\n/g for Guild chat'
+ChatPlaceholderGuild = 'Talking in Guild chat\n/a for All chat'
 GuildDialogMovieStart = 'Are you here to create your very own Guild?'
 GuildDialogMoviePromptName = 'Great! Just fill out the name for your Guild, and pay a measly fee of %(cost)s beans, and your Guild should be up in no time.'
 GuildDialogMoviePromptIcon = 'And now select an icon to represent your Guild.'

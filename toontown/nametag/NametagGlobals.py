@@ -1,4 +1,5 @@
 from panda3d.core import VBase4
+from toontown.chat.ChatGlobals import WTGuild, WhisperColors
 
 
 CCNormal = 0
@@ -137,6 +138,8 @@ def getModelWidthHeight(model):
 
 
 guildColor = VBase4(0.345, 0.1647, 0.447, 1.0)
+
+GuildChatColor = tuple((VBase4(*fg), VBase4(bg[0], bg[1], bg[2], 1.0)) for fg, bg in WhisperColors[WTGuild])
 
 # Foreground, background:
 NametagColors = {

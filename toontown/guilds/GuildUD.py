@@ -5,7 +5,6 @@ from toontown.guilds.GuildMemberUD import GuildMemberUD
 from toontown.guilds.GuildQuestUD import GuildQuestUD
 from toontown.guilds.GuildGlobals import *
 from toontown.guilds import GuildQuestGlobals
-from toontown.web.ChatLog import GUILD, chatLogOf
 
 from direct.distributed.ClockDelta import *
 
@@ -97,6 +96,7 @@ class GuildUD:
 
     # Destruction
     def destroy(self):
+        taskMgr.remove(self.getUniqueName('guildQuestUpdateLater'))
         self.mgr.handleDestroy(self.id)
 
     # Name Functions
@@ -136,7 +136,24 @@ class GuildUD:
         # Save the guild
         self.saveGuild()
 
+    def rolloverQuest(self):
+        if not ConfigVariableBool('want-guild-quests', True).getValue():
+            return
+        if self.questNum // GuildQuestGlobals.QUESTS_PER_DAY == GuildQuestGlobals.getQuestDay():
+            return
+
+        taskMgr.remove(self.getUniqueName('guildQuestUpdateLater'))
+        self.startQuest()
+        self.sendUpdate('alertQuestStarted', [self.quest])
+        self.saveGuild()
+
     def startQuest(self):
+        today = GuildQuestGlobals.getQuestDay()
+        if self.questNum // GuildQuestGlobals.QUESTS_PER_DAY != today:
+            # Unfinished quests expire at the end of the day
+            self.questNum = today * GuildQuestGlobals.QUESTS_PER_DAY
+            self.quest = GuildQuestGlobals.GUILD_QUEST_EMPTY
+
         if not ConfigVariableBool('want-guild-quests', True).getValue():
             # We don't want quests right now, shut it all down
             quest = GuildQuestGlobals.GUILD_QUEST_EMPTY
@@ -378,15 +395,10 @@ class GuildUD:
         senderRole = sender.getRole()
         targetRole = target.getRole()
 
-        # Check if the owner is trying to leave
-        if target is sender:
-            if targetRole.sortIndex == 0:
-                # If the owner is the last person
-                if len(self.avId2Member) == 1:
-                    self.destroy()
-                else:
-                    self.mgr.sendUpdateToAvatarId(senderId, 'guildError', [GUILD_CANT_LEAVE_ERROR])
-                    return
+        # The owner can only leave as the last member, which disbands the guild
+        if target is sender and targetRole.sortIndex == 0 and len(self.members) > 1:
+            self.mgr.sendUpdateToAvatarId(senderId, 'guildError', [GUILD_CANT_LEAVE_ERROR])
+            return
                 
         # Is this someone trying to kick someone else?
         if target is not sender:
@@ -433,6 +445,10 @@ class GuildUD:
         if avId in self.mgr.avId2GuildId:
             del self.mgr.avId2GuildId[avId]
 
+        if not self.members:
+            self.destroy()
+            return
+
         # Calculate the guilds rank
         self.mgr.calculateRanksThreaded()
 
@@ -465,6 +481,10 @@ class GuildUD:
             del self.avId2MemberIndex[avId]
         if avId in self.mgr.avId2GuildId:
             del self.mgr.avId2GuildId[avId]
+
+        if not self.members:
+            self.destroy()
+            return
 
         # Calculate the guilds rank
         self.mgr.calculateRanksThreaded()
@@ -728,13 +748,6 @@ class GuildUD:
 
         # Alert all members of this whisper.
         self.sendUpdate('receiveTalkWhisperFromGuild', [sender, message])
-
-        air = self.mgr.air
-        chatLog = chatLogOf(air)
-        if chatLog is not None:
-            chatLog.record(
-                GUILD, sender, chatLog.toonNameFor(sender),
-                air.getAccountIdFromSender(), message)
 
     # Send updates
     def sendUpdate(self, field, args=None):
