@@ -37,7 +37,7 @@ messagedirector:
 roles:
     - type: clientagent
       bind: 0.0.0.0:7198
-      version: "SERVER_VERSION"
+      version: "dev"
       client:
         relocate: true
         add_interest: enabled
