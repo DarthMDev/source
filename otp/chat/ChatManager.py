@@ -192,9 +192,13 @@ class ChatManager(DirectObject.DirectObject):
         if self.localAvatar.canChat() or self.cr.wantMagicWords:
             if self.wantBackgroundFocus:
                 self.chatInputNormal.chatEntry['backgroundFocus'] = 1
-            self.acceptOnce('enterNormalChat', self.fsm.request, ['normalChat'])
-            if not self.wantBackgroundFocus:
-                self.accept(self.chatHotkey, messenger.send, ['enterNormalChat'])
+            taskMgr.doMethodLater(0, self.__listenForNormalChat, 'chatManager-listenForNormalChat')
+
+    def __listenForNormalChat(self, task):
+        self.acceptOnce('enterNormalChat', self.fsm.request, ['normalChat'])
+        if not self.wantBackgroundFocus:
+            self.accept(self.chatHotkey, messenger.send, ['enterNormalChat'])
+        return task.done
 
     def checkObscurred(self):
         if not self.__scObscured:
@@ -203,6 +207,7 @@ class ChatManager(DirectObject.DirectObject):
             self.normalButton.show()
 
     def exitMainMenu(self):
+        taskMgr.remove('chatManager-listenForNormalChat')
         self.scButton.hide()
         self.normalButton.hide()
         self.ignore('enterNormalChat')
