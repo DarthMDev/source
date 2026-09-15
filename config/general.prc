@@ -57,9 +57,9 @@ egg-object-type-dcs <DCS> { 1 }
 
 # Core features:
 want-multiplayer #f
-want-guilds #f
-want-guild-quests #f
-want-emblems #f
+want-guilds #t
+want-guild-quests #t
+want-emblems #t
 want-pets #t
 
 # Safe zones:

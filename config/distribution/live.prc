@@ -33,7 +33,7 @@ generate-global-object 4683 DistributedDeliveryManager
 generate-global-object 4684 DistributedDataStoreManager
 generate-global-object 4691 DistributedPartyManager
 generate-global-object 4695 TTCodeRedemptionMgr
-# generate-global-object 4701 GuildManager
+generate-global-object 4701 GuildManager
 # generate-global-object 4478 GlobalGroupTracker
 # generate-global-object 4950 ZoneManager
 

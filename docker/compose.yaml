@@ -51,6 +51,8 @@ services:
     environment:
       <<: *game-env
       INFISICAL_PATH: /uberdog
+    volumes:
+      - uberdog-databases:/app/astron/databases
     command: [uberdog]
 
   nuttyboro:
@@ -84,3 +86,4 @@ networks:
 volumes:
   mongo-data:
   astron-logs:
+  uberdog-databases:

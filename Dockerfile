@@ -43,7 +43,8 @@ RUN sed -i "s/^server-version SERVER_VERSION$/server-version ${SERVER_VERSION}/"
 # Unbuffered so the district's log reaches `docker logs` as it happens
 ENV PYTHONUNBUFFERED=1
 
-RUN useradd --system --create-home --uid 10001 tti && chown -R tti /app
+RUN useradd --system --create-home --uid 10001 tti \
+    && mkdir -p astron/databases && chown -R tti /app
 USER tti
 
 ENTRYPOINT ["./docker/entrypoint.sh"]

@@ -28,6 +28,7 @@ uberdogs:
     - {class: DistributedDataStoreManager, id: 4684, anonymous: false}
     - {class: DistributedPartyManager,     id: 4691, anonymous: false}
     - {class: TTCodeRedemptionMgr,         id: 4695, anonymous: false}
+    - {class: GuildManager,                id: 4701, anonymous: false}
 
 messagedirector:
     bind: 0.0.0.0:7010
