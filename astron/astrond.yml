@@ -36,7 +36,7 @@ messagedirector:
 
 roles:
     - type: clientagent
-      bind: 0.0.0.0:7000
+      bind: 0.0.0.0:7198
       version: "SERVER_VERSION"
       client:
         relocate: true

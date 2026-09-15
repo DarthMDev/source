@@ -11,7 +11,7 @@ read -r ttiUsername
 export ttiUsername=$ttiUsername
 export ttiPassword="password"
 export TTI_PLAYCOOKIE=$ttiUsername
-export TTI_GAMESERVER="127.0.0.1"
+export TTI_GAMESERVER="127.0.0.1:7198"
 
 echo "==============================="
 echo "Starting Toontown Infinite..."
