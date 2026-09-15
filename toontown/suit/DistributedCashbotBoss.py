@@ -603,7 +603,6 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             Wait(6),
             Func(self.resistanceToon.setChatAbsolute, 'Defeat them and enable the cranes! I know you can do it!',
                  CFSpeech | CFTimeout),
-            Func(self.cranes[0].request, 'Free')
         )
         seq.start()
 
@@ -696,9 +695,9 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
                 goon.posHprInterval(3, Point3(125.2, -243.5, 0), VBase3(-14, 0, 0), startPos=Point3(104.8, -309.5, 0),
                                     startHpr=VBase3(-14, 0, 0))),
             Func(self.__hideFakeGoons),
+            Func(crane.request, 'Free'),
             base.camera.posHprInterval(0.5, Point3(105, -333, 18), Point3(-45, 15, 0), blendType='easeInOut'),
             Func(self.hideBattleThreeObjects),
-            self.moveToonsToBattleThreePos(self.involvedToons),
             Func(self.__showToons),
             Func(self.saySomething, TTLocalizer.BossCogAttackToons),
             Wait(3),
@@ -1040,6 +1039,8 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
     def enterBattleTwo(self):
         self.cleanupIntervals()
         self.evWalls.unstash()
+        self.midVault.stash()
+        self.__hideResistanceToon()
         base.playMusic(self.battleTwoMusic, looping=1, volume=0.9)
 
     def exitBattleTwo(self):
@@ -1062,6 +1063,7 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             track.append(Func(self.saySomething, s))
 
         track.append(Wait(5))
+        track.append(Func(self.getGeomNode().setH, 0))
 
         return track
 
@@ -1071,7 +1073,6 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         self.endVault.unstash()
         self.evWalls.unstash()
         self.midVault.stash()
-        self.__showResistanceToon(False)
         self.showBattleThreeObjects()
 
         if self.battleDifficulty == 2:
@@ -1101,7 +1102,6 @@ class DistributedCashbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
 
     @timeFunc
     def enterBattleThree(self):
-        self.getGeomNode().setH(0)
         DistributedBossCog.DistributedBossCog.enterBattleThree(self)
         self.clearChat()
         if self.resistanceToon:
