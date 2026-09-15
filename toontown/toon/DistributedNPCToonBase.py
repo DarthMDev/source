@@ -74,10 +74,29 @@ class DistributedNPCToonBase(DistributedToon.DistributedToon):
 
     def initToonState(self):
         self.setAnimState('neutral', 0.9, None, None)
-        npcOrigin = render.find('**/npc_origin_' + str(self.posIndex))
+        npcOrigin = self.findNpcOrigin()
         if not npcOrigin.isEmpty():
             self.reparentTo(npcOrigin)
             self.initPos()
+
+    def getPlacementRoots(self):
+        roots = [getattr(do, 'interior', None) for do in self.cr.doId2do.values()]
+        hood = getattr(base.cr.playGame, 'hood', None)
+        roots.append(getattr(getattr(hood, 'loader', None), 'geom', None))
+        return [np for np in roots if isinstance(np, NodePath) and not np.isEmpty()]
+
+    def findNpcOrigin(self):
+        name = '**/npc_origin_' + str(self.posIndex)
+        for root in self.getPlacementRoots():
+            npcOrigin = root.find(name)
+            if not npcOrigin.isEmpty():
+                return npcOrigin
+        npcOrigin = render.find(name)
+        if npcOrigin.isEmpty():
+            self.notify.warning('No npc_origin_%s for NPC %s.' % (self.posIndex, self.doId))
+        else:
+            self.notify.warning('npc_origin_%s for NPC %s came from outside the zone geometry.' % (self.posIndex, self.doId))
+        return npcOrigin
 
     def initPos(self):
         self.clearMat()

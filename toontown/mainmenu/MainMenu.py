@@ -32,6 +32,9 @@ class MainMenu(DirectFrame, FSM):
         self.background.setTransparency(TransparencyAttrib.MAlpha)
         self.background.hide()
 
+        self.environment = NodePath('mainMenu-environment')
+        self.environment.reparentTo(hidden)
+
         self.homeScreen = HomeScreen(self)
         self.homeScreen.hide()
         self.playScreen = PlayScreen(self)
@@ -50,8 +53,6 @@ class MainMenu(DirectFrame, FSM):
         else:
             ToontownGlobals.getMinnieFont()
 
-        self.environment = NodePath('mainMenu-environment')
-        self.environment.reparentTo(hidden)
 
     def destroy(self):
         self.environment.removeNode()

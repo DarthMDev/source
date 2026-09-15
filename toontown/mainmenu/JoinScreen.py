@@ -112,7 +112,7 @@ class JoinScreen(DirectFrame, FSM):
         self.interiorFovZoomOut = LerpFunc(base.camLens.setFov, 1, 35, 50, 'easeOut', [], "zoom")
 
         self.door = loader.loadModel('phase_3.5/models/modules/doors_practical')
-        self.door.reparentTo(render)
+        self.door.reparentTo(self.mainMenu.environment)
         self.door.setPosHpr(-392.2, -247, 4, -175, 0, 0)
 
         self.leftDoor = self.door.find('**/door_double_square_ur_left')
@@ -127,7 +127,7 @@ class JoinScreen(DirectFrame, FSM):
         self.rightDoorCloseInterval = self.rightDoor.hprInterval(1.3, Point3(0, 0, 0), startHpr=Point3(90, 0, 0))
 
         self.buildingInterior = loader.loadModel('phase_3.5/models/modules/HQ_interior')
-        self.buildingInterior.reparentTo(render)
+        self.buildingInterior.reparentTo(self.mainMenu.environment)
         self.buildingInterior.setPos(-374.5, -293, -25)
 
         # Our Door

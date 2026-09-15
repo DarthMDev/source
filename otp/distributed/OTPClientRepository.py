@@ -161,7 +161,7 @@ class OTPClientRepository(ClientRepositoryBase):
         self.telemetryLimiter = TelemetryLimiter()
         self.serverVersion = serverVersion
         self.waitingForDatabase = None
-        self.mainMenu = MainMenu()
+        self.mainMenu = None
         self.serverMenu = ServerMenu()
         self.localServerStarter = LocalServerStarter()
 
@@ -2432,8 +2432,9 @@ class OTPClientRepository(ClientRepositoryBase):
         taskMgr.doMethodLater(0.1, self.mainMenuTask, 'mainMenuTask')
 
     def exitMainMenu(self):
-        self.mainMenu.destroy()
-        self.mainMenu = None
+        if self.mainMenu is not None:
+            self.mainMenu.destroy()
+            self.mainMenu = None
         taskMgr.remove('mainMenuTask')
 
     def enterServerMenu(self):
