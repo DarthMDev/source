@@ -7,6 +7,8 @@ import os
 
 EnabledZones = 'wanted-zones'
 ExpMultiplier = 'exp-multiplier'
+MinExpMultiplier = 1
+MaxExpMultiplier = 20
 YinYang = 'want-yin-yang'
 WantRacing = 'want-racing'
 WantGolf = 'want-golf'

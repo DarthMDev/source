@@ -59,6 +59,12 @@ class NewsManagerAI(DistributedObjectAI.DistributedObjectAI):
     def d_setHolidayIdList(self, holidayIdList):
         self.sendUpdate("setHolidayIdList", [holidayIdList])
 
+    def getXpMultiplier(self):
+        return self.air.getXpMultiplier()
+
+    def d_setXpMultiplier(self):
+        self.sendUpdate("setXpMultiplier", [self.getXpMultiplier()])
+
     def bingoWin(self, zoneId):
         self.sendUpdate("setBingoWin", [0])
 

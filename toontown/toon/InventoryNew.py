@@ -39,8 +39,9 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.initialiseoptions(InventoryNew)
         self.battleCreditLevel = None
         self.detailCredit = None
-        self.__battleCreditMultiplier = base.baseXpMultiplier
-        self.__invasionCreditMultiplier = base.baseXpMultiplier
+        self.__battleCreditMultiplier = 1
+        self.__invasionCreditMultiplier = 1
+        self.__xpMultiplier = base.baseXpMultiplier
         self.__respectInvasions = 1
         self.interactivePropTrackBonus = -1
         self.tutorialFlag = 0
@@ -59,6 +60,12 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
     def getBattleCreditMultiplier(self):
         return self.__battleCreditMultiplier
+
+    def setXpMultiplier(self, mult):
+        self.__xpMultiplier = mult
+
+    def getXpMultiplier(self):
+        return self.__xpMultiplier
 
     def setInteractivePropTrackBonus(self, trackBonus):
         self.interactivePropTrackBonus = trackBonus
@@ -313,7 +320,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
          'bonus': damageBonusStr,
          'singleOrGroup': self.getSingleGroupStr(track, level)})
         if self.itemIsCredit(track, level):
-            mult = self.__battleCreditMultiplier
+            mult = self.__battleCreditMultiplier * self.__xpMultiplier
             if self.__respectInvasions:
                 mult *= self.__invasionCreditMultiplier
             self.setDetailCredit(track, (level + 1) * mult)

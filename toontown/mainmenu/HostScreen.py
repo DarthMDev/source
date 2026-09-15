@@ -227,7 +227,8 @@ class HostScreen(DirectFrame, FSM):
             serverSettings[setting] = True
 
     def setServerExpMult(self, offset):
-        value = max(min((serverSettings[ServerSettingsGlobals.ExpMultiplier] + offset), 20), 1)
+        value = max(min((serverSettings[ServerSettingsGlobals.ExpMultiplier] + offset),
+                        ServerSettingsGlobals.MaxExpMultiplier), ServerSettingsGlobals.MinExpMultiplier)
         serverSettings[ServerSettingsGlobals.ExpMultiplier] = value
         self.hostExpMultLabel['text'] = "EXP Multiplier: %sx" % str(value)
 

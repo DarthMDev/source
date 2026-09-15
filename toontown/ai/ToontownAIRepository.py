@@ -68,7 +68,7 @@ from toontown.racing.DistributedStartingBlockAI import DistributedViewingBlockAI
 from toontown.safezone.SafeZoneManagerAI import SafeZoneManagerAI
 from toontown.suit.SuitInvasionManagerAI import SuitInvasionManagerAI
 from toontown.toon import NPCToons
-from toontown.toonbase import ToontownGlobals, ServerSettingsGlobals
+from toontown.toonbase import ToontownBattleGlobals, ToontownGlobals, ServerSettingsGlobals
 from toontown.tutorial.TutorialManagerAI import TutorialManagerAI
 from toontown.server import Readiness
 from toontown.web.GatewaySocket import openSocket
@@ -206,6 +206,14 @@ class ToontownAIRepository(ToontownInternalRepository):
         self.cogSuitMessageSent = False
         self.wantCheats = ConfigVariableBool(
             'want-cheats', serverSettings[ServerSettingsGlobals.WantCheats]).getValue()
+
+        expMultiplier = ConfigVariableString('exp-multiplier', '').getValue()
+        if expMultiplier:
+            multiplier = self.parseXpMultiplier(expMultiplier)
+            if multiplier is None:
+                self.notify.warning('Ignoring exp-multiplier %r.' % expMultiplier)
+            else:
+                simbase.baseXpMultiplier = multiplier
 
         if ConfigVariableBool('magic-word-live-access', False).getValue():
             spellbook.useLiveAccess()
@@ -393,10 +401,54 @@ class ToontownAIRepository(ToontownInternalRepository):
         elif op in ('startHoliday', 'endHoliday'):
             self.handleHolidayCommand(
                 commandId, op == 'startHoliday', commandArgs)
+        elif op == 'setXpMultiplier':
+            self.handleXpMultiplierCommand(commandId, commandArgs)
         else:
             self.notify.warning('Ignoring an unknown gateway op: %s' % op)
             self.gateway.sendResult(
                 commandId, False, {'error': 'Unknown op: %s' % op})
+
+    @staticmethod
+    def parseXpMultiplier(value):
+        try:
+            multiplier = float(value)
+        except (TypeError, ValueError):
+            return None
+
+        if not (ServerSettingsGlobals.MinExpMultiplier <= multiplier
+                <= ServerSettingsGlobals.MaxExpMultiplier):
+            return None
+
+        return multiplier
+
+    def getXpMultiplier(self):
+        multiplier = simbase.baseXpMultiplier
+        manager = getattr(self, 'holidayManager', None)
+
+        if manager is not None and manager.isMoreXpHolidayRunning():
+            multiplier *= ToontownBattleGlobals.getMoreXpHolidayMultiplier()
+
+        return multiplier
+
+    def handleXpMultiplierCommand(self, commandId, commandArgs):
+        multiplier = self.parseXpMultiplier(commandArgs.get('multiplier'))
+
+        if multiplier is None:
+            self.gateway.sendResult(commandId, False, {
+                'error': 'multiplier must be a number from %s to %s.'
+                         % (ServerSettingsGlobals.MinExpMultiplier,
+                            ServerSettingsGlobals.MaxExpMultiplier)})
+            return
+
+        simbase.baseXpMultiplier = multiplier
+
+        newsManager = getattr(self, 'newsManager', None)
+        if newsManager is not None:
+            newsManager.d_setXpMultiplier()
+
+        self.gateway.sendResult(commandId, True, {
+            'multiplier': multiplier,
+            'effective': self.getXpMultiplier()})
 
     def startConfiguredHolidays(self):
         """

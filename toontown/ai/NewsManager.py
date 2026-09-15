@@ -96,6 +96,9 @@ class NewsManager(DistributedObject.DistributedObject):
     def getInvading(self):
         return self.invading
 
+    def setXpMultiplier(self, multiplier):
+        base.localAvatar.inventory.setXpMultiplier(multiplier)
+
     def startHoliday(self, holidayId):
         if holidayId not in self.holidayIdList:
             self.notify.info('setHolidayId: Starting Holiday %s' % holidayId)

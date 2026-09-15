@@ -2564,6 +2564,7 @@ class HolidayManagerAI:
 
     def updateNewsManager(self, holidayIdList):
         self.air.newsManager.d_setHolidayIdList(holidayIdList)
+        self.air.newsManager.d_setXpMultiplier()
 
     def isMoreXpHolidayRunning(self):
         """Return True if the double XP holiday is running."""

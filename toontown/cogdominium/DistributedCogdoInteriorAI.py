@@ -291,7 +291,9 @@ class DistributedCogdoInteriorAI(DistributedObjectAI, FSM.FSM):
         self.battle.setInitialMembers(self.toons, self.suits)
         self.battle.generateWithRequired(self.zoneId)
         mult = getCreditMultiplier(self.curFloor)
-        self.battle.battleCalc.setSkillCreditMultiplier(self.battle.battleCalc.getSkillCreditMultiplier() * mult)
+        if self.air.suitInvasionManager.getInvading():
+            mult *= getInvasionMultiplier()
+        self.battle.battleCalc.setSkillCreditMultiplier(mult)
 
     def enterBattleDone(self, toonIds):
         toonIds = toonIds[0]

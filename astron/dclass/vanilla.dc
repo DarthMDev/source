@@ -1977,6 +1977,7 @@ dclass NewsManager : DistributedObject {
   setRelativelyCalendarHolidays(relativelyCalendarHoliday []) required broadcast ram;
   setMultipleStartHolidays(multipleStartHoliday []) required broadcast ram;
   sendSystemMessage(string, uint8) broadcast ram;
+  setXpMultiplier(uint16/100) required broadcast ram;
 };
 
 dclass PurchaseManager : DistributedObject {

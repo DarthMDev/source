@@ -63,15 +63,15 @@ class BattleCalculatorAI:
         self.__clearBonuses(hp=1)
         self.__clearBonuses(hp=0)
         self.delayedUnlures = []
-        self.__skillCreditMultiplier = simbase.baseXpMultiplier
+        self.__skillCreditMultiplier = 1
         self.tutorialFlag = tutorialFlag
         self.trainTrapTriggered = False
 
     def setSkillCreditMultiplier(self, mult):
-        self.__skillCreditMultiplier = simbase.baseXpMultiplier * mult
+        self.__skillCreditMultiplier = mult
 
     def getSkillCreditMultiplier(self):
-        return self.__skillCreditMultiplier
+        return self.__skillCreditMultiplier * simbase.air.getXpMultiplier()
 
     def cleanup(self):
         self.battle = None
@@ -750,7 +750,7 @@ class BattleCalculatorAI:
                  0,
                  0]
                 self.toonSkillPtsGained[id] = expList
-            expList[trk] = min(ExperienceCap, expList[trk] + (lvl + 1) * self.__skillCreditMultiplier)
+            expList[trk] = min(ExperienceCap, expList[trk] + (lvl + 1) * self.getSkillCreditMultiplier())
         return
 
     def __clearTgtDied(self, tgt, lastAtk, currAtk):
