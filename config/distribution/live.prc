@@ -45,7 +45,7 @@ want-grouptracker #f
 
 # Cog buildings:
 want-cogbuildings #t
-want-cogdominiums #t
+want-cogdominiums #f
 
 # Sellbot boss:
 disable-sos-card 91917

@@ -365,7 +365,8 @@ class DistributedSuitAI(DistributedSuitBaseAI.DistributedSuitBaseAI):
             self.notify.debug('Suit %s taking over building %s in %s' % (self.getDoId(), blockNumber, self.zoneId))
             difficulty = random.choice(getPossibleBuildingDifficulty(self.level + 1, self.sp.zoneId))
             dept = SuitDNA.getSuitDept(self.dna.name)
+        if simbase.air.wantCogdominiums:
             if self.buildingDestinationIsCogdo:
                 self.sp.cogdoTakeOver(blockNumber, dept, difficulty, self.buildingHeight)
-            else:
-                self.sp.suitTakeOver(blockNumber, dept, difficulty, self.buildingHeight)
+        else:
+            self.sp.suitTakeOver(blockNumber, dept, difficulty, self.buildingHeight)

@@ -250,8 +250,9 @@ class DistributedSuitPlannerAI(DistributedObjectAI.DistributedObjectAI, SuitPlan
         blockNumber = None
         if self.notify.getDebug():
             self.notify.debug('Choosing origin from %d+%d possibles.' % (len(streetPoints), len(blockNumbers)))
-        if cogdoTakeover is None:
-            cogdoTakeover = random.random() < self.CogdoRatio
+        if simbase.air.wantCogdominiums: 
+            if cogdoTakeover is None:
+                cogdoTakeover = random.random() < self.CogdoRatio
         while startPoint == None and len(blockNumbers) > 0:
             bn = random.choice(blockNumbers)
             blockNumbers.remove(bn)
@@ -357,8 +358,9 @@ class DistributedSuitPlannerAI(DistributedObjectAI.DistributedObjectAI, SuitPlan
             cogdoTakeover=None, minPathLen=None, maxPathLen=None):
         possibles = []
         backup = []
-        if cogdoTakeover is None:
-            cogdoTakeover = random.random() < self.CogdoRatio
+        if simbase.air.wantCogdominiums: 
+            if cogdoTakeover is None:
+               cogdoTakeover = random.random() < self.CogdoRatio
         if toonBlockTakeover is not None:
             suit.attemptingTakeover = 1
             blockNumber = toonBlockTakeover
@@ -594,9 +596,10 @@ class DistributedSuitPlannerAI(DistributedObjectAI.DistributedObjectAI, SuitPlan
                 (suitLevel, suitType, suitTrack) = self.pickLevelTypeAndTrack(None, suitType, suitTrack)
                 difficulty = random.choice(SuitBuildingGlobals.getPossibleBuildingDifficulty(suitLevel, self.zoneId))
 
-                isCogDo = random.random() < self.CogdoRatio
-                if isCogDo:
-                    building.cogdoTakeOver(suitTrack, suitLevel, None)
+                if simbase.air.wantCogdominiums:
+                    isCogDo = random.random() < self.CogdoRatio
+                    if isCogDo:
+                        building.cogdoTakeOver(suitTrack, suitLevel, None)
                 else:
                     building.suitTakeOver(suitTrack, difficulty, None)
 

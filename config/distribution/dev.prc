@@ -44,7 +44,7 @@ want-server-browser #f
 
 # Cog buildings:
 want-cogbuildings #t
-want-cogdominiums #t
+want-cogdominiums #f
 
 # Cashbot boss:
 want-resistance-dance #t
