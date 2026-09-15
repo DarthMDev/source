@@ -64,9 +64,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
     def setXpMultiplier(self, mult):
         self.__xpMultiplier = mult
 
-    def getXpMultiplier(self):
-        return self.__xpMultiplier
-
     def setInteractivePropTrackBonus(self, trackBonus):
         self.interactivePropTrackBonus = trackBonus
 

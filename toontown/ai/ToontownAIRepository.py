@@ -207,13 +207,9 @@ class ToontownAIRepository(ToontownInternalRepository):
         self.wantCheats = ConfigVariableBool(
             'want-cheats', serverSettings[ServerSettingsGlobals.WantCheats]).getValue()
 
-        expMultiplier = ConfigVariableString('exp-multiplier', '').getValue()
-        if expMultiplier:
-            multiplier = self.parseXpMultiplier(expMultiplier)
-            if multiplier is None:
-                self.notify.warning('Ignoring exp-multiplier %r.' % expMultiplier)
-            else:
-                simbase.baseXpMultiplier = multiplier
+        multiplier = self.parseXpMultiplier(ConfigVariableString('exp-multiplier', '').getValue())
+        if multiplier is not None:
+            simbase.baseXpMultiplier = multiplier
 
         if ConfigVariableBool('magic-word-live-access', False).getValue():
             spellbook.useLiveAccess()
@@ -446,9 +442,7 @@ class ToontownAIRepository(ToontownInternalRepository):
         if newsManager is not None:
             newsManager.d_setXpMultiplier()
 
-        self.gateway.sendResult(commandId, True, {
-            'multiplier': multiplier,
-            'effective': self.getXpMultiplier()})
+        self.gateway.sendResult(commandId, True)
 
     def startConfiguredHolidays(self):
         """
