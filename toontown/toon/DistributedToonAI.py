@@ -279,6 +279,12 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                         tpAccess.append(ToontownGlobals.GoofySpeedway)
                         self.b_setTeleportAccess(tpAccess)
 
+                if zoneId == ToontownGlobals.OutdoorZone:
+                    tpAccess = self.getTeleportAccess()
+                    if ToontownGlobals.OutdoorZone not in tpAccess:
+                        tpAccess.append(ToontownGlobals.OutdoorZone)
+                        self.b_setTeleportAccess(tpAccess)
+
     def sendDeleteEvent(self):
         if simbase.wantPets:
             isInEstate = self.isInEstate()
