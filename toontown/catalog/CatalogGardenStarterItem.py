@@ -32,9 +32,9 @@ class CatalogGardenStarterItem(CatalogItem.CatalogItem):
 
     def recordPurchase(self, avatar, optional):
         if avatar:
-            estate = simbase.air.estateMgr._lookupEstate(avatar)
+            estate = simbase.air.estateMgr.estate.get(avatar.doId)
             if estate:
-                estate.placeStarterGarden(avatar)
+                estate.placeStarterGarden(avatar.doId)
 
         return ToontownGlobals.P_ItemAvailable
 
