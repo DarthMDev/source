@@ -67,6 +67,7 @@ NPC_BANKER = 14
 NPC_YIN = 15
 NPC_YANG = 16
 NPC_RESISTANCE = 18
+NPC_CORPORATE_STRIKE = 19
 CLERK_COUNTDOWN_TIME = 120
 TAILOR_COUNTDOWN_TIME = 300
 RTDNAFile = '/RTDNAFile.txt'
@@ -97,6 +98,7 @@ def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
     from . import DistributedNPCYinAI
     from . import DistributedNPCYangAI
     from . import DistributedNPCLowdenClearAI
+    from . import DistributedCorporateStrikeNPCAI
     canonicalZoneId, name, dnaType, gender, protected, type = desc
     if type == NPC_REGULAR:
         npc = DistributedNPCToonAI.DistributedNPCToonAI(air, npcId, questCallback=questCallback)
@@ -135,6 +137,8 @@ def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
     elif type == NPC_RESISTANCE:
         if air.wantGuilds:
             npc = DistributedNPCLowdenClearAI.DistributedNPCLowdenClearAI(air, npcId)
+    elif type == NPC_CORPORATE_STRIKE:
+        npc = DistributedCorporateStrikeNPCAI.DistributedCorporateStrikeNPCAI(air, npcId)
     else:
         print('createNPC() error!!!')
 
