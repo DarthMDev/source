@@ -689,6 +689,13 @@ class Playground(BattlePlace.BattlePlace):
     def exitTeleportOut(self):
         BattlePlace.BattlePlace.exitTeleportOut(self)
 
+    def enterMovieOut(self, requestStatus):
+        self.doneStatus = requestStatus
+        messenger.send(self.doneEvent)
+
+    def exitMovieOut(self):
+        pass
+
     def createPlayground(self, dnaFile):
         dnaBulk = DNABulkLoader(self.loader.dnaStore, (self.safeZoneStorageDNAFile,))
         dnaBulk.loadDNAFiles()
