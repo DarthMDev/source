@@ -8,6 +8,8 @@ from toontown.strike import StrikeAreaGlobals
 
 class StrikeZoneAI(HoodDataAI.HoodDataAI):
     def __init__(self, air, zoneId=None):
+        if zoneId is None:
+            zoneId = ToontownGlobals.StrikeZone
         HoodDataAI.HoodDataAI.__init__(
             self, air, zoneId, ToontownGlobals.StrikeZone)
 
