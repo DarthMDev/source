@@ -496,7 +496,7 @@ class PlayGame(StateData.StateData):
         self._destroyHood()
 
     def enterStrikeZone(self, requestStatus):
-        print 'entering strike hood %s' % requestStatus
+        print('entering strike hood %s' % requestStatus)
         self.accept(self.hoodDoneEvent, self.handleHoodDone)
         self.hood.enter(requestStatus)
 
@@ -504,7 +504,7 @@ class PlayGame(StateData.StateData):
         self._destroyHood()
 
     def enterSZBossHood(self, requestStatus):
-        print 'entering strike boss battle hood %s' % requestStatus
+        print('entering strike boss battle hood %s' % requestStatus)
         self.accept(self.hoodDoneEvent, self.handleHoodDone)
         self.hood.enter(requestStatus)
 
