@@ -117,12 +117,16 @@ OncelyMultipleStartHolidays = (ToontownGlobals.COLD_CALLER_INVASION,
                                ToontownGlobals.BIG_CHEESE_INVASION,
                                )
 
-# These live in the holiday table but are not events: they reset the kart
-# leaderboards on a timer. They keep their schedule even when the festive
-# holidays are driven by `active-holidays` instead of the calendar.
-MaintenanceHolidays = (ToontownGlobals.KART_RECORD_DAILY_RESET,
-                       ToontownGlobals.KART_RECORD_WEEKLY_RESET,
-                       )
+# These live in the holiday table but are not seasonal: the kart entries reset
+# the leaderboards on a timer, and the Resistance and Polar Place events are
+# permanent NPC interactions that happen to be scheduled as year-long holidays.
+# They keep their schedule even when the festive holidays are driven by
+# `active-holidays` instead of the calendar.
+UnseasonalHolidays = (ToontownGlobals.KART_RECORD_DAILY_RESET,
+                      ToontownGlobals.KART_RECORD_WEEKLY_RESET,
+                      ToontownGlobals.RESISTANCE_EVENT,
+                      ToontownGlobals.POLAR_PLACE_EVENT,
+                      )
 
 # These variables are too useful in debugging holidays, keeping them around
 # StartMinute = 19
@@ -2266,7 +2270,7 @@ class HolidayManagerAI:
         that turns an event on, so a district celebrates exactly what its
         config names and nothing arrives by surprise on its historical date.
         """
-        return self.wantScheduledHolidays or holidayId in MaintenanceHolidays
+        return self.wantScheduledHolidays or holidayId in UnseasonalHolidays
 
     def createHolidays(self):
         currentTime = time.time()

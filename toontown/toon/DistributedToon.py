@@ -1260,6 +1260,8 @@ class DistributedToon(DistributedPlayer.DistributedPlayer, Toon.Toon, Distribute
         effect = self.savedCheesyEffect
         if not self.cr.areCheesyEffectsAllowed():
             effect = CollectibleInventoryGlobals.CheesyEffectNone
+        elif self.savedCheesyHoodId != 0 and self.savedCheesyHoodId != self.cr.playGame.getPlaceId():
+            effect = CollectibleInventoryGlobals.CheesyEffectNone
         if self.ghostMode:
             effect = CollectibleInventoryGlobals.CheesyEffectGhost
         self.applyCheesyEffect(effect, lerpTime=lerpTime)

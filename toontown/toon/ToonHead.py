@@ -1340,7 +1340,6 @@ class ToonHead(Actor.Actor):
             self.__muzzles[muzzleNum].show()
 
     def isIgnoreCheesyEffect(self):
-        if hasattr(self, 'savedCheesyEffect'):
-            if self.savedCheesyEffect == 10 or self.savedCheesyEffect == 11 or self.savedCheesyEffect == 12 or self.savedCheesyEffect == 13 or self.savedCheesyEffect == 14:
-                return True
-        return False
+        return getattr(self, 'cheesyEffect', None) in (
+            ToontownGlobals.CENoColor, ToontownGlobals.CEInvisible, ToontownGlobals.CEPumpkin,
+            ToontownGlobals.CEBigWhite, ToontownGlobals.CESnowMan)
