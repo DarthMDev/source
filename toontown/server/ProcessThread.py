@@ -10,6 +10,8 @@ from toontown.server.ServerGlobals import LogsPath
 if sys.platform != 'android':
     import subprocess
 
+CreationFlags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+
 class ProcessThread(threading.Thread):
     notify = DirectNotifyGlobal.directNotify.newCategory('ProcessThread')
 
@@ -24,6 +26,11 @@ class ProcessThread(threading.Thread):
             self.folder = defaultPath
         else:
             self.folder = os.path.join(defaultPath, self.folder)
+        program = self.processInfo[0]
+
+        if os.path.dirname(program) and not os.path.isabs(program):
+            self.processInfo[0] = os.path.abspath(
+                os.path.join(self.folder, program))
     
     def hasPid(self):
         return hasattr(self, 'process') and self.process is not None
@@ -44,7 +51,7 @@ class ProcessThread(threading.Thread):
             self.killed = True
     
     def run(self):
-        print('Starting %s in %s' % (self.processInfo, self.folder))
+        print(('Starting %s in %s' % (self.processInfo, self.folder)))
         try:
             print('Creating log file....')
             name = self.name.split(' ', 1)[0].lower()
@@ -53,11 +60,13 @@ class ProcessThread(threading.Thread):
                 os.makedirs(path)
             filename = os.path.join(path, '%s-%s.log' % (name, int(time.time())))
             f = open(filename, 'w')
-            print("Created Log File: " + f.name)
-            os.chdir(self.folder)
-            self.process = subprocess.Popen(self.processInfo, stdout=subprocess.PIPE, stderr=f)
+            print(("Created Log File: " + f.name))
+            self.process = subprocess.Popen(
+                self.processInfo, stdout=subprocess.PIPE, stderr=f, cwd=self.folder,
+                text=True, encoding='utf-8', errors='replace',
+                creationflags=CreationFlags)
         except Exception as e:
-            print('failed', e.message, e.args)
+            print(('failed', e, e.args))
             self.failed()
             return
 
@@ -69,7 +78,7 @@ class ProcessThread(threading.Thread):
             if not line:
                 continue
 
-            f.write(line[:-1])
+            f.write(line)
 
             if self.failText in line:
                 self.notify.warning('%s quit with line: %s' % (self.name, line))

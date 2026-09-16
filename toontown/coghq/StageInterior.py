@@ -3,7 +3,6 @@ from toontown.battle import BattlePlace
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.showbase import BulletinBoardWatcher
-from pandac.PandaModules import *
 from otp.distributed.TelemetryLimiter import RotationLimitToH, TLGatherAllAvs
 from toontown.toon import Toon
 from toontown.toonbase import ToontownGlobals
@@ -69,7 +68,7 @@ class StageInterior(BattlePlace.BattlePlace):
     def load(self):
         self.parentFSM.getStateNamed('stageInterior').addChild(self.fsm)
         BattlePlace.BattlePlace.load(self)
-        self.music = base.loadMusic('phase_9/audio/bgm/CHQ_FACT_bg.ogg')
+        self.music = base.loader.loadMusic('phase_9/audio/bgm/CHQ_FACT_bg.ogg')
 
     def unload(self):
         self.parentFSM.getStateNamed('stageInterior').removeChild(self.fsm)
@@ -96,8 +95,6 @@ class StageInterior(BattlePlace.BattlePlace):
         self.stageReadyWatcher = BulletinBoardWatcher.BulletinBoardWatcher('StageReady', DistributedStage.DistributedStage.ReadyPost, commence)
         self.stageDefeated = 0
         self.acceptOnce(DistributedStage.DistributedStage.WinEvent, self.handleStageWinEvent)
-        if __debug__ and 0:
-            self.accept('f10', lambda : messenger.send(DistributedStage.DistributedStage.WinEvent))
         self.confrontedBoss = 0
 
         def handleConfrontedBoss(self = self):

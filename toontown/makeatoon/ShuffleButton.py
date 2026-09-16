@@ -1,13 +1,13 @@
-from pandac.PandaModules import *
+from panda3d.core import Vec4
 from direct.gui.DirectGui import *
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownGlobals
-from MakeAToonGlobals import *
+from .MakeAToonGlobals import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 import random
 
-from MakeAToonGUI import MATShuffleButton
+from .MakeAToonGUI import MATShuffleButton
 
 
 class ShuffleButton:

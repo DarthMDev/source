@@ -1,10 +1,10 @@
+from panda3d.core import Texture
 from toontown.toonbase.ToonBaseGlobal import *
-from pandac.PandaModules import *
 from toontown.toonbase.ToontownGlobals import *
-import random
+from otp.util import random
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
-import ToonInteriorColors
+from . import ToonInteriorColors
 from toontown.dna.DNAParser import DNADoor
 from toontown.hood import ZoneUtil
 from toontown.toon.DistributedNPCToonBase import DistributedNPCToonBase
@@ -31,7 +31,7 @@ class DistributedGagshopInterior(DistributedObject.DistributedObject):
     def replaceRandomInModel(self, model):
         baseTag = 'random_'
         npc = model.findAllMatches('**/' + baseTag + '???_*')
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             np = npc.getPath(i)
             name = np.getName()
             b = len(baseTag)

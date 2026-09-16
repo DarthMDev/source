@@ -1,8 +1,8 @@
+from panda3d.core import NodePath, TransparencyAttrib, Vec3, Vec4
 from direct.fsm.FSM import FSM
 from direct.gui.DirectGui import *
 from direct.interval.IntervalGlobal import LerpScaleInterval
 from direct.interval.MetaInterval import Sequence
-from pandac.PandaModules import *
 from toontown.servermenu.ServerInformationScreen import ServerInformationScreen
 
 from toontown.mainmenu import MainMenuGlobals
@@ -104,7 +104,7 @@ class ServerMenu(DirectFrame, FSM):
         self.ServerMenuHomeScreen.show()
 
         if base.initialEntry:
-            successfulConnectionSfx = base.loadSfx('phase_4/audio/sfx/MG_pairing_match_bonus_both.ogg')
+            successfulConnectionSfx = base.loader.loadSfx('phase_4/audio/sfx/MG_pairing_match_bonus_both.ogg')
             base.playSfx(successfulConnectionSfx)
 
         def mainMenuTask(task):

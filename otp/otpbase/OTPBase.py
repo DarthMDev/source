@@ -1,3 +1,4 @@
+from panda3d.core import ColorWriteAttrib, ConfigVariableBool, ConfigVariableDouble, Filename, NodePath, TPLow, VBase4, Vec4, getModelPath
 import math
 import re
 import time
@@ -5,12 +6,10 @@ import tempfile
 import atexit
 import shutil
 import sys
-import OTPGlobals
-import OTPRender
-import __builtin__
+from . import OTPGlobals
+from . import OTPRender
 from direct.showbase.ShowBase import ShowBase
 from otp.ai.MagicWordGlobal import *
-from pandac.PandaModules import Camera, TPLow, VBase4, ColorWriteAttrib, Filename, getModelPath, NodePath, Vec4
 
 class OTPBase(ShowBase):
 
@@ -24,19 +23,19 @@ class OTPBase(ShowBase):
 
         self.wantEnviroDR = False
         ShowBase.__init__(self, windowType=windowType)
-        if config.GetBool('want-phase-checker', 0):
+        if ConfigVariableBool('want-phase-checker', False).getValue():
             from direct.showbase import Loader
             Loader.phaseChecker = self.loaderPhaseChecker
             self.errorAccumulatorBuffer = ''
             taskMgr.add(self.delayedErrorCheck, 'delayedErrorCheck', priority=10000)
-        self.idTags = config.GetBool('want-id-tags', 0)
+        self.idTags = ConfigVariableBool('want-id-tags', False).getValue()
         if not self.idTags:
             del self.idTags
-        self.wantNametags = self.config.GetBool('want-nametags', 1)
-        self.slowCloseShard = self.config.GetBool('slow-close-shard', 0)
-        self.slowCloseShardDelay = self.config.GetFloat('slow-close-shard-delay', 10.0)
-        self.fillShardsToIdealPop = self.config.GetBool('fill-shards-to-ideal-pop', 1)
-        self.logPrivateInfo = self.config.GetBool('log-private-info', __dev__)
+        self.wantNametags = ConfigVariableBool('want-nametags', True).getValue()
+        self.slowCloseShard = ConfigVariableBool('slow-close-shard', False).getValue()
+        self.slowCloseShardDelay = ConfigVariableDouble('slow-close-shard-delay', 10.0).getValue()
+        self.fillShardsToIdealPop = ConfigVariableBool('fill-shards-to-ideal-pop', True).getValue()
+        self.logPrivateInfo = ConfigVariableBool('log-private-info', __dev__).getValue()
         self.wantDynamicShadows = 1
         self.stereoEnabled = False
         self.enviroDR = None
@@ -53,7 +52,7 @@ class OTPBase(ShowBase):
         taskMgr.setupTaskChain('net')
 
     def setTaskChainNetThreaded(self):
-        if base.config.GetBool('want-threaded-network', 0):
+        if ConfigVariableBool('want-threaded-network', False):
             taskMgr.setupTaskChain('net', numThreads=1, frameBudget=0.001, threadPriority=TPLow)
 
     def setTaskChainNetNonthreaded(self):
@@ -145,9 +144,7 @@ class OTPBase(ShowBase):
         self.pixelZoomCamHistory = 2.0
         self.pixelZoomCamMovedList = []
         self.pixelZoomStarted = None
-        flag = self.config.GetBool('enable-pixel-zoom', True)
-        self.enablePixelZoom(flag)
-        return
+        self.enablePixelZoom(ConfigVariableBool('enable-pixel-zoom', True).getValue())
 
     def enablePixelZoom(self, flag):
         if not self.backgroundDrawable.supportsPixelZoom():
@@ -170,7 +167,7 @@ class OTPBase(ShowBase):
         while self.pixelZoomCamMovedList and self.pixelZoomCamMovedList[0][0] < now - self.pixelZoomCamHistory:
             del self.pixelZoomCamMovedList[0]
 
-        dist = sum(map(lambda pair: pair[1], self.pixelZoomCamMovedList))
+        dist = sum([pair[1] for pair in self.pixelZoomCamMovedList])
         speed = dist / self.pixelZoomCamHistory
         if speed < 5:
             self.backgroundDrawable.setPixelZoom(4)
@@ -186,7 +183,7 @@ class OTPBase(ShowBase):
         return task.cont
 
     def hasInjector(self):
-        return hasattr(__builtin__, 'injector')
+        return hasattr(builtins, 'injector')
 
     def getShardPopLimits(self):
         return (100, 200, -1)
@@ -240,7 +237,7 @@ class OTPBase(ShowBase):
     def openMainWindow(self, *args, **kw):
         result = ShowBase.openMainWindow(self, *args, **kw)
         if result:
-            self.wantEnviroDR = not self.win.getGsg().isHardware() or config.GetBool('want-background-region', 1)
+            self.wantEnviroDR = not self.win.getGsg().isHardware() or ConfigVariableBool('want-background-region', True).getValue()
             self.backgroundDrawable = self.win
         return result
 

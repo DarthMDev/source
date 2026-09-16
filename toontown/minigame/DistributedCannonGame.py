@@ -1,9 +1,9 @@
+from panda3d.core import ConfigVariableBool, Point3, Quat, Vec3, rad2Deg
 from direct.directnotify import DirectNotifyGlobal
-from pandac.PandaModules import *
 from toontown.nametag.NametagFloat3d import NametagFloat3d
 from toontown.nametag.Nametag import Nametag
 from toontown.toonbase.ToonBaseGlobal import *
-from DistributedMinigame import *
+from .DistributedMinigame import *
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.fsm import ClassicFSM, State
@@ -11,15 +11,14 @@ from direct.fsm import State
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import ToontownTimer
 from direct.task.Task import Task
-import Trajectory
+from . import Trajectory
 import math
 import random
 from toontown.toon import ToonHead
 from toontown.effects import Splash
 from toontown.effects import DustCloud
-import CannonGameGlobals
+from . import CannonGameGlobals
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import TTLocalizer
 LAND_TIME = 2
 WORLD_SCALE = 2.0
@@ -51,11 +50,11 @@ class DistributedCannonGame(DistributedMinigame):
     HIT_GROUND = 0
     HIT_TOWER = 1
     HIT_WATER = 2
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
     INTRO_TASK_NAME = 'CannonGameIntro'
     INTRO_TASK_NAME_CAMERA_LERP = 'CannonGameIntroCamera'
 
@@ -114,7 +113,7 @@ class DistributedCannonGame(DistributedMinigame):
         self.jarImage.reparentTo(hidden)
         self.rewardPanel = DirectLabel(parent=hidden, relief=None, pos=(-0.173, 0.0, -0.55), scale=0.65, text='', text_scale=0.2, text_fg=(0.95, 0.95, 0, 1), text_pos=(0, -.13), text_font=ToontownGlobals.getSignFont(), image=self.jarImage)
         self.rewardPanelTitle = DirectLabel(parent=self.rewardPanel, relief=None, pos=(0, 0, 0.06), scale=0.08, text=TTLocalizer.CannonGameReward, text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1))
-        self.music = base.loadMusic('phase_4/audio/bgm/MG_cannon_game.ogg')
+        self.music = base.loader.loadMusic('phase_4/audio/bgm/MG_cannon_game.ogg')
         self.sndCannonMove = loader.loadSfx('phase_4/audio/sfx/MG_cannon_adjust.ogg')
         self.sndCannonFire = loader.loadSfx('phase_4/audio/sfx/MG_cannon_fire_alt.ogg')
         self.sndHitGround = loader.loadSfx('phase_4/audio/sfx/MG_cannon_hit_dirt.ogg')
@@ -192,7 +191,7 @@ class DistributedCannonGame(DistributedMinigame):
         del self.downButton
         del self.leftButton
         del self.rightButton
-        for avId in self.toonHeadDict.keys():
+        for avId in list(self.toonHeadDict.keys()):
             head = self.toonHeadDict[avId]
             head.stopBlink()
             head.stopLookAroundNow()
@@ -204,12 +203,12 @@ class DistributedCannonGame(DistributedMinigame):
             head.delete()
 
         del self.toonHeadDict
-        for model in self.toonModelDict.values():
+        for model in list(self.toonModelDict.values()):
             model.removeNode()
 
         del self.toonModelDict
         del self.toonScaleDict
-        for interval in self.toonIntervalDict.values():
+        for interval in list(self.toonIntervalDict.values()):
             interval.finish()
 
         del self.toonIntervalDict
@@ -275,7 +274,7 @@ class DistributedCannonGame(DistributedMinigame):
 
     def getTowerPosition(self):
         yRange = TOWER_Y_RANGE
-        yMin = yRange * 0.3
+        yMin = int(yRange * 0.3)
         yMax = yRange
         if self.DEBUG_TOWER_RANGE:
             if self.DEBUG_TOWER_NEAR:
@@ -311,7 +310,7 @@ class DistributedCannonGame(DistributedMinigame):
             self.cannonDict[avId] = [cannon, barrel]
 
         numAvs = self.numPlayers
-        for i in xrange(numAvs):
+        for i in range(numAvs):
             avId = self.avIdList[i]
             self.cannonLocationDict[avId] = Point3(i * CANNON_X_SPACING - (numAvs - 1) * CANNON_X_SPACING / 2, CANNON_Y, CANNON_Z)
             if self.DEBUG_TOWER_RANGE:
@@ -366,7 +365,7 @@ class DistributedCannonGame(DistributedMinigame):
         DistributedMinigame.setGameStart(self, timestamp)
         self.__stopIntro()
         self.__putCameraBehindCannon()
-        if not base.config.GetBool('endless-cannon-game', 0):
+        if not ConfigVariableBool('endless-cannon-game', False).getValue():
             self.timer.show()
             self.timer.countdown(CannonGameGlobals.GameTime, self.__gameTimerExpired)
         self.rewardPanel.reparentTo(base.a2dTopRight)
@@ -852,7 +851,7 @@ class DistributedCannonGame(DistributedMinigame):
                 s = Sequence(Wait(0.5), toon.posInterval(duration=LAND_TIME - 0.5, pos=hitPos, blendType='easeIn'))
                 self.toonIntervalDict[task.info['avId']] = s
                 s.start()
-                avatar.iPos()
+                avatar.setPos(0, 0, 0)
                 avatar.pose('slip-forward', 25)
                 base.playSfx(self.sndHitTower)
             elif task.info['hitWhat'] == self.HIT_GROUND:

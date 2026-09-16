@@ -1,9 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, NodePath, TextNode
 from direct.gui.DirectGui import *
 from direct.gui import DirectGuiGlobals
-from pandac.PandaModules import *
 from direct.directnotify import DirectNotifyGlobal
-import TTDialog
+from . import TTDialog
 from toontown.toonbase import TTLocalizer
 from direct.showbase import PythonUtil
 from direct.showbase.DirectObject import DirectObject
@@ -129,7 +128,7 @@ class TeaserPanel(DirectObject):
         self.dialog.setPos(0, 0, 0.75)
         self.browser.reparentTo(self.dialog)
         base.transitions.fadeScreen(0.5)
-        if base.config.GetBool('want-teaser-scroll-keys', 0):
+        if ConfigVariableBool('want-teaser-scroll-keys', 0).getValue():
             self.accept(base.MOVE_RIGHT, self.showNextPage)
             self.accept(base.MOVE_LEFT, self.showPrevPage)
         self.accept('stoppedAsleep', self.__handleDone)

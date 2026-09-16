@@ -1,3 +1,4 @@
+from panda3d.core import CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionSphere, NodePath, Point3, TextNode, Texture
 from direct.interval.MetaInterval import Sequence, Parallel, Track
 from direct.interval.FunctionInterval import Func, Wait
 from direct.interval.SoundInterval import SoundInterval
@@ -6,17 +7,15 @@ from direct.interval.ProjectileInterval import ProjectileInterval
 from direct.distributed.ClockDelta import globalClockDelta
 from direct.showbase.PythonUtil import bound, lerp
 from direct.showbase.DirectObject import DirectObject
-from pandac.PandaModules import NodePath, Point3, TextNode
-from pandac.PandaModules import CollisionSphere, CollisionNode, CollisionHandlerEvent
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase.ToontownTimer import ToontownTimer
-import PartyGlobals
-import PartyCogUtils
-from PartyCog import PartyCogManager
-from PartyCogActivityPlayer import PartyCogActivityPlayer
-from PartyCogActivityPlayer import PartyCogActivityLocalPlayer
-from StretchingArrow import StretchingArrow
+from . import PartyGlobals
+from . import PartyCogUtils
+from .PartyCog import PartyCogManager
+from .PartyCogActivityPlayer import PartyCogActivityPlayer
+from .PartyCogActivityPlayer import PartyCogActivityLocalPlayer
+from .StretchingArrow import StretchingArrow
 
 class PartyCogActivity(DirectObject):
     notify = directNotify.newCategory('PartyCogActivity')
@@ -51,10 +50,10 @@ class PartyCogActivity(DirectObject):
         self.rightExitLocator = self.arena.find('**/rightExit_locator')
         self.teamCamPosLocators = (self.arena.find('**/team0CamPos_locator'), self.arena.find('**/team1CamPos_locator'))
         self.teamCamAimLocators = (self.arena.find('**/team0CamAim_locator'), self.arena.find('**/team1CamAim_locator'))
-        leftTeamLocator = NodePath('TeamLocator-%d' % PartyGlobals.TeamActivityTeams.LeftTeam)
+        leftTeamLocator = NodePath('TeamLocator-%d' % PartyGlobals.ETeamActivityTeam.LeftTeam)
         leftTeamLocator.reparentTo(self.root)
         leftTeamLocator.setH(90)
-        rightTeamLocator = NodePath('TeamLocator-%d' % PartyGlobals.TeamActivityTeams.RightTeam)
+        rightTeamLocator = NodePath('TeamLocator-%d' % PartyGlobals.ETeamActivityTeam.RightTeam)
         rightTeamLocator.reparentTo(self.root)
         rightTeamLocator.setH(-90)
         self.teamLocators = (leftTeamLocator, rightTeamLocator)
@@ -71,7 +70,7 @@ class PartyCogActivity(DirectObject):
         self.arrows = []
         self.distanceLabels = []
         self.teamColors = list(PartyGlobals.CogActivityColors) + [PartyGlobals.TeamActivityStatusColor]
-        for i in xrange(3):
+        for i in range(3):
             start = self.arena.find('**/cog%d_start_locator' % (i + 1))
             end = self.arena.find('**/cog%d_end_locator' % (i + 1))
             cog = self.cogManager.generateCog(self.arena)
@@ -106,13 +105,13 @@ class PartyCogActivity(DirectObject):
     def _initArenaDoors(self):
         self._arenaDoors = (self.arena.find('**/doorL'), self.arena.find('**/doorR'))
         arenaDoorLocators = (self.arena.find('**/doorL_locator'), self.arena.find('**/doorR_locator'))
-        for i in xrange(len(arenaDoorLocators)):
+        for i in range(len(arenaDoorLocators)):
             arenaDoorLocators[i].wrtReparentTo(self._arenaDoors[i])
 
-        self._arenaDoorTimers = (self.createDoorTimer(PartyGlobals.TeamActivityTeams.LeftTeam), self.createDoorTimer(PartyGlobals.TeamActivityTeams.RightTeam))
+        self._arenaDoorTimers = (self.createDoorTimer(PartyGlobals.ETeamActivityTeam.LeftTeam), self.createDoorTimer(PartyGlobals.ETeamActivityTeam.RightTeam))
         self._arenaDoorIvals = [None, None]
         self._doorStartPos = []
-        for i in xrange(len(self._arenaDoors)):
+        for i in range(len(self._arenaDoors)):
             door = self._arenaDoors[i]
             timer = self._arenaDoorTimers[i]
             timer.reparentTo(arenaDoorLocators[i])
@@ -198,7 +197,7 @@ class PartyCogActivity(DirectObject):
 
         self.distanceLabels = None
         if len(self.players):
-            for player in self.players.values():
+            for player in list(self.players.values()):
                 player.disable()
                 player.destroy()
 
@@ -215,11 +214,11 @@ class PartyCogActivity(DirectObject):
             self._destroyArenaDoors()
             self.arena.removeNode()
             self.arena = None
-        for ival in self.toonPieTracks.values():
+        for ival in list(self.toonPieTracks.values()):
             if ival is not None and ival.isPlaying():
                 try:
                     ival.finish()
-                except Exception, theException:
+                except Exception as theException:
                     self.notify.warning('Ival could not finish:\n %s \nException %s ' % (str(ival), str(theException)))
 
         self.toonPieTracks = {}
@@ -227,12 +226,12 @@ class PartyCogActivity(DirectObject):
             if ival is not None and ival.isPlaying():
                 try:
                     ival.finish()
-                except Exception, theException:
+                except Exception as theException:
                     self.notify.warning('Ival could not finish:\n %s \nException %s ' % (str(ival), str(theException)))
 
         self.pieIvals = []
         self.toonIdsToAnimIntervals = {}
-        for eventName in self.toonPieEventNames.values():
+        for eventName in list(self.toonPieEventNames.values()):
             self.ignore(eventName)
 
         self.toonPieEventNames = {}
@@ -270,12 +269,12 @@ class PartyCogActivity(DirectObject):
 
     def openArenaDoors(self):
         self.enableEnterGateCollision()
-        for i in xrange(len(self._arenaDoors)):
+        for i in range(len(self._arenaDoors)):
             self.openArenaDoorForTeam(i)
 
     def closeArenaDoors(self):
         self.disableEnterGateCollision()
-        for i in xrange(len(self._arenaDoors)):
+        for i in range(len(self._arenaDoors)):
             self.closeArenaDoorForTeam(i)
 
     def showArenaDoorTimers(self, duration):
@@ -309,10 +308,10 @@ class PartyCogActivity(DirectObject):
         self._skyCollisionsCollection.stash()
 
     def handleEnterLeftEntranceTrigger(self, collEntry):
-        self.activity.d_toonJoinRequest(PartyGlobals.TeamActivityTeams.LeftTeam)
+        self.activity.d_toonJoinRequest(PartyGlobals.ETeamActivityTeam.LeftTeam)
 
     def handleEnterRightEntranceTrigger(self, collEntry):
-        self.activity.d_toonJoinRequest(PartyGlobals.TeamActivityTeams.RightTeam)
+        self.activity.d_toonJoinRequest(PartyGlobals.ETeamActivityTeam.RightTeam)
 
     def checkOrthoDriveCollision(self, oldPos, newPos):
         x = bound(newPos[0], -16.8, 16.8)
@@ -322,7 +321,7 @@ class PartyCogActivity(DirectObject):
         return newPos
 
     def getPlayerStartPos(self, team, spot):
-        if team == PartyGlobals.TeamActivityTeams.LeftTeam:
+        if team == PartyGlobals.ETeamActivityTeam.LeftTeam:
             node = self.leftExitLocator
         else:
             node = self.rightExitLocator
@@ -414,7 +413,7 @@ class PartyCogActivity(DirectObject):
         if self.player is not None:
             self.player.resetScore()
             self.hideTeamFlags(self.player.team)
-        for player in self.players.values():
+        for player in list(self.players.values()):
             self.finishToonIval(player.toon.doId)
             player.enable()
 
@@ -428,10 +427,10 @@ class PartyCogActivity(DirectObject):
         self.pieIvals = []
 
     def stopActivity(self):
-        for player in self.players.values():
+        for player in list(self.players.values()):
             player.disable()
 
-        for eventName in self.toonPieEventNames.values():
+        for eventName in list(self.toonPieEventNames.values()):
             self.ignore(eventName)
 
         self.toonPieEventNames.clear()
@@ -535,7 +534,7 @@ class PartyCogActivity(DirectObject):
             point = colEntry.getSurfacePoint(self.cogManager.cogs[cogID].root)
             cog = self.cogManager.cogs[cogID]
             hitHead = point.getZ() > cog.getHeadLocation() and not parts[2].startswith('Arm')
-            if self.activity.getTeam(base.localAvatar.doId) == PartyGlobals.TeamActivityTeams.LeftTeam:
+            if self.activity.getTeam(base.localAvatar.doId) == PartyGlobals.ETeamActivityTeam.LeftTeam:
                 direction = -1.0
             else:
                 direction = 1.0
@@ -626,7 +625,7 @@ class PartyCogActivity(DirectObject):
         for point in points:
             point.setY(Y)
 
-        for i in xrange(len(arrows)):
+        for i in range(len(arrows)):
             arrow = arrows[i]
             arrow.draw(points[i].getPos(), cog.root.getPos(), animate=False)
             arrow.unstash()

@@ -1,9 +1,10 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableDouble, Filename, ios
 from otp.ai.AIBaseGlobal import *
 from direct.distributed.ClockDelta import *
 from direct.distributed import DistributedObjectAI
-import Level
+from . import Level
 from direct.directnotify import DirectNotifyGlobal
-import EntityCreatorAI
+from . import EntityCreatorAI
 from direct.showbase.PythonUtil import Functor, weightedChoice
 
 class DistributedLevelAI(DistributedObjectAI.DistributedObjectAI, Level.Level):
@@ -64,7 +65,7 @@ class DistributedLevelAI(DistributedObjectAI.DistributedObjectAI, Level.Level):
     def initializeLevel(self, levelSpec):
         self.startTime = globalClock.getRealTime()
         self.startTimestamp = globalClockDelta.localToNetworkTime(self.startTime, bits=32)
-        lol = zip([1] * levelSpec.getNumScenarios(), range(levelSpec.getNumScenarios()))
+        lol = list(zip([1] * levelSpec.getNumScenarios(), list(range(levelSpec.getNumScenarios()))))
         scenarioIndex = weightedChoice(lol)
         Level.Level.initializeLevel(self, self.doId, levelSpec, scenarioIndex)
         if __dev__:
@@ -122,7 +123,7 @@ class DistributedLevelAI(DistributedObjectAI.DistributedObjectAI, Level.Level):
         if hash(self.levelSpec) != specHash:
             self.notify.info('spec hashes do not match, sending our spec')
             spec = self.levelSpec
-            useDisk = simbase.config.GetBool('spec-by-disk', 1)
+            useDisk = ConfigVariableBool('spec-by-disk', True).getValue()
         else:
             self.notify.info('spec hashes match, sending null spec')
             spec = None
@@ -148,7 +149,7 @@ class DistributedLevelAI(DistributedObjectAI.DistributedObjectAI, Level.Level):
             self.modified = 1
             self.scheduleAutosave()
 
-        AutosavePeriod = simbase.config.GetFloat('level-autosave-period-minutes', 5)
+        AutosavePeriod = ConfigVariableDouble('level-autosave-period-minutes', 5).getValue()
 
         def scheduleAutosave(self):
             if hasattr(self, 'autosaveTask'):

@@ -1,4 +1,4 @@
-import CatalogItem
+from . import CatalogItem
 from toontown.pets import PetTricks
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -70,13 +70,12 @@ class CatalogPetTrickItem(CatalogItem.CatalogItem):
         CatalogItem.CatalogItem.cleanupPicture(self)
         self.petPicture.delete()
         self.petPicture = None
-        return
 
     def output(self, store = -1):
         return 'CatalogPetTrickItem(%s%s)' % (self.trickId, self.formatOptionalData(store))
 
     def compareTo(self, other):
-        return self.trickId - other.trickId
+        return self.trickId == other.trickId
 
     def getHashContents(self):
         return self.trickId
@@ -98,8 +97,4 @@ class CatalogPetTrickItem(CatalogItem.CatalogItem):
 
 
 def getAllPetTricks():
-    list = []
-    for trickId in PetTricks.TrickId2scIds.keys():
-        list.append(CatalogPetTrickItem(trickId))
-
-    return list
+    return [CatalogPetTrickItem(trickId) for trickId in PetTricks.TrickId2scIds.keys()]

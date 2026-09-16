@@ -1,6 +1,5 @@
-from pandac.PandaModules import *
+from panda3d.core import Plane, PlaneNode, Point3, TextNode, Vec3, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.fsm import StateData
 from toontown.toon import ToonAvatarPanel
 from toontown.friends import ToontownFriendSecret
@@ -40,28 +39,6 @@ def determineFriendName(friendTuple):
         if handle:
             friendName = handle.getName()
     return friendName
-
-
-def compareFriends(f1, f2):
-    name1 = determineFriendName(f1)
-    name2 = determineFriendName(f2)
-    if name1 > name2:
-        return 1
-    elif name1 == name2:
-        return 0
-    else:
-        return -1
-        
-
-def compareGuildies(g1, g2):
-    name1 = g1[1]
-    name2 = g2[1]
-    if name1 > name2:
-        return 1
-    elif name1 == name2:
-        return 0
-    else:
-        return -1
 
 
 def showFriendsList():
@@ -508,7 +485,7 @@ class FriendsListPanel(DirectFrame, StateData.StateData):
                         guildMembersOnline.append((member.doId, member.name))
 
         if self.panelType == FLPPets:
-            for objId, obj in base.cr.doId2do.items():
+            for objId, obj in list(base.cr.doId2do.items()):
                 from toontown.pets import DistributedPet
                 if isinstance(obj, DistributedPet.DistributedPet):
                     friendPair = (objId, 0)
@@ -522,23 +499,23 @@ class FriendsListPanel(DirectFrame, StateData.StateData):
             if base.wantPets and base.localAvatar.hasPet():
                 petFriends.insert(0, (base.localAvatar.getPetId(), 0))
 
-        for friendPair in self.friends.keys():
+        for friendPair in list(self.friends.keys()):
             friendButton = self.friends[friendPair]
             self.scrollList.removeItem(friendButton, refresh=0)
             friendButton.destroy()
             del self.friends[friendPair]
 
-        newFriends.sort(compareFriends)
-        petFriends.sort(compareFriends)
-        freeChatOneRef.sort(compareFriends)
-        speedChatOneRef.sort(compareFriends)
-        freeChatDouble.sort(compareFriends)
-        speedChatDouble.sort(compareFriends)
-        offlineFriends.sort(compareFriends)
+        newFriends.sort(key=lambda f: determineFriendName(f))
+        petFriends.sort(key=lambda f: determineFriendName(f))
+        freeChatOneRef.sort(key=lambda f: determineFriendName(f))
+        speedChatOneRef.sort(key=lambda f: determineFriendName(f))
+        freeChatDouble.sort(key=lambda f: determineFriendName(f))
+        speedChatDouble.sort(key=lambda f: determineFriendName(f))
+        offlineFriends.sort(key=lambda f: determineFriendName(f))
         if len(guildMembers) > 1:
-            guildMembers.sort(compareGuildies)
+            guildMembers.sort(key=lambda g: g[1])
         if len(guildMembersOnline) > 1:
-            guildMembersOnline.sort(compareGuildies)
+            guildMembersOnline.sort(key=lambda g: g[1])
         for friendPair in newFriends:
             if friendPair not in self.friends:
                 friendButton = self.makeFriendButton(friendPair)

@@ -1,6 +1,6 @@
+from panda3d.core import VBase4
 # SuitGlobals are used to set the appearance of Cogs.
 from toontown.suit import SuitDNA
-from pandac.PandaModules import VBase4
 
 SCALE_INDEX = 0 # The scale of the cog
 HAND_COLOR_INDEX = 1 # The hand color
@@ -51,4 +51,6 @@ suitProperties = {'f': (4.0 / cSize, SuitDNA.corpPolyColor, ['flunky', 'glasses'
                   'm': (5.75 / aSize, SuitDNA.salesPolyColor, ['twoface'], 'mingler.jpg', 7.61),
                   'mh': (7.0 / aSize, SuitDNA.salesPolyColor, ['yesman'], '', 8.95),
                   }
-
+FatSuits = ('f', 'mm', 'cr', 'sc', 'tw', 'mb', 'cc', 'gh')
+SkinnySuits = ('p', 'b', 'ac', 'bc', 'ls', 'sd', 'tm', 'ms')
+BroadSuits = ('ym', 'ds', 'hh', 'tbc', 'pp', 'nc', 'rb', 'nd', 'tf', 'm', 'mh')

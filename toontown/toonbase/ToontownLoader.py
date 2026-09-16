@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import Texture
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.showbase import Loader
 from toontown.toontowngui import ToontownLoadingScreen
@@ -13,7 +13,6 @@ class ToontownLoader(Loader.Loader):
         self.inBulkBlock = None
         self.blockName = None
         self.loadingScreen = ToontownLoadingScreen.ToontownLoadingScreen()
-        return
 
     def destroy(self):
         self.loadingScreen.destroy()
@@ -71,7 +70,7 @@ class ToontownLoader(Loader.Loader):
 
     def loadModel(self, *args, **kw):
         ret = Loader.Loader.loadModel(self, *args, **kw)
-        if ret and (not isinstance(ret, Loader.Loader.Callback)):
+        if ret and (not isinstance(ret, Loader.Loader._Callback)):
             gsg = base.win.getGsg()
             if gsg:
                 ret.prepareScene(gsg)

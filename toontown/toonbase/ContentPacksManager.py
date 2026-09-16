@@ -1,7 +1,7 @@
+from panda3d.core import Filename, Multifile, VirtualFileSystem
 from direct.directnotify.DirectNotifyGlobal import directNotify
 import fnmatch
 import os
-from panda3d.core import Multifile, Filename, VirtualFileSystem
 
 import yaml
 
@@ -67,7 +67,7 @@ class ContentPacksManager:
         Apply the specified ambience configuration file.
         """
         with open(os.path.join(self.path, filename), 'r') as f:
-            self.ambience.update(yaml.load(f) or {})
+            self.ambience.update(yaml.safe_load(f) or {})
 
     def apply(self, filename):
         """
@@ -123,7 +123,7 @@ class ContentPacksManager:
         """
         if os.path.exists(os.path.join(self.path, 'sort.yaml')):
             with open(os.path.join(self.path, 'sort.yaml'), 'r') as f:
-                self.sort = yaml.load(f) or []
+                self.sort = yaml.safe_load(f) or []
 
     def writeSortConfig(self):
         """

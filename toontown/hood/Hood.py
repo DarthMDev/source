@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import CompassEffect, ModelPool, NodePath, Texture, TexturePool, TransparencyAttrib, Vec4
 from toontown.toonbase.ToonBaseGlobal import *
 from toontown.toonbase.ToontownGlobals import *
 from toontown.distributed.ToontownMsgTypes import *
@@ -9,8 +9,8 @@ from direct.interval.IntervalGlobal import *
 from toontown.minigame import Purchase
 from direct.gui import OnscreenText
 from toontown.building import SuitInterior
-import QuietZoneState
-import ZoneUtil
+from . import QuietZoneState
+from . import ZoneUtil
 from toontown.toonbase import TTLocalizer
 from toontown.toon.Toon import teleportDebug
 from toontown.dna.DNAParser import *
@@ -244,7 +244,7 @@ class Hood(StateData.StateData):
         elif loaderName == 'minigame':
             pass
         elif loaderName == 'cogHQLoader':
-            print 'should be loading HQ'
+            print('should be loading HQ')
 
     def handleLeftQuietZone(self):
         status = self.quietZoneStateData.getRequestStatus()
@@ -285,7 +285,7 @@ class Hood(StateData.StateData):
         self.sky.reparentTo(camera)
         self.sky.setZ(0.0)
         self.sky.setHpr(0.0, 0.0, 0.0)
-        ce = CompassEffect.make(NodePath(), CompassEffect.PRot | CompassEffect.PZ)
+        ce = CompassEffect.make(NodePath(), CompassEffect.PRot)
         self.sky.node().setEffect(ce)
 
     def stopSky(self):
@@ -310,7 +310,7 @@ class Hood(StateData.StateData):
         fadeIn.start()
         self.sky.setZ(0.0)
         self.sky.setHpr(0.0, 0.0, 0.0)
-        ce = CompassEffect.make(NodePath(), CompassEffect.PRot | CompassEffect.PZ)
+        ce = CompassEffect.make(NodePath(), CompassEffect.PRot)
         self.sky.node().setEffect(ce)
 
     def endSpookySky(self):
@@ -339,7 +339,7 @@ class Hood(StateData.StateData):
         fadeIn.start()
         self.sky.setZ(0.0)
         self.sky.setHpr(0.0, 0.0, 0.0)
-        ce = CompassEffect.make(NodePath(), CompassEffect.PRot | CompassEffect.PZ)
+        ce = CompassEffect.make(NodePath(), CompassEffect.PRot)
         self.sky.node().setEffect(ce)
 
     def endSnowySky(self):

@@ -1,15 +1,16 @@
-from pandac.PandaModules import *
+from panda3d.core import NodePath
 from direct.interval.IntervalGlobal import *
-import DistributedCCharBase
+from . import DistributedCCharBase
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from toontown.toonbase import ToontownGlobals
-import CharStateDatas
+from . import CharStateDatas
 from direct.fsm import StateData
 from direct.task import Task
 from toontown.toonbase import TTLocalizer
 from toontown.hood import MMHood
+
 
 class DistributedPluto(DistributedCCharBase.DistributedCCharBase):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedPluto')
@@ -20,7 +21,11 @@ class DistributedPluto(DistributedCCharBase.DistributedCCharBase):
         except:
             self.DistributedPluto_initialized = 1
             DistributedCCharBase.DistributedCCharBase.__init__(self, cr, TTLocalizer.Pluto, 'p')
-            self.fsm = ClassicFSM.ClassicFSM('DistributedPluto', [State.State('Off', self.enterOff, self.exitOff, ['Neutral']), State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']), State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off', 'Off')
+            self.fsm = ClassicFSM.ClassicFSM('DistributedPluto',
+                                             [State.State('Off', self.enterOff, self.exitOff, ['Neutral']),
+                                              State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']),
+                                              State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off',
+                                             'Off')
             self.fsm.enterInitialState()
             self.handleHolidays()
 
@@ -61,13 +66,9 @@ class DistributedPluto(DistributedCCharBase.DistributedCCharBase):
 
     def stand(self):
         self.dropShadow.setScale(0.9, 1.35, 0.9)
-        if hasattr(self, 'collNodePath'):
-            self.collNodePath.setScale(1.0, 1.5, 1.0)
 
     def sit(self):
         self.dropShadow.setScale(0.9)
-        if hasattr(self, 'collNodePath'):
-            self.collNodePath.setScale(1.0)
 
     def enterOff(self):
         pass
@@ -108,7 +109,7 @@ class DistributedPluto(DistributedCCharBase.DistributedCCharBase):
         DistributedCCharBase.DistributedCCharBase.handleHolidays(self)
         if hasattr(base.cr, 'newsManager') and base.cr.newsManager:
             holidayIds = base.cr.newsManager.getHolidayIdList()
-            if ToontownGlobals.APRIL_FOOLS_DAY in holidayIds and isinstance(self.cr.playGame.hood, MMHood.MMHood):
+            if ToontownGlobals.APRIL_FOOLS_COSTUMES in holidayIds and isinstance(self.cr.playGame.hood, MMHood.MMHood):
                 self.diffPath = TTLocalizer.Minnie
 
     def getCCLocation(self):

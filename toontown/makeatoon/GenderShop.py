@@ -1,11 +1,10 @@
-from pandac.PandaModules import *
 from direct.fsm import StateData
 from direct.gui.DirectGui import *
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownGlobals
 from toontown.toon import ToonDNA
 from toontown.toon import Toon
-from MakeAToonGlobals import *
+from .MakeAToonGlobals import *
 from direct.directnotify import DirectNotifyGlobal
 import random
 

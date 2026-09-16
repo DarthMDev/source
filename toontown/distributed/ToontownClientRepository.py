@@ -1,8 +1,8 @@
+from panda3d.core import ConfigVariableBool, Datagram, DatagramIterator, HTTPClient, ModelPool, Texture, TexturePool, Vec4
 import types
 import time
 from direct.distributed.ClockDelta import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.interval.IntervalGlobal import ivalMgr
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedSmoothNode
@@ -48,9 +48,9 @@ from toontown.distributed import ToontownDistrictStats
 from toontown.makeatoon import TTPickANamePattern
 from toontown.parties import ToontownTimeManager
 from toontown.toon import Toon, DistributedToon
-from ToontownMsgTypes import *
-import HoodMgr
-import PlayGame
+from .ToontownMsgTypes import *
+from . import HoodMgr
+from . import PlayGame
 from toontown.toontowngui import ToontownLoadingBlocker
 from toontown.hood import StreetSign
 import random
@@ -87,7 +87,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         self.inGameNewsMgr = None
         self.whitelistMgr = None
 
-        self.zoneManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_ZONE_MANAGER, 'ZoneManager')
+        #self.zoneManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_ZONE_MANAGER, 'ZoneManager')
 
         self.toontownTimeManager = ToontownTimeManager.ToontownTimeManager()
         self.shardTimeManager = ShardTimeManager(self)
@@ -98,7 +98,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         self.ttiFriendsManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_TTI_FRIENDS_MANAGER, 'TTIFriendsManager')
         self.speedchatRelay = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_TOONTOWN_SPEEDCHAT_RELAY, 'TTSpeedchatRelay')
         self.deliveryManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_TOONTOWN_DELIVERY_MANAGER, 'DistributedDeliveryManager')
-        if config.GetBool('want-code-redemption', 1):
+        if ConfigVariableBool('want-code-redemption', True).getValue():
             self.codeRedemptionManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_TOONTOWN_CODE_REDEMPTION_MANAGER, 'TTCodeRedemptionMgr')
         self.guildManager = self.generateGlobalObject(OtpDoGlobals.OTP_DO_ID_GUILDS_MANAGER, 'GuildManager')
         self.globalGroupTracker = self.generateGlobalObject(OTP_DO_ID_GLOBAL_GROUP_TRACKER, 'GlobalGroupTracker')
@@ -127,26 +127,26 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         state.addTransition('skipTutorialRequest')
         state = self.gameFSM.getStateNamed('playGame')
         state.addTransition('skipTutorialRequest')
-        self.wantCogdominiums = base.config.GetBool('want-cogdominiums', 1)
-        self.wantEmblems = base.config.GetBool('want-emblems', 0)
+        self.wantCogdominiums = ConfigVariableBool('want-cogdominiums', True).getValue()
+        self.wantEmblems = ConfigVariableBool('want-emblems', 0).getValue()
 
         self.progressMultiplier = 1
-        self.wantDoubleProgression = base.config.GetBool('want-double-progression', False)
+        self.wantDoubleProgression = ConfigVariableBool('want-double-progression', False).getValue()
 
         if self.wantDoubleProgression:
             self.progressMultiplier = 2
 
-        if base.config.GetBool('tt-node-check', 0):
+        if ConfigVariableBool('tt-node-check', 0).getValue():
             for species in ToonDNA.toonSpeciesTypes:
                 for head in ToonDNA.getHeadList(species):
                     for torso in ToonDNA.toonTorsoTypes:
                         for legs in ToonDNA.toonLegTypes:
                             for gender in ('m', 'f'):
-                                print 'species: %s, head: %s, torso: %s, legs: %s, gender: %s' % (species,
+                                print('species: %s, head: %s, torso: %s, legs: %s, gender: %s' % (species,
                                  head,
                                  torso,
                                  legs,
-                                 gender)
+                                 gender))
                                 dna = ToonDNA.ToonDNA()
                                 dna.newToon((head,
                                  torso,
@@ -155,8 +155,8 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
                                 toon = Toon.Toon()
                                 try:
                                     toon.setDNA(dna)
-                                except Exception, e:
-                                    print e
+                                except Exception as e:
+                                    print(e)
 
         return
 
@@ -215,9 +215,9 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         self.clearFriendState()
         if (self.music is None) and base.musicManagerIsValid:
             if not base.wantClassicMusic:
-                base.cr.music = base.musicManager.getSound('phase_3.5/audio/bgm/TC_SZ.ogg')
+                base.cr.music = base.musicManager.getSound('phase_3/audio/bgm/tti_theme.ogg')
             else:
-                base.cr.music = base.musicManager.getSound('phase_3.5/audio/bgm/TC_SZ_og.ogg')
+                base.cr.music = base.musicManager.getSound('phase_3/audio/bgm/tti_theme_og.ogg')
         base.playMusic(self.music, looping=1, volume=0.9, interrupt=None)
         self.handler = self.handleMessageType
         self.avChoiceDoneEvent = 'avatarChooserDone'
@@ -236,7 +236,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
                 avatarChoice = av
                 dna = ToonDNA.ToonDNA()
                 dna.makeFromNetString(av.dna)
-                print '__handleAvatarChooserDone: %r, %r, %r' % (av.id, av.name, av.position)
+                print('__handleAvatarChooserDone: %r, %r, %r' % (av.id, av.name, av.position))
 
         if done == 'chose':
             self.avChoice.exit()
@@ -422,10 +422,10 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
 
         gotData = 1
 
-        if isinstance(pad.func, types.StringType):
+        if isinstance(pad.func, str):
             messenger.send(pad.func, list((gotData, pad.avatar) + pad.args))
         else:
-            apply(pad.func, (gotData, pad.avatar) + pad.args)
+            pad.func(*(gotData, pad.avatar) + pad.args)
 
         pad.delayDelete.destroy()
 
@@ -448,10 +448,10 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
             dclass = self.dclassesByName[dclassName]
             pad.avatar.updateAllRequiredFields(dclass, di)
             gotData = 1
-        if isinstance(pad.func, types.StringType):
+        if isinstance(pad.func, str):
             messenger.send(pad.func, list((gotData, pad.avatar) + pad.args))
         else:
-            apply(pad.func, (gotData, pad.avatar) + pad.args)
+            pad.func(*(gotData, pad.avatar) + pad.args)
         pad.delayDelete.destroy()
 
     def enterPlayingGame(self, *args, **kArgs):
@@ -463,7 +463,6 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         self._userLoggingOut = False
         if not self.streetSign:
             self.streetSign = StreetSign.StreetSign()
-        return
 
     def exitPlayingGame(self):
         ivalMgr.interrupt()
@@ -568,18 +567,15 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
 
     def handleCloseShard(self, msgType, di):
         if msgType == CLIENT_ENTER_OBJECT_REQUIRED:
-            di2 = PyDatagramIterator(di)
-            parentId = di2.getUint32()
+            parentId = di.getUint32()
             if self._doIdIsOnCurrentShard(parentId):
                 return
         elif msgType == CLIENT_ENTER_OBJECT_REQUIRED_OTHER:
-            di2 = PyDatagramIterator(di)
-            parentId = di2.getUint32()
+            parentId = di.getUint32()
             if self._doIdIsOnCurrentShard(parentId):
                 return
         elif msgType == CLIENT_OBJECT_SET_FIELD:
-            di2 = PyDatagramIterator(di)
-            doId = di2.getUint32()
+            doId = di.getUint32()
             if self._doIdIsOnCurrentShard(doId):
                 return
         self.handleMessageType(msgType, di)
@@ -615,12 +611,12 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
 
             ignoredClasses = ('MagicWordManager', 'TimeManager', 'BanManager', 'DistributedDistrict', 'FriendManager', 'NewsManager', 'ToontownMagicWordManager', 'WelcomeValleyManager', 'DistributedTrophyMgr', 'CatalogManager', 'DistributedBankMgr', 'EstateManager', 'RaceManager', 'SafeZoneManager', 'DeleteManager', 'TutorialManager', 'ToontownDistrict', 'DistributedDeliveryManager', 'DistributedPartyManager', 'AvatarFriendsManager', 'InGameNewsMgr', 'WhitelistMgr', 'TTCodeRedemptionMgr')
         messenger.send('clientCleanup')
-        for avId, pad in self.__queryAvatarMap.items():
+        for avId, pad in list(self.__queryAvatarMap.items()):
             pad.delayDelete.destroy()
 
         self.__queryAvatarMap = {}
         delayDeleted = []
-        doIds = self.doId2do.keys()
+        doIds = list(self.doId2do.keys())
         for doId in doIds:
             obj = self.doId2do[doId]
             if isNotLive:
@@ -650,7 +646,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
 
             self.notify.error(s)
         if isNotLive:
-            self.notify.info('dumpAllSubShardObjects: doIds left: %s' % self.doId2do.keys())
+            self.notify.info('dumpAllSubShardObjects: doIds left: %s' % list(self.doId2do.keys()))
 
     def _removeCurrentShardInterest(self, callback):
         if self.old_setzone_interest_handle is None:
@@ -683,7 +679,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         if self._shardsAreReady():
             self.acceptOnce(ToontownDistrictStats.EventName(), self.shardDetailStatsComplete)
             ToontownDistrictStats.refresh()
-        else:
+        elif not self.warmupInterrupted():
             self.loginFSM.request('noShards')
 
     def shardDetailStatsComplete(self):
@@ -801,10 +797,10 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
         self.ttiFriendsManager.d_requestIgnoreList()
 
     def cleanPetsFromFriendsMap(self):
-        for objId, obj in self.friendsMap.items():
+        for objId, obj in list(self.friendsMap.items()):
             from toontown.pets import DistributedPet
             if isinstance(obj, DistributedPet.DistributedPet):
-                print 'Removing %s reference from the friendsMap' % obj.getName()
+                print('Removing %s reference from the friendsMap' % obj.getName())
                 del self.friendsMap[objId]
 
     def removePetFromFriendsMap(self):
@@ -910,7 +906,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
 
     def getFirstBattle(self):
         from toontown.battle import DistributedBattleBase
-        for dobj in self.doId2do.values():
+        for dobj in list(self.doId2do.values()):
             if isinstance(dobj, DistributedBattleBase.DistributedBattleBase):
                 return dobj
 
@@ -1067,7 +1063,7 @@ class ToontownClientRepository(OTPClientRepository.OTPClientRepository):
             self.notify.warning('Asked to delete non-existent DistObj ' + str(doId))
 
     def _abandonShard(self):
-        for doId, obj in self.doId2do.items():
+        for doId, obj in list(self.doId2do.items()):
             if obj.parentId == localAvatar.defaultShard and obj is not localAvatar:
                 self.deleteObject(doId)
 

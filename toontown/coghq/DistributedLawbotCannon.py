@@ -1,15 +1,14 @@
+from panda3d.core import CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionSphere, NodePath, Point3, TextNode, VBase4, Vec3
 from direct.interval.IntervalGlobal import *
 from direct.distributed.ClockDelta import *
 from direct.task.Task import Task
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
-from pandac.PandaModules import CollisionSphere, CollisionNode
 from toontown.toonbase import ToontownGlobals
 from toontown.estate import DistributedCannon
 from toontown.estate import CannonGlobals
 from toontown.nametag import NametagGlobals
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toon import NPCToons
 from toontown.toon import ToonHead
 from toontown.toonbase import TTLocalizer
@@ -30,11 +29,11 @@ CAMERA_PULLBACK_MAX = 40
 class DistributedLawbotCannon(DistributedObject.DistributedObject):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedLawbotCannon')
     LOCAL_CANNON_MOVE_TASK = 'localCannonMoveTask'
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
     HIT_GROUND = 0
 
     def __init__(self, cr):
@@ -270,7 +269,7 @@ class DistributedLawbotCannon(DistributedObject.DistributedObject):
             if self.flashingLabel:
                 self.flashingLabel.stop()
             flashingTrack = Sequence()
-            for i in xrange(10):
+            for i in range(10):
                 flashingTrack.append(LerpColorScaleInterval(self.cannonBallLabel, 0.5, VBase4(1, 0, 0, 1)))
                 flashingTrack.append(LerpColorScaleInterval(self.cannonBallLabel, 0.5, VBase4(1, 1, 1, 1)))
 
@@ -772,7 +771,7 @@ class DistributedLawbotCannon(DistributedObject.DistributedObject):
         if self.localToonShooting:
             pass
         chairlist = ['trigger-chair']
-        for index in xrange(len(ToontownGlobals.LawbotBossChairPosHprs)):
+        for index in range(len(ToontownGlobals.LawbotBossChairPosHprs)):
             chairlist.append('Chair-%s' % index)
 
         if hitNode in chairlist:

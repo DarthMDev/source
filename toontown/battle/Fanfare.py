@@ -1,18 +1,19 @@
+from panda3d.physics import ColorInterpolationManager
+from panda3d.core import Vec3, Vec4
 from direct.interval.IntervalGlobal import *
-from BattleBase import *
-from BattleProps import *
-from BattleSounds import *
+from .BattleBase import *
+from .BattleProps import *
+from .BattleSounds import *
 from toontown.toon.ToonDNA import *
 from toontown.suit.SuitDNA import *
 from direct.particles.ParticleEffect import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
-import MovieUtil
-import MovieCamera
+from . import MovieUtil
+from . import MovieCamera
 from direct.directnotify import DirectNotifyGlobal
-import BattleParticles
+from . import BattleParticles
 from toontown.toonbase import ToontownGlobals
-import RewardPanel
+from . import RewardPanel
 notify = DirectNotifyGlobal.directNotify.newCategory('Fanfare')
 
 def makePanel(toon, showToonName):
@@ -20,7 +21,7 @@ def makePanel(toon, showToonName):
     panel.initialiseoptions(RewardPanel)
     panel.setTransparency(1)
     panel.hide()
-    if showToonName is 1:
+    if showToonName == 1:
         panel.avNameLabel = DirectLabel(parent=panel, relief=None, pos=Vec3(0, 0, 0.3), text=toon.getName(), text_scale=0.08)
     return panel
 

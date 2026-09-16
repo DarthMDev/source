@@ -1,8 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.core import BitMask32, CollideMask, CollisionNode, CollisionPolygon, CollisionSphere, Point3, Vec3, Vec4
 from direct.interval.IntervalGlobal import *
 from direct.distributed.ClockDelta import *
 from toontown.toonbase import ToontownGlobals
-import DistributedSwitch
+from . import DistributedSwitch
 
 class DistributedButton(DistributedSwitch.DistributedSwitch):
     countdownSeconds = 3.0

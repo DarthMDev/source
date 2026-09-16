@@ -1,3 +1,4 @@
+from panda3d.core import Datagram
 import datetime
 import re
 
@@ -9,7 +10,6 @@ from direct.stdpy import threading2
 from otp.distributed import OtpDoGlobals
 from toontown.distributed.ShardStatusReceiver import ShardStatusReceiver
 from toontown.rpc.ToontownRPCHandlerBase import *
-from toontown.suit.SuitInvasionGlobals import INVASION_TYPE_NORMAL
 from toontown.toon import ToonDNA
 from toontown.toonbase import TTLocalizer
 from toontown.guilds.GuildGlobals import GUILD_FIELD_NAME_STATUS
@@ -255,7 +255,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             [int accountId] = The ID of the account to send the message to.
             [str message] = The message to send.
         """
-        channel = accountId + (1003L << 32)
+        channel = accountId + (1003 << 32)
         self.rpc_messageChannel(channel, message)
 
     @rpcmethod(accessLevel=MODERATOR)
@@ -269,7 +269,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             [int avId] = The ID of the avatar to send the message to.
             [str message] = The message to send.
         """
-        channel = avId + (1001L << 32)
+        channel = avId + (1001 << 32)
         self.rpc_messageChannel(channel, message)
 
     # --- KICKS ---
@@ -346,7 +346,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             [int code] = The code for the kick.
             [str reason] = The reason for the kick.
         """
-        channel = accountId + (1003L << 32)
+        channel = accountId + (1003 << 32)
         self.rpc_kickChannel(channel, code, reason)
 
     @rpcmethod(accessLevel=MODERATOR)
@@ -359,7 +359,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
             [int code] = The code for the kick.
             [str reason] = The reason for the kick.
         """
-        channel = avId + (1001L << 32)
+        channel = avId + (1001 << 32)
         self.rpc_kickChannel(channel, code, reason)
 
     # --- BANS ---
@@ -394,8 +394,6 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
 
         self.air.writeServerEvent('ban', userId, expiration, reason)
 
-        payload = {'expiration': expiration, 'reason': reason}
-        self.air.webApi.execute('accounts/%d/ban' % userId, payload, 'post')
         self.rpc_kickUser(userId, 152, 'ban-' + str(expiration))
 
         return True
@@ -829,39 +827,6 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
         """
         return self.shardStatus.getShards()
 
-    # --- INVASIONS ---
-
-    @rpcmethod(accessLevel=ADMINISTRATOR)
-    def rpc_startInvasion(self, shardId, suitDeptIndex=None, suitTypeIndex=None,
-                          flags=0, type=INVASION_TYPE_NORMAL):
-        """
-        Summary:
-            Starts an invasion under the provided [shardId] with the specified
-            configuration.
-
-        Parameters:
-            [int shardId] = The ID of the shard to start the invasion in.
-            <int/NoneType suitDeptIndex> = The invading Cog's department index.
-            <int/NoneType suitTypeIndex> = The invading Cog's type index.
-            <int flags> = Extra invasion flags.
-            <int type> = The invasion type.
-        """
-        self.air.sendNetEvent(
-            'startInvasion',
-            [shardId, suitDeptIndex, suitTypeIndex, flags, type])
-
-    @rpcmethod(accessLevel=ADMINISTRATOR)
-    def rpc_stopInvasion(self, shardId):
-        """
-        Summary:
-            Stops any invasion currently running under the provided [shardId].
-
-        Parameters:
-            [int shardId] = The ID of the shard that is running the invasion to
-                be terminated.
-        """
-        self.air.sendNetEvent('stopInvasion', [shardId])
-
     # --- NAME REVIEW ---
 
     @rpcmethod(accessLevel=MODERATOR)
@@ -984,22 +949,7 @@ class ToontownRPCHandler(ToontownRPCHandlerBase):
         for document in cursor:
             self.rpc_revokeName(document['_id'])
 
-        payload = {'name': name}
-        self.air.webApi.execute('names-blacklist', payload, 'patch')
-
         return revokeCount
-
-    @rpcmethod(accessLevel=SYSTEM_ADMINISTRATOR)
-    def rpc_whitelistName(self, name):
-        """
-        Summary:
-            Whitelist the provided [name].
-
-        Parameters:
-            [str name] = The name to whitelist.
-        """
-        payload = {'name': name}
-        self.air.webApi.execute('names-whitelist', payload, 'patch')
 
     # --- CHAT LOGS ---
 

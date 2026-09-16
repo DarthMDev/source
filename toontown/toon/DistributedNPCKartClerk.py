@@ -1,9 +1,9 @@
+from panda3d.core import Point3, Quat
 from direct.gui.DirectGui import *
 from direct.task.Task import Task
-from pandac.PandaModules import *
 
-from DistributedNPCToonBase import *
-import NPCToons
+from .DistributedNPCToonBase import *
+from . import NPCToons
 from toontown.chat.ChatGlobals import *
 from toontown.nametag.NametagGlobals import *
 from toontown.racing.KartShopGlobals import *

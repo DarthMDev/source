@@ -1,14 +1,14 @@
+from panda3d.core import Point3, Vec3
 from direct.actor import Actor
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 import random
 
-from BattleBase import *
-import DistributedBattleBase
-import MovieUtil
-import SuitBattleGlobals
+from .BattleBase import *
+from . import DistributedBattleBase
+from . import MovieUtil
+from . import SuitBattleGlobals
 from otp.avatar import Emote
 from toontown.chat.ChatGlobals import *
 from toontown.nametag import NametagGlobals
@@ -41,9 +41,9 @@ class DistributedBattleBldg(DistributedBattleBase.DistributedBattleBase):
     def setBossBattle(self, value):
         self.bossBattle = value
         if self.bossBattle:
-            self.battleMusic = base.loadMusic('phase_7/audio/bgm/encntr_suit_winning_indoor.ogg')
+            self.battleMusic = base.loader.loadMusic('phase_7/audio/bgm/encntr_suit_winning_indoor.ogg')
         else:
-            self.battleMusic = base.loadMusic('phase_7/audio/bgm/encntr_general_bg_indoor.ogg')
+            self.battleMusic = base.loader.loadMusic('phase_7/audio/bgm/encntr_general_bg_indoor.ogg')
         base.playMusic(self.battleMusic, looping=1, volume=0.9)
 
     def getBossBattleTaunt(self):

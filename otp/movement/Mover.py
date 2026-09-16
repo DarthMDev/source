@@ -1,4 +1,4 @@
-from pandac.PandaModules import LVector3f
+from panda3d.core import LVector3, LVector3f, NodePath
 
 from toontown.pets import PetConstants
 
@@ -63,7 +63,7 @@ class Mover:
         self.force += force
 
     def destroy(self):
-        for name in self.impulses.keys():
+        for name in list(self.impulses.keys()):
             self.removeImpulse(name)
 
     def addImpulse(self, name, impulse):
@@ -80,7 +80,7 @@ class Mover:
     def move(self):
         dt = globalClock.getDt()
 
-        for value in self.impulses.values():
+        for value in list(self.impulses.values()):
             value.process(dt)
 
         self.integrate(dt)

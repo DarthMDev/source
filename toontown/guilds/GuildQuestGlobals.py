@@ -1,6 +1,19 @@
+import datetime
 import random
 
 GUILD_QUEST_EMPTY = [0, 0, 0, 0]
+
+QUESTS_PER_DAY = 1000
+
+
+def getQuestDay():
+    return datetime.date.today().toordinal()
+
+
+def getSecondsUntilNextQuestDay():
+    now = datetime.datetime.now()
+    tomorrow = datetime.datetime.combine(now.date() + datetime.timedelta(days=1), datetime.time.min)
+    return (tomorrow - now).total_seconds()
 
 # Field Indexes
 GUILD_QUEST_ID = 0
@@ -12,20 +25,17 @@ GUILD_QUEST_PROGRESS = 3
 def getQuestFromNum(questNum, repeat=0):
     # Seed with the date so that everyone gets the same quest
     seed = questNum
-    random.seed(seed)
     # Pick a random category
-    category = random.choice(GUILD_QUEST_CATEGORIES)
+    category = random.Random(seed).choice(GUILD_QUEST_CATEGORIES)
     # Pick a random objective for that category
-    random.seed(seed)
-    questId = random.choice(GUILD_QUEST_CAT_TO_IDS[category])
+    questId = random.Random(seed).choice(GUILD_QUEST_CAT_TO_IDS[category])
     # Get the whole quest structure
     quest = GuildQuestDict[questId]
     # Get other information from quest
     rewardPer = quest[2]
     possibleAmounts = quest[3]
     # Pick a random amount of objective to 'do'
-    random.seed(seed)
-    goal = random.choice(possibleAmounts)
+    goal = random.Random(seed).choice(possibleAmounts)
     # Generate the reward for this quest
     reward = goal * rewardPer
 
@@ -38,13 +48,11 @@ def getQuestFromNum(questNum, repeat=0):
     ]
     if not repeat and (getQuestFromNum(seed-1, 1) == task):
         # This ques repeats, lets give them the default quest
-        random.seed(seed)
-        questId = random.choice(GUILD_QUEST_CAT_TO_IDS[GUILD_QUEST_CAT_REPEAT])
+        questId = random.Random(seed).choice(GUILD_QUEST_CAT_TO_IDS[GUILD_QUEST_CAT_REPEAT])
         quest = GuildQuestDict[questId]
         rewardPer = quest[2]
         possibleAmounts = quest[3]
-        random.seed(seed)
-        goal = random.choice(possibleAmounts)
+        goal = random.Random(seed).choice(possibleAmounts)
         reward = goal * rewardPer
         task = [
             questId,

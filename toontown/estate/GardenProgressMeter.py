@@ -1,7 +1,5 @@
-from pandac.PandaModules import *
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.gui.DirectScrolledList import *
 from direct.distributed.ClockDelta import *
 from toontown.toontowngui import TTDialog
@@ -15,9 +13,9 @@ from toontown.toon import Toon
 from toontown.toonbase import TTLocalizer
 import random
 import random
-import cPickle
+import pickle
 from direct.showbase import PythonUtil
-import GameSprite
+from . import GameSprite
 from math import pi
 from toontown.estate import GardenGlobals
 SHOVEL = 0
@@ -32,9 +30,9 @@ class GardenProgressMeter(DirectObject.DirectObject):
         elif typePromotion == 'wateringCan':
             self.typePromotion = WATERINGCAN
         elif typePromotion == 'game':
-            self.typePromotion == GAMEWIN
+            self.typePromotion = GAMEWIN
         else:
-            print 'No type of %s' % typePromotion
+            print('No type of %s' % typePromotion)
         self.level = level
         self.acceptErrorDialog = None
         self.doneEvent = 'game Done'
@@ -42,7 +40,6 @@ class GardenProgressMeter(DirectObject.DirectObject):
         self.load()
         thing = self.model.find('**/item_board')
         self.block = self.model1.find('**/minnieCircle')
-        return
 
     def load(self):
         model = loader.loadModel('phase_5.5/models/gui/package_delivery_panel')

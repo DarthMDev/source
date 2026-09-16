@@ -1,7 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import TextNode, VBase3, Vec3, Vec4
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 import math
@@ -14,18 +13,18 @@ from toontown.toon import Toon
 from direct.task.Task import Task
 from toontown.toonbase import TTLocalizer
 import random
-import cPickle
+import pickle
 import time
 from direct.showbase import PythonUtil
 from toontown.hood import Place
-import Estate
-import HouseGlobals
+from . import Estate
+from . import HouseGlobals
 from toontown.estate import GardenGlobals
 from toontown.estate import DistributedFlower
 from toontown.estate import DistributedGagTree
 from toontown.estate import DistributedStatuary
-import GardenDropGame
-import GardenProgressMeter
+from . import GardenDropGame
+from . import GardenProgressMeter
 from toontown.estate import FlowerSellGUI
 from toontown.toontowngui import TTDialog
 
@@ -181,7 +180,7 @@ class DistributedEstate(DistributedObject.DistributedObject):
 
     def setHouseInfo(self, houseInfo):
         self.notify.debug('setHouseInfo')
-        houseType, housePos = cPickle.loads(houseInfo)
+        houseType, housePos = pickle.loads(houseInfo)
         self.loadEstate(houseType, housePos)
 
     def loadEstate(self, indexList, posList):

@@ -1,6 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import ColorBlendAttrib, NodePath, Point4, Vec4
 from direct.interval.IntervalGlobal import *
-from EffectController import EffectController
+from .EffectController import EffectController
 
 class ChrysanthemumEffect(NodePath, EffectController):
 

@@ -1,4 +1,3 @@
-from pandac.PandaModules import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase import DirectObject
 from direct.showbase.PythonUtil import randFloat, lerp
@@ -16,7 +15,7 @@ class PetGoalMgr(DirectObject.DirectObject):
         self.primaryStartT = 0
 
     def destroy(self):
-        goals = self.goals.keys()
+        goals = list(self.goals.keys())
         for goal in goals:
             self.removeGoal(goal)
             goal.destroy()

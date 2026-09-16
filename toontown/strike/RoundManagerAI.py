@@ -88,7 +88,7 @@ class RoundManagerAI:
                    (math.floor(0.2*((self.round/32)**2)+self.intercept)*(self.round/32)))
 
     def spawnEnemies(self):
-        for _ in xrange(random.randint(1, 2)):
+        for _ in range(random.randint(1, 2)):
             self.spawnEnemy()
 
         taskMgr.add(self.__spawnTask, self.uniqueName('cs-spawn-task'))
@@ -104,7 +104,7 @@ class RoundManagerAI:
 
         amount = random.randint(0, min(maxAmount, 2))
 
-        for _ in xrange(amount):
+        for _ in range(amount):
             self.spawnEnemy()
 
         task.setDelay(random.randint(*self.SPAWN_DELAY))

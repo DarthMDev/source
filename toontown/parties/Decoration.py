@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import CollideMask, CollisionNode, CollisionSphere, NodePath, SequenceNode, TextureStage, Vec3
 from direct.interval.IntervalGlobal import *
 from direct.actor import Actor
 from toontown.toonbase import ToontownGlobals
@@ -12,7 +12,7 @@ class Decoration(NodePath):
     def __init__(self, name, x, y, h):
         NodePath.__init__(self, name)
         self.name = name
-        decorId = PartyGlobals.DecorationIds.fromString(name)
+        decorId = PartyGlobals.EDecorationId[name]
         centerX, centerY = getCenterPosFromGridSize(x, y, PartyGlobals.DecorationInformationDict[decorId]['gridsize'])
         self.setPos(centerX, centerY, 0.0)
         self.setH(h)
@@ -205,7 +205,7 @@ class Decoration(NodePath):
             self.decorationModels = loader.loadModel('phase_4/models/parties/partyDecorations')
             self.decorationModels.copyTo(self)
             decors = self.findAllMatches('**/partyDecoration_*')
-            for i in xrange(decors.getNumPaths()):
+            for i in range(decors.getNumPaths()):
                 decPiece = decors.getPath(i)
                 n = decPiece.getName()
                 if n.endswith('shadow') or n.endswith('base') or n.endswith('collision') or n.endswith(name):

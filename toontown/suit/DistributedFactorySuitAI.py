@@ -1,3 +1,4 @@
+from panda3d.core import Point3, Vec3
 from otp.ai.AIBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.suit import DistributedSuitBaseAI
@@ -5,7 +6,6 @@ from toontown.suit import SuitDialog
 from toontown.toonbase.ToontownGlobals import cogDept2index, SellbotFactoryInt
 from toontown.toonbase import TTLocalizer
 from toontown.suit import SuitBuffGlobals
-from toontown.ai import NewsManagerGlobals
 import random
 
 

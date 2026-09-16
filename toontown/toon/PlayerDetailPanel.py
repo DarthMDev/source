@@ -1,14 +1,13 @@
-from pandac.PandaModules import *
+from panda3d.core import TextNode
 from toontown.toonbase.ToontownGlobals import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.showbase import DirectObject
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.directnotify import DirectNotifyGlobal
-import DistributedToon
+from . import DistributedToon
 from toontown.friends import FriendInviter
-import ToonTeleportPanel
+from . import ToonTeleportPanel
 from toontown.toonbase import TTLocalizer
 from toontown.hood import ZoneUtil
 from toontown.toonbase.ToontownBattleGlobals import Tracks, Levels

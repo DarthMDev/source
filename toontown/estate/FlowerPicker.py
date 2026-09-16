@@ -1,9 +1,9 @@
+from panda3d.core import TextNode, Vec4
 from toontown.toonbase import ToontownGlobals
 from direct.directnotify import DirectNotifyGlobal
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import TTLocalizer
-import FlowerPanel
+from . import FlowerPanel
 
 class FlowerPicker(DirectScrolledList):
     notify = DirectNotifyGlobal.directNotify.newCategory('FlowerPicker')

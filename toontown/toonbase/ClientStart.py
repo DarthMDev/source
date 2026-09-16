@@ -1,3 +1,4 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableString, NodePath, Texture, Vec4, loadPrcFileData
 #!/usr/bin/env python2
 import gc
 
@@ -7,57 +8,51 @@ import gc
 # ~ Chan
 gc.disable()
 
-import __builtin__
+import builtins
 import os, sys
 
-__builtin__.process = 'client'
-
-from panda3d.core import ConfigVariableString
-
-__builtin__.version = ConfigVariableString('server-version', 'n/a').getValue()
+builtins.process = 'client'
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
 
-__builtin__.directNotify = directNotify
+builtins.directNotify = directNotify
 notify = directNotify.newCategory('ClientStart')
 notify.setInfo(True)
 
 if __debug__:
-    from panda3d.core import loadPrcFile
 
-    loadPrcFile('config/general.prc')
-    loadPrcFile('config/distribution/dev.prc')
+    from toontown.toonbase import ConfigFiles
+
+    ConfigFiles.load(ConfigFiles.client(ConfigFiles.DEV))
 
     try:
         import wx
-    except ImportError as e:
-        notify.warning('Failed to start injector -- %s' % e.message)
+    except ModuleNotFoundError as e:
+        notify.warning('Failed to start injector -- %s' % e)
     else:
         from otp.otpbase.OTPInjectorDev import Injector
 
         notify.info('Starting injector...')
-        __builtin__.injector = Injector()
+        builtins.injector = Injector()
 
-from panda3d.core import *
 
-for dtool in ('children', 'parent', 'name'):
-    del NodePath.DtoolClassDict[dtool]
+builtins.version = ConfigVariableString('server-version', 'n/a').getValue()
 
-from panda3d.core import loadPrcFileData
 
 from otp.settings.Settings import Settings
 from toontown.toonbase import ToontownGlobals
 
-preferencesPath = os.path.join(ToontownGlobals.CurrentDirectory, ConfigVariableString('preferences-path', 'preferences.json').getValue())
+# The launcher gives each signed-in account a preferences file of its own
+preferencesPath = os.environ.get('TTI_PREFERENCES') or os.path.join(ToontownGlobals.CurrentDirectory, ConfigVariableString('preferences-path', 'preferences.json').getValue())
 notify.info('Reading %s...' % preferencesPath)
-__builtin__.settings = Settings(preferencesPath)
+builtins.settings = Settings(preferencesPath)
 from toontown.toonbase import SettingsGlobals
 SettingsGlobals.loadInitialSettings()
 
-# Load server settings (used for the hosting screen)
+# The Hosting screen's settings. Not the status file the district writes:
 from otp.settings.Settings import Settings
-__builtin__.serverSettings = Settings("serversettings.json")
 from toontown.toonbase import ServerSettingsGlobals
+builtins.serverSettings = Settings(ServerSettingsGlobals.settingsPath())
 ServerSettingsGlobals.loadInitialSettings()
 
 loadPrcFileData('Settings: res',
@@ -85,7 +80,11 @@ if settings[SettingsGlobals.ThreadedRender]:
     loadPrcFileData('Settings: Experimental Threaded Rendering',
                     'threading-model Cull/Draw')
     notify.warning("Experimental Threaded Rendering is enabled! The game may crash randomly! You have been warned!")
-
+if settings[SettingsGlobals.AntiAliasing]:
+    loadPrcFileData('Settings: Anti Aliasing',
+                    'framebuffer-multisample %s' % 1 if settings[SettingsGlobals.AntiAliasing] else 'f')
+    loadPrcFileData('Settings: Anti Aliasing Amount',
+                    'multisamples %s' % 4)
 if sys.platform != 'android':
     loadPrcFileData('Settings: loadDisplay',
                     'load-display %s' % settings[SettingsGlobals.LoadDisplay])
@@ -98,7 +97,7 @@ from toontown.toonbase.ContentPacksManager import ContentPacksManager
 contentPacksPath = os.path.join(ToontownGlobals.CurrentDirectory, ConfigVariableString('content-packs-path', 'contentpacks').getValue())
 if not os.path.exists(contentPacksPath):
     os.makedirs(contentPacksPath)
-__builtin__.contentPacksMgr = ContentPacksManager(contentPacksPath)
+builtins.contentPacksMgr = ContentPacksManager(contentPacksPath)
 contentPacksMgr.applyAll()
 
 if sys.platform != 'android':
@@ -107,12 +106,11 @@ if sys.platform != 'android':
 
 from toontown.launcher.TTILauncher import TTILauncher
 
-__builtin__.launcher = TTILauncher()
+builtins.launcher = TTILauncher()
 
 if not __debug__:
-    # Check if an username is set or not.
-    if launcher.getPlayToken() is None:
-        notify.error("Username isn't set, please start the game from the launcher.  Aborting.")
+    if launcher.getServerMode() is None:
+        notify.error("No server was chosen, please start the game from the launcher.  Aborting.")
 
 notify.info('Starting the game...')
 
@@ -131,7 +129,6 @@ if base.win is None:
 
 launcher.setPandaErrorCode(0)
 
-from panda3d.core import Vec4
 
 base.setBackgroundColor(Vec4(0, 0, 0, 0))
 base.graphicsEngine.renderFrame()
@@ -180,6 +177,9 @@ def syncLoginFSM(task=None):
                 introduction.label.getText() != TTLocalizer.LoaderLabel):
             introduction.request('Label', TTLocalizer.LoaderLabel)
         taskMgr.doMethodLater(1, syncLoginFSM, 'syncLoginFSM-task')
+    elif base.cr.introPending:
+        # The session is warming up behind the cinematic
+        introduction.request('ClickToStart')
     elif stateName in ('connect', 'login', 'waitForGameList',
                        'waitForShardList'):
         introduction.request('Label', OTPLocalizer.CRConnecting)
@@ -258,12 +258,18 @@ if not launcher.isDummy():
 else:
     base.startShow()
 
-if __debug__:
-    # Skip the introduction if we are in dev mode
-    clickToStart.stop()
-    clickToStart.begin()
-else:
+# Started from the launcher? Play the beautiful intro (unless opted-out)!
+wantIntro = ConfigVariableBool('want-intro',
+                               launcher.getServerMode() == 'production').getValue()
+
+if wantIntro:
+    notify.info('Playing the introduction.')
+    clickToStart.startMusic()
     disclaimerTrack.start()
+
+    # Connect while the cinematic plays, so the click at the end of it opens
+    # Pick-A-Toon instead of the usual "Connecting..." screen:
+    base.cr.startWarmupSession()
 
     def skip():
         if disclaimerTrack.isPlaying():
@@ -272,6 +278,10 @@ else:
             presentsTrack.finish()
 
     base.accept('mouse1', skip)
+else:
+    notify.info('Skipping the introduction.')
+    clickToStart.stop()
+    clickToStart.skip()
 
 
 
@@ -280,7 +290,7 @@ gc.enable()
 gc.collect()
 
 try:
-    if config.GetBool('want-leak-graph-client', False):
+    if ConfigVariableBool('want-leak-graph-client', False).getValue():
         from toontown.debug import LeakGraph
         LeakGraph.outputLeaking()
 

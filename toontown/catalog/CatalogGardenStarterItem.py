@@ -1,4 +1,5 @@
-import CatalogItem
+from panda3d.core import Datagram
+from . import CatalogItem
 import time
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -31,9 +32,9 @@ class CatalogGardenStarterItem(CatalogItem.CatalogItem):
 
     def recordPurchase(self, avatar, optional):
         if avatar:
-            estate = simbase.air.estateManager._lookupEstate(avatar)
+            estate = simbase.air.estateMgr.estate.get(avatar.doId)
             if estate:
-                estate.placeStarterGarden(avatar)
+                estate.placeStarterGarden(avatar.doId)
 
         return ToontownGlobals.P_ItemAvailable
 
@@ -55,7 +56,7 @@ class CatalogGardenStarterItem(CatalogItem.CatalogItem):
         return 'CatalogGardenStarterItem(%s)' % self.formatOptionalData(store)
 
     def compareTo(self, other):
-        return 0
+        return True
 
     def getHashContents(self):
         return 0

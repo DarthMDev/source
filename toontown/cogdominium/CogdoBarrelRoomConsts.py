@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import Vec4
 CollectionTime = 30
 BarrelRoomIntroTimeout = 15.0
 RewardUiTime = 5.0
@@ -91,7 +91,7 @@ BarrelCollParams = (0,
  2.0)
 BarrelBumpSound = 'phase_4/audio/sfx/Golf_Hit_Barrier_2.ogg'
 BarrelGrabSound = 'phase_4/audio/sfx/SZ_DD_treasure.ogg'
-StateHidden, StateAvailable, StateUsed, StateCrushed = range(4)
+StateHidden, StateAvailable, StateUsed, StateCrushed = list(range(4))
 
 def numBarrels():
     return len(BarrelProps)

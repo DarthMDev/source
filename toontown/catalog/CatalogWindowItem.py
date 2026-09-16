@@ -1,6 +1,6 @@
-from pandac.PandaModules import *
-import CatalogAtticItem
-import CatalogItem
+from panda3d.core import Datagram, Filename, NodePath, Plane, PlaneNode, Point3, Vec3
+from . import CatalogAtticItem
+from . import CatalogItem
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 WVTModelName = 0
@@ -88,7 +88,7 @@ class CatalogWindowItem(CatalogAtticItem.CatalogAtticItem):
         return result
 
     def compareTo(self, other):
-        return self.windowType - other.windowType
+        return self.windowType == other.windowType
 
     def getHashContents(self):
         return self.windowType

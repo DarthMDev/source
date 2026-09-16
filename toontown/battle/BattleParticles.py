@@ -1,6 +1,7 @@
+from panda3d.core import Texture, Vec4
 from direct.particles.ParticleEffect import *
 from direct.directnotify import DirectNotifyGlobal
-import ParticleDefs
+from . import ParticleDefs
 
 notify = DirectNotifyGlobal.directNotify.newCategory('BattleParticles')
 TutorialParticleEffects = (

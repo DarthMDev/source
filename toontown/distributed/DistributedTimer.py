@@ -1,7 +1,6 @@
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals
-from pandac.PandaModules import *
 from direct.distributed.ClockDelta import *
 import time
 
@@ -22,7 +21,7 @@ class DistributedTimer(DistributedObject.DistributedObject):
 
     def setStartTime(self, time):
         self.startTime = time
-        print 'TIMER startTime %s' % time
+        print('TIMER startTime %s' % time)
 
     def getStartTime(self):
         return self.startTime

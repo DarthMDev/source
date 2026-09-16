@@ -1,14 +1,14 @@
+from panda3d.core import ConfigVariableBool, DecalEffect
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import StateData
-import CogHQLoader, MintInterior
+from . import CogHQLoader, MintInterior
 from toontown.toonbase import ToontownGlobals
 from direct.gui import DirectGui
 from toontown.toonbase import TTLocalizer
 from toontown.toon import Toon
 from direct.fsm import State
-import CashbotHQExterior
-import CashbotHQBossBattle
-from pandac.PandaModules import DecalEffect
+from . import CashbotHQExterior
+from . import CashbotHQBossBattle
 
 class CashbotCogHQLoader(CogHQLoader.CogHQLoader):
     notify = DirectNotifyGlobal.directNotify.newCategory('CashbotCogHQLoader')
@@ -29,7 +29,7 @@ class CashbotCogHQLoader(CogHQLoader.CogHQLoader):
     def load(self, zoneId):
         CogHQLoader.CogHQLoader.load(self, zoneId)
         Toon.loadCashbotHQAnims()
-        self.battleMusic = base.loadMusic(self.battleMusicFile)
+        self.battleMusic = base.loader.loadMusic(self.battleMusicFile)
 
     def unloadPlaceGeom(self):
         if self.geom:
@@ -52,7 +52,7 @@ class CashbotCogHQLoader(CogHQLoader.CogHQLoader):
             signText.setDepthWrite(0)
             self.geom.flattenMedium()
         elif zoneId == ToontownGlobals.CashbotLobby:
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: COGHQ: Visit CashbotLobby')
             self.geom = loader.loadModel(self.cogHQLobbyModelPath)
             self.geom.flattenMedium()

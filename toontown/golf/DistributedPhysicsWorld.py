@@ -1,7 +1,7 @@
+from panda3d.core import Vec3
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals
-from pandac.PandaModules import *
 from math import *
 import math
 from direct.fsm.FSM import FSM
@@ -10,7 +10,7 @@ from direct.showbase import PythonUtil
 from direct.showutil import Rope
 from direct.task import Task
 from direct.distributed.ClockDelta import *
-import BuildGeometry
+from . import BuildGeometry
 from toontown.golf import GolfGlobals
 from toontown.golf import PhysicsWorldBase
 import random, time

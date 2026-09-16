@@ -55,7 +55,7 @@ class OSTZCalculatorAI(Thread):
 
             entries = []
 
-            for i in xrange(self.cHandler.getNumEntries()):
+            for i in range(self.cHandler.getNumEntries()):
                 entry = self.cHandler.getEntry(i)
                 entries.append(entry)
 

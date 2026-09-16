@@ -1,17 +1,17 @@
+from panda3d.core import ConfigVariableBool, TextNode, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.collectibles import CollectibleInventoryGlobals
 from toontown.toonbase import ToontownGlobals
 from toontown.toontowngui import TTDialog
 from toontown.toonbase import TTLocalizer
-import CatalogItemTypes
-import CatalogItem
-from CatalogWallpaperItem import getAllWallpapers
-from CatalogFlooringItem import getAllFloorings
-from CatalogMouldingItem import getAllMouldings
-from CatalogWainscotingItem import getAllWainscotings
-from CatalogFurnitureItem import getAllFurnitures
-from CatalogFurnitureItem import FLTrunk
+from . import CatalogItemTypes
+from . import CatalogItem
+from .CatalogWallpaperItem import getAllWallpapers
+from .CatalogFlooringItem import getAllFloorings
+from .CatalogMouldingItem import getAllMouldings
+from .CatalogWainscotingItem import getAllWainscotings
+from .CatalogFurnitureItem import getAllFurnitures
+from .CatalogFurnitureItem import FLTrunk
 from toontown.toontowngui.TeaserPanel import TeaserPanel
 from otp.otpbase import OTPGlobals
 CATALOG_PANEL_WORDWRAP = 10
@@ -172,12 +172,12 @@ class CatalogItemPanel(DirectFrame):
             emblemIcon = loader.loadModel('phase_3.5/models/gui/tt_m_gui_gen_emblemIcons')
             silverModel = emblemIcon.find('**/tt_t_gui_gen_emblemSilver')
             goldModel = emblemIcon.find('**/tt_t_gui_gen_emblemGold')
-            if ToontownGlobals.EmblemTypes.Silver < len(emblemPrices):
-                silverPrice = emblemPrices[ToontownGlobals.EmblemTypes.Silver]
+            if ToontownGlobals.EmblemType.SILVER < len(emblemPrices):
+                silverPrice = emblemPrices[ToontownGlobals.EmblemType.SILVER]
                 if silverPrice:
                     self.silverPriceLabel = DirectLabel(parent=self, relief=None, pos=(0, 0, -0.3), scale=priceScale, image=silverModel, image_pos=(-0.4, 0, 0.4), text=str(silverPrice), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
-            if ToontownGlobals.EmblemTypes.Gold < len(emblemPrices):
-                goldPrice = emblemPrices[ToontownGlobals.EmblemTypes.Gold]
+            if ToontownGlobals.EmblemType.GOLD < len(emblemPrices):
+                goldPrice = emblemPrices[ToontownGlobals.EmblemType.GOLD]
                 if goldPrice:
                     self.goldPriceLabel = DirectLabel(parent=self, relief=None, pos=(0, 0, -0.3), scale=priceScale, image=goldModel, image_pos=(-0.4, 0, 0.4), text=str(goldPrice), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
             numPrices = 0
@@ -352,8 +352,8 @@ class CatalogItemPanel(DirectFrame):
         else:
             emblemPrices = self['item'].getEmblemPrices()
             if emblemPrices:
-                silver = emblemPrices[ToontownGlobals.EmblemTypes.Silver]
-                gold = emblemPrices[ToontownGlobals.EmblemTypes.Gold]
+                silver = emblemPrices[ToontownGlobals.EmblemType.SILVER]
+                gold = emblemPrices[ToontownGlobals.EmblemType.GOLD]
                 price = self['item'].getPrice(self['type'])
                 if price and silver and gold:
                     message = TTLocalizer.CatalogVerifyPurchaseBeanSilverGold % {'item': self['item'].getName(),
@@ -397,7 +397,7 @@ class CatalogItemPanel(DirectFrame):
         self.accept('verifyDone', self.__handleVerifyPurchase)
 
     def __handleVerifyPurchase(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: Order item')
         status = self.verify.doneStatus
         self.ignore('verifyDone')
@@ -429,7 +429,7 @@ class CatalogItemPanel(DirectFrame):
         self.accept('verifyGiftDone', self.__handleVerifyGift)
 
     def __handleVerifyGift(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: Gift item')
         status = self.verify.doneStatus
         self.ignore('verifyGiftDone')

@@ -1,7 +1,7 @@
+from panda3d.core import CardMaker, ConfigVariable, ConfigVariableBool, NodePath, TextNode, Vec4
 import random
 import time
 import datetime
-from pandac.PandaModules import Vec4, TextNode, CardMaker, NodePath
 from direct.distributed import DistributedObject
 from direct.task import Task
 from direct.interval.IntervalGlobal import *
@@ -13,7 +13,7 @@ from toontown.toonbase import TTLocalizer
 from toontown.toon import Toon
 from toontown.parties import PartyGlobals
 from toontown.parties.Decoration import Decoration
-import PartyUtils
+from . import PartyUtils
 
 class DistributedParty(DistributedObject.DistributedObject):
     notify = directNotify.newCategory('DistributedParty')
@@ -49,7 +49,7 @@ class DistributedParty(DistributedObject.DistributedObject):
         self.partyInfo = PartyInfo(*partyInfoTuple)
         self.loadDecorations()
         allActIds = [ x.activityId for x in self.partyInfo.activityList ]
-        base.partyHasJukebox = PartyGlobals.ActivityIds.PartyJukebox in allActIds or PartyGlobals.ActivityIds.PartyJukebox40 in allActIds
+        base.partyHasJukebox = PartyGlobals.EActivityId.PartyJukebox in allActIds or PartyGlobals.EActivityId.PartyJukebox40 in allActIds
         self.grid = [
          [False, False, False, False, False, True, True, True, True, True, True, True, True, True, True, False, False, False],
          [False, False, False, False, True, True, True, True, True, True, True, True, True, True, True, False, False, False],
@@ -69,8 +69,8 @@ class DistributedParty(DistributedObject.DistributedObject):
         ]
 
         def fillGrid(x, y, size):
-            for i in xrange(-size[1] / 2 + 1, size[1] / 2 + 1):
-                for j in xrange(-size[0] / 2 + 1, size[0] / 2 + 1):
+            for i in range(-size[1] // 2 + 1, size[1] // 2 + 1):
+                for j in range(-size[0] // 2 + 1, size[0] // 2 + 1):
                     self.grid[i + y][j + x] = False
 
         for activityBase in self.partyInfo.activityList:
@@ -118,7 +118,7 @@ class DistributedParty(DistributedObject.DistributedObject):
         grass = loader.loadModel('phase_13/models/parties/grass')
         clearPositions = self.getClearSquarePositions()
         numTufts = min(len(clearPositions) * 3, PartyGlobals.TuftsOfGrass)
-        for i in xrange(numTufts):
+        for i in range(numTufts):
             g = grass.copyTo(self.grassRoot)
             pos = random.choice(clearPositions)
             g.setPos(pos[0] + random.randint(-8, 8), pos[1] + random.randint(-8, 8), 0.0)
@@ -126,7 +126,7 @@ class DistributedParty(DistributedObject.DistributedObject):
     def loadDecorations(self):
         self.decorationsList = []
         for decorBase in self.partyInfo.decors:
-            self.decorationsList.append(Decoration(PartyGlobals.DecorationIds.getString(decorBase.decorId), PartyUtils.convertDistanceFromPartyGrid(decorBase.x, 0), PartyUtils.convertDistanceFromPartyGrid(decorBase.y, 1), PartyUtils.convertDegreesFromPartyGrid(decorBase.h)))
+            self.decorationsList.append(Decoration(PartyGlobals.EDecorationId(decorBase.decorId).name, PartyUtils.convertDistanceFromPartyGrid(decorBase.x, 0), PartyUtils.convertDistanceFromPartyGrid(decorBase.y, 1), PartyUtils.convertDegreesFromPartyGrid(decorBase.h)))
 
     def unload(self):
         if hasattr(self, 'decorationsList') and self.decorationsList:
@@ -156,11 +156,11 @@ class DistributedParty(DistributedObject.DistributedObject):
         base.localAvatar.chatMgr.chatInputSpeedChat.addInsidePartiesMenu()
         self.spawnTitleText()
         messenger.send(self.generatedEvent)
-        if config.GetBool('show-debug-party-grid', 0):
+        if ConfigVariableBool('show-debug-party-grid', False).getValue():
             self.testGrid = NodePath('test_grid')
             self.testGrid.reparentTo(base.cr.playGame.hood.loader.geom)
-            for i in xrange(len(self.grid)):
-                for j in xrange(len(self.grid[i])):
+            for i in range(len(self.grid)):
+                for j in range(len(self.grid[i])):
                     cm = CardMaker('gridsquare')
                     np = NodePath(cm.generate())
                     np.setScale(12)
@@ -175,13 +175,13 @@ class DistributedParty(DistributedObject.DistributedObject):
     def getClearSquarePos(self):
         clearPositions = self.getClearSquarePositions()
         if len(clearPositions) == 0:
-            raise StandardError, 'Party %s has no empty grid squares.' % self.doId
+            raise Exception('Party %s has no empty grid squares.' % self.doId)
         return random.choice(clearPositions)
 
     def getClearSquarePositions(self):
         clearPositions = []
-        for y in xrange(len(self.grid)):
-            for x in xrange(len(self.grid[0])):
+        for y in range(len(self.grid)):
+            for x in range(len(self.grid[0])):
                 if self.grid[y][x]:
                     pos = (PartyUtils.convertDistanceFromPartyGrid(x, 0), PartyUtils.convertDistanceFromPartyGrid(y, 1), 0.1)
                     clearPositions.append(pos)

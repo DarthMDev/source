@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import StreamReader
 
 class HTTPUtilException(Exception):
 
@@ -29,7 +29,7 @@ def getHTTPResponse(url, http, body = ''):
     stream = hd.openReadBody()
     sr = StreamReader(stream, 1)
     response = sr.readlines()
-    for i in xrange(len(response)):
+    for i in range(len(response)):
         if response[i][-1] == '\n':
             response[i] = response[i][:-1]
 

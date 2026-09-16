@@ -1,10 +1,10 @@
-from pandac.PandaModules import Point3, NodePath
+from panda3d.core import NodePath, Point3
 from direct.fsm.FSM import FSM
 from direct.interval.IntervalGlobal import ProjectileInterval, Track, ActorInterval
 from direct.interval.IntervalGlobal import Func, Sequence, Parallel
-from CogdoMazeGameObjects import CogdoMazeSplattable
-import CogdoMazeGameGlobals as Globals
-import CogdoUtil
+from .CogdoMazeGameObjects import CogdoMazeSplattable
+from . import CogdoMazeGameGlobals as Globals
+from . import CogdoUtil
 import random
 
 class CogdoMazePlayer(FSM, CogdoMazeSplattable):

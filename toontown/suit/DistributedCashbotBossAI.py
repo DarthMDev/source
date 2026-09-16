@@ -1,4 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import CollisionInvSphere, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableBool, NodePath, Point3, Vec3
+import math
+import random
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownBattleGlobals
 from toontown.toonbase import ToontownGlobals
@@ -13,11 +15,8 @@ from toontown.battle import BattleExperienceAI
 from toontown.chat import ResistanceChat
 from direct.fsm import FSM
 from time import time
-import DistributedBossCogAI
-import SuitDNA
-import random
+from . import DistributedBossCogAI
 from otp.ai.MagicWordGlobal import *
-import math
 
 
 class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM):
@@ -26,7 +25,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     stunBuildupKnockout = [30, 120]
 
     def __init__(self, air):
-        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_DAY):
+        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_COSTUMES):
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'l')
         else:
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'm')
@@ -89,7 +88,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
     def makeBattleTwoBattles(self):
         self.postBattleState = 'PrepareBattleThree'
-        self.initializeBattles(2, [0 for i in xrange(6)])
+        self.initializeBattles(2, [0 for i in range(6)])
 
     def divideToons(self, battleTwo=False):
         if not battleTwo:
@@ -102,7 +101,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.battleTwoToons = []
 
         if len(toons) > 1:
-            for i in xrange(int(round(len(toons) / 2.0))):
+            for i in range(int(round(len(toons) / 2.0))):
                 if len(toons) > 1:
                     self.battleTwoToons.append([toons.pop(0), toons.pop(0)])
                 else:
@@ -124,7 +123,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         if self.battleTwoBattles:
             battleIds = []
 
-            for battleTuple in self.battleTwoBattles.values():
+            for battleTuple in list(self.battleTwoBattles.values()):
                 battleIds.append(battleTuple[0].doId)
 
             if battleIds:
@@ -144,7 +143,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
         self.battleNumber = battleNumber
         self.battleTwoBattles = {}
-        for i in xrange(len(self.battleTwoToons)):
+        for i in range(len(self.battleTwoToons)):
             suitHandles = self.generateSuits(battleNumber)
             suits = suitHandles['activeSuits']
             activeSuits = suits[:]
@@ -162,7 +161,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.sendBattleIds()
 
     def enterBattleTwo(self):
-        for i in xrange(len(self.battleTwoBattles)):
+        for i in range(len(self.battleTwoBattles)):
             battleTuple = self.battleTwoBattles[i]
             battleTuple[0].startBattle(self.battleTwoToons[i], battleTuple[1])
 
@@ -227,10 +226,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
             suit = activeSuits.pop()
             reserveSuits.append((suit, 100))
 
-        def compareJoinChance(a, b):
-            return cmp(a[1], b[1])
-
-        reserveSuits.sort(compareJoinChance)
+        reserveSuits.sort(key=lambda joinChance: joinChance[1])
         return {'activeSuits': activeSuits,
          'reserveSuits': reserveSuits}
 
@@ -258,14 +254,14 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     def __makeBattleThreeObjects(self):
         if self.cranes is None:
             self.cranes = []
-            for index in xrange(len(ToontownGlobals.CashbotBossCranePosHprs)):
+            for index in range(len(ToontownGlobals.CashbotBossCranePosHprs)):
                 crane = DistributedCashbotBossCraneAI.DistributedCashbotBossCraneAI(self.air, self, index)
                 crane.generateWithRequired(self.zoneId)
                 self.cranes.append(crane)
 
         if self.safes is None:
             self.safes = []
-            for index in xrange(len(ToontownGlobals.CashbotBossSafePosHprs)):
+            for index in range(len(ToontownGlobals.CashbotBossSafePosHprs)):
                 safe = DistributedCashbotBossSafeAI.DistributedCashbotBossSafeAI(self.air, self, index)
                 safe.generateWithRequired(self.zoneId)
                 self.safes.append(safe)
@@ -329,7 +325,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
     def __doDirectedAttack(self):
         if self.toonsToAttack:
-            toonId = max(self.threatDict.iterkeys(), key=lambda k: self.getThreat(k)) if self.threatDict else self.toonsToAttack.pop(0)
+            toonId = max(iter(self.threatDict.keys()), key=lambda k: self.getThreat(k)) if self.threatDict else self.toonsToAttack.pop(0)
             toonThreat = self.getThreat(toonId)
             toonThreat *= 0.15
             self.subtractThreat(toonId, toonThreat)
@@ -427,11 +423,11 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
             self.recycledTreasures.append(treasure)
 
     def deleteAllTreasures(self):
-        for treasure in self.treasures.values():
+        for treasure in list(self.treasures.values()):
             treasure.requestDelete()
 
         self.treasures = {}
-        for treasure in self.grabbingTreasures.values():
+        for treasure in list(self.grabbingTreasures.values()):
             taskMgr.remove(treasure.uniqueName('recycleTreasure'))
             treasure.requestDelete()
 
@@ -506,7 +502,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         taskMgr.remove(self.uniqueName('NextGoon'))
         taskMgr.remove(self.uniqueName('goonBuildup'))
 
-        for i in xrange(7):
+        for i in range(7):
             taskName = self.uniqueName('spawnGoon-%d' % i)
             taskMgr.remove(taskName)
 
@@ -639,7 +635,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
                 if self.battleDifficulty == 3:
                     toon.doResistanceEffect(self.rewardIds[2])
 
-            if simbase.config.GetBool('cfo-staff-event', False):
+            if ConfigVariableBool('cfo-staff-event', False).getValue():
 
                 withStaff = False
                 for avId in self.involvedToons:
@@ -697,7 +693,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.ignoreBarrier(self.barrier)
 
     def cleanupBattleTwoBattles(self):
-        for i in xrange(len(self.battleTwoToons)):
+        for i in range(len(self.battleTwoToons)):
             if i in self.battleTwoBattles:
                 self.battleTwoBattles[i][0].b_setState('Off')
                 self.battleTwoBattles[i][0].requestDelete()
@@ -768,12 +764,11 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.stopGoons()
         self.stopHelmets()
         self.heldObject = None
-        return
 
     def enterVictory(self):
         self.resetBattles()
         self.suitsKilled.append({'type': None,
-         'level': None,
+         'level': 0,
          'track': self.dna.dept,
          'isSkelecog': 0,
          'isForeman': 0,
@@ -783,7 +778,6 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
          'isVirtual': 0,
          'activeToons': self.involvedToons[:]})
         self.barrier = self.beginBarrier('Victory', self.involvedToons, 30, self.__doneVictory)
-        return
 
     def __doneVictory(self, avIds):
         self.d_setBattleExperience()
@@ -792,8 +786,8 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         for toonId in self.involvedToons:
             toon = self.air.doId2do.get(toonId)
             if toon is not None:
-                amount = self.battleDifficulty * self.air.holidayManager.rewardMultiplier
-                for i in xrange(0, amount):
+                amount = self.battleDifficulty
+                for i in range(0, amount):
                     if i >= len(self.rewardIds):
                         # We haven't predefined a reward here, so get a random one
                         toon.addResistanceMessage(ResistanceChat.getRandomId())
@@ -824,7 +818,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
             self.battleBId = 0
             sendReset = 1
 
-        for battleTuple in self.battleTwoBattles.values():
+        for battleTuple in list(self.battleTwoBattles.values()):
             battleTuple[0].requestDelete()
 
         self.battleTwoBattles = {}
@@ -859,7 +853,7 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         if activeGoonsCount < self.getMinGoons():
             diff = self.getMinGoons() - activeGoonsCount
             if not diff <= 0:
-                for i in xrange(diff):
+                for i in range(diff):
                     taskName = self.uniqueName('spawnGoon-%d' % i)
                     taskMgr.remove(taskName)
                     isVirtual = random.random() <= 0.3
@@ -928,20 +922,20 @@ class DistributedCashbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
         return activeGoons
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def startCraneRound():
     """
     Skips to the crane round of the CFO.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedCashbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CFO!"
+        return "You aren't in a C.F.O.!"
     if boss.state in ('PrepareBattleTwo', 'PrepareBattleThree', 'BattleThree'):
         return "You can't skip this round."
     boss.exitIntroduction()
@@ -951,39 +945,39 @@ def startCraneRound():
     boss.b_setState('BattleThree')
     return 'Starting the crane round...'
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def restartCraneRound():
     """
     Restarts the crane round in the CFO.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedCashbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CFO!"
+        return "You aren't in a C.F.O.!"
     boss.exitIntroduction()
     boss.b_setState('PrepareBattleTwo')
     boss.b_setState('BattleThree')
     return 'Restarting the crane round...'
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def skipCFO():
     """
     Skips the current round in the CFO.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedCashbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CFO!"
+        return "You aren't in a C.F.O.!"
     if boss.state in ('PrepareBattleTwo', 'PrepareBattleThree', 'BattleThree'):
         return "You can't skip this round."
     boss.exitIntroduction()
@@ -991,33 +985,35 @@ def skipCFO():
         boss.b_setState('PrepareBattleThree')
     else:
         boss.b_setState('PrepareBattleTwo')
-    return 'Skipping the first round...'
+    return 'Skipping the round...'
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def killCFO():
     """
     Kills the CFO.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedCashbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CFO!"
+        return "You aren't in a C.F.O.!"
+    if boss.state in ('Victory', 'Reward', 'Epilogue'):
+        return "The C.F.O. has already been defeated!"
     boss.b_setState('Victory')
-    return 'Killed CFO.'
+    return 'Killed C.F.O.'
 
-@magicWord(category=CATEGORY_USER, types=[int])
+@magicWord(category=CATEGORY_ADMINISTRATOR, types=[int])
 def hitCFO(dmg):
     """
-    Kills the CFO.
+    Hits the CFO.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedCashbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do

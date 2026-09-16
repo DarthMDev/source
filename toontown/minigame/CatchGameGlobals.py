@@ -1,4 +1,5 @@
-EndlessGame = config.GetBool('endless-catch-game', 0)
+from panda3d.core import ConfigVariableBool
+EndlessGame = ConfigVariableBool('endless-catch-game', False).getValue()
 GameDuration = 55.0
 
 class DropObject:
@@ -25,9 +26,9 @@ for type in DropObjectTypes:
     Name2DropObjectType[type.name] = type
 
 Name2DOTypeId = {}
-names = Name2DropObjectType.keys()
+names = list(Name2DropObjectType.keys())
 names.sort()
-for i in xrange(len(names)):
+for i in range(len(names)):
     Name2DOTypeId[names[i]] = i
 
 DOTypeId2Name = names

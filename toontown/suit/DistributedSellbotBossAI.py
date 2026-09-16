@@ -1,8 +1,8 @@
 import random
 
-import DistributedBossCogAI
-import DistributedSuitAI
-import SuitDNA
+from . import DistributedBossCogAI
+from . import DistributedSuitAI
+from . import SuitDNA
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import *
 from direct.fsm import FSM
@@ -21,13 +21,13 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     numPies = ToontownGlobals.FullPies
 
     def __init__(self, air):
-        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_DAY):
+        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_COSTUMES):
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'c')
         else:
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 's')
         FSM.FSM.__init__(self, 'DistributedSellbotBossAI')
         self.doobers = []
-        self.cagedToonNpcId = random.choice(NPCToons.HQnpcFriends.keys())
+        self.cagedToonNpcId = random.choice(list(NPCToons.HQnpcFriends.keys()))
         self.bossMaxDamage = ToontownGlobals.SellbotBossMaxDamage
         self.recoverRate = 0
         self.recoverStartTime = 0
@@ -332,7 +332,7 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     def enterVictory(self):
         self.resetBattles()
         self.suitsKilled.append({'type': None,
-         'level': None,
+         'level': 0,
          'track': self.dna.dept,
          'isSkelecog': 0,
          'isForeman': 0,
@@ -342,7 +342,6 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
          'isVirtual': 0,
          'activeToons': self.involvedToons[:]})
         self.barrier = self.beginBarrier('Victory', self.involvedToons, 10, self.__doneVictory)
-        return
 
     def __doneVictory(self, avIds):
         self.d_setBattleExperience()
@@ -351,7 +350,7 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         for toonId in self.involvedToons:
             toon = self.air.doId2do.get(toonId)
             if toon:
-                amount = 1 * self.air.holidayManager.rewardMultiplier
+                amount = 1
                 if not toon.attemptAddNPCFriend(self.cagedToonNpcId, numCalls=amount):
                     self.notify.info('%s.unable to add NPCFriend %s to %s.' % (self.doId, self.cagedToonNpcId, toonId))
                 toon.b_promote(self.deptIndex)
@@ -371,7 +370,7 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
     def __makeDoobers(self):
         self.__resetDoobers()
-        for i in xrange(8):
+        for i in range(8):
             suit = DistributedSuitAI.DistributedSuitAI(self.air, None)
             level = random.randrange(len(SuitDNA.suitsPerLevel))
             suit.dna = SuitDNA.SuitDNA()
@@ -406,14 +405,14 @@ class DistributedSellbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.air.achievementsManager.toonsFinishedVP(self.involvedToons)
         DistributedBossCogAI.DistributedBossCogAI.enterReward(self)
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def skipVP():
     """
     Skips to the final round of the VP.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedSellbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
@@ -426,19 +425,24 @@ def skipVP():
     boss.b_setState('PrepareBattleThree')
     return 'Skipping the first round...'
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def killVP():
     """
     Kills the VP.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedSellbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a VP!"
-    boss.b_setState('Victory')
-    return 'Killed VP.'
+        return "You aren't in a V.P.!"
+    if boss.state in ('Victory', 'Reward', 'Epilogue'):
+        return "The V.P. has already been defeated!"
+    if boss.state == 'BattleThree':
+        boss.b_setState('Victory')
+        return 'Killed V.P.'
+    else:
+        return "You must be in the final battle with the V.P. to kill him."

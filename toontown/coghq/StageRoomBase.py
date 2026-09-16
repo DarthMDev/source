@@ -1,3 +1,4 @@
+from panda3d.core import TypeRegistry
 from toontown.toonbase import ToontownGlobals
 
 class StageRoomBase:
@@ -18,7 +19,7 @@ class StageRoomBase:
     if __dev__:
 
         def getEntityTypeReg(self):
-            import FactoryEntityTypes
+            from . import FactoryEntityTypes
             from otp.level import EntityTypeRegistry
             typeReg = EntityTypeRegistry.EntityTypeRegistry(FactoryEntityTypes)
             return typeReg

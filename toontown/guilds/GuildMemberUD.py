@@ -1,6 +1,5 @@
 from direct.distributed.PyDatagram import *
 from direct.showbase.DirectObject import DirectObject
-from pandac.PandaModules import *
 
 from toontown.toon.ToonDNA import ToonDNA
 from toontown.guilds.GuildGlobals import *
@@ -61,7 +60,7 @@ class GuildMemberUD(DirectObject):
     # Online status
     def goOnline(self, client):
         if self.online:
-            print('GuildMemberUD: Avatar %d is going online, but was already online. Still processing' % self.id)
+            print(('GuildMemberUD: Avatar %d is going online, but was already online. Still processing' % self.id))
         self.online = True
         self.client = client
 

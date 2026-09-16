@@ -1,9 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, RopeNode, Texture, VBase3
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.interval.IntervalGlobal import *
-from DistributedMinigame import *
+from .DistributedMinigame import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from toontown.toonbase import ToontownTimer
@@ -11,17 +10,17 @@ from toontown.toon import ToonHead
 from toontown.suit import SuitDNA
 from toontown.suit import Suit
 from toontown.char import Char
-import ArrowKeys
+from . import ArrowKeys
 import random
 from toontown.toonbase import ToontownGlobals
 import string
 from toontown.toonbase import TTLocalizer
-import TugOfWarGameGlobals
+from . import TugOfWarGameGlobals
 from direct.showutil import Rope
 from toontown.effects import Splash
 from toontown.effects import Ripples
 from toontown.toonbase import TTLocalizer
-import MinigamePowerMeter
+from . import MinigamePowerMeter
 from direct.task.Task import Task
 from toontown.nametag import NametagGlobals
 
@@ -90,7 +89,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
          [8, 12]]
         self.nextRateIndex = 0
         self.drinkPositions = []
-        for k in xrange(4):
+        for k in range(4):
             self.drinkPositions.append(VBase3(-.2 + 0.2 * k, 16 + 2 * k, 0.0))
 
         self.rng = random.Random(1000)
@@ -125,7 +124,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
         self.correctSound = loader.loadSfx('phase_4/audio/sfx/MG_pos_buzzer.ogg')
         self.sndHitWater = loader.loadSfx('phase_4/audio/sfx/MG_cannon_splash.ogg')
         self.whistleSound = loader.loadSfx('phase_4/audio/sfx/AA_sound_whistle.ogg')
-        self.music = base.loadMusic(self.bgm)
+        self.music = base.loader.loadMusic(self.bgm)
         self.roundText = DirectLabel(text='     ', text_fg=(0, 1, 0, 1), frameColor=(1, 1, 1, 0), text_font=ToontownGlobals.getSignFont(), pos=(0.014, 0, -.84), scale=0.2)
         self.powerMeter = MinigamePowerMeter.MinigamePowerMeter(17)
         self.powerMeter.reparentTo(aspect2d)
@@ -133,7 +132,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
         self.powerMeter.setPower(8)
         self.powerMeter.setTarget(8)
         self.arrows = [None] * 2
-        for x in xrange(len(self.arrows)):
+        for x in range(len(self.arrows)):
             self.arrows[x] = loader.loadModel('phase_3/models/props/arrow')
             self.arrows[x].reparentTo(self.powerMeter)
             self.arrows[x].hide()
@@ -265,7 +264,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
         self.splash.reparentTo(render)
         self.suitSplash.reparentTo(render)
         base.playMusic(self.music, looping=1, volume=1)
-        for x in xrange(len(self.arrows)):
+        for x in range(len(self.arrows)):
             self.arrows[x].show()
 
         for avId in self.avIdList:
@@ -279,7 +278,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
             self.introTrack.finish()
             del self.introTrack
             self.introTrack = None
-        for track in self.animTracks.values():
+        for track in list(self.animTracks.values()):
             if track:
                 track.finish()
                 del track
@@ -390,7 +389,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
         return
 
     def hideControls(self):
-        for x in xrange(len(self.arrows)):
+        for x in range(len(self.arrows)):
             self.arrows[x].hide()
 
         for rope in self.tugRopes:
@@ -623,10 +622,10 @@ class DistributedTugOfWarGame(DistributedMinigame):
     def calculatePositions(self):
         hprPositions = [VBase3(240, 0, 0), VBase3(120, 0, 0)]
         dockPositions = []
-        for k in xrange(5):
+        for k in range(5):
             dockPositions.append(VBase3(-9.0 + 1.5 * k, 18, 0.1))
 
-        for k in xrange(5):
+        for k in range(5):
             dockPositions.append(VBase3(3 + 1.5 * k, 18, 0.1))
 
         self.sendUpdate('sendNewAvIdList', [self.avIdList])
@@ -709,8 +708,8 @@ class DistributedTugOfWarGame(DistributedMinigame):
             toon.setHpr(self.hprDict[avId])
 
     def arrangeByHeight(self, avIdList, order, iStart, iFin):
-        for i in xrange(iStart, iFin + 1):
-            for j in xrange(i + 1, iFin + 1):
+        for i in range(iStart, iFin + 1):
+            for j in range(i + 1, iFin + 1):
                 if order == self.H_TO_L and self.rightHandDict[avIdList[i]].getZ() < self.rightHandDict[avIdList[j]].getZ() or order == self.L_TO_H and self.rightHandDict[avIdList[i]].getZ() > self.rightHandDict[avIdList[j]].getZ():
                     temp = avIdList[i]
                     avIdList[i] = avIdList[j]
@@ -827,10 +826,10 @@ class DistributedTugOfWarGame(DistributedMinigame):
     def __updateKeyPressRateTask(self, task):
         if self.gameFSM.getCurrentState().getName() != 'tug':
             return Task.done
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             self.keyTTL[i] -= 0.1
 
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             if self.keyTTL[i] <= 0:
                 a = self.keyTTL[0:i]
                 del self.keyTTL
@@ -941,7 +940,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
             return
         if self.suit:
             #For the Alpha Blueprint ARG
-            if base.config.GetBool('want-blueprint4-ARG', False):
+            if ConfigVariableBool('want-blueprint4-ARG', False).getValue():
                 MinigameGlobals.generateDebugARGPhrase()
             if self.suitId in winners:
                 newPos = VBase3(2.65, 18, 0.1)
@@ -981,7 +980,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
             exitSeq.append(Wait(2.5))
         exitSeq.append(Func(self.gameOver))
         self.showTrack = Parallel(reactSeq, exitSeq)
-        for x in self.animTracks.values():
+        for x in list(self.animTracks.values()):
             if x != None:
                 x.finish()
 
@@ -1010,7 +1009,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
             return
         if self.gameFSM.getCurrentState().getName() != 'tug':
             return
-        for i in xrange(len(avIdList)):
+        for i in range(len(avIdList)):
             self.offsetDict[avIdList[i]] = offsetList[i]
 
         self.moveToons()
@@ -1180,7 +1179,7 @@ class DistributedTugOfWarGame(DistributedMinigame):
             numRopes = self.numPlayers
         else:
             numRopes = self.numPlayers - 1
-        for x in xrange(0, numRopes):
+        for x in range(0, numRopes):
             rope = Rope.Rope(self.uniqueName('TugRope' + str(x)))
             if rope.showRope:
                 rope.ropeNode.setRenderMode(RopeNode.RMBillboard)
@@ -1200,10 +1199,10 @@ class DistributedTugOfWarGame(DistributedMinigame):
 
     def __updateRopeTask(self, task):
         if self.tugRopes != None:
-            for i in xrange(len(self.tugRopes)):
+            for i in range(len(self.tugRopes)):
                 if self.tugRopes[i] != None:
                     self.ropePts[i] = self.tugRopes[i].getPoints(len(self.ropeTex[i]))
-                    for j in xrange(len(self.ropePts[i])):
+                    for j in range(len(self.ropePts[i])):
                         self.ropeTex[i][j].setPos(self.ropePts[i][j])
 
         return Task.cont

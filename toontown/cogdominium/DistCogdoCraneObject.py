@@ -1,4 +1,5 @@
-from pandac.PandaModules import *
+from panda3d.physics import ActorNode, PhysicalNode, PhysicsCollisionHandler, PhysicsObject
+from panda3d.core import CollideMask, CollisionHandler, CollisionNode, NodePath, Plane
 from direct.interval.IntervalGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedSmoothNode
@@ -139,7 +140,7 @@ class DistCogdoCraneObject(DistributedSmoothNode.DistributedSmoothNode, FSM.FSM)
         self.fellOut()
 
     def fellOut(self):
-        raise StandardError, 'fellOut unimplented'
+        raise Exception('fellOut unimplented')
 
     def getMinImpact(self):
         return 0
@@ -199,7 +200,7 @@ class DistCogdoCraneObject(DistributedSmoothNode.DistributedSmoothNode, FSM.FSM)
 
     def defaultFilter(self, request, args):
         if self.craneGame == None:
-            raise FSM.RequestDenied, request
+            raise FSM.RequestDenied(request)
         return FSM.FSM.defaultFilter(self, request, args)
 
     def enterOff(self):

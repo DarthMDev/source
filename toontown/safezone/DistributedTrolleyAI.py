@@ -1,4 +1,5 @@
-from TrolleyConstants import *
+from panda3d.core import ConfigVariableBool, ConfigVariableDouble
+from .TrolleyConstants import *
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.distributed import DistributedObjectAI
 from direct.distributed.ClockDelta import *
@@ -19,9 +20,9 @@ class DistributedTrolleyAI(DistributedObjectAI.DistributedObjectAI):
         self.seats = [None, None, None, None]
         self.accepting = 0
         if simbase.wantSinglePlayer:
-            self.trolleyCountdownTime = simbase.config.GetFloat('trolley-countdown-time', TROLLEY_COUNTDOWN_TIME_SOLO)
+            self.trolleyCountdownTime = ConfigVariableDouble('trolley-countdown-time', TROLLEY_COUNTDOWN_TIME_SOLO).getValue()
         else:
-            self.trolleyCountdownTime = simbase.config.GetFloat('trolley-countdown-time', TROLLEY_COUNTDOWN_TIME)
+            self.trolleyCountdownTime = ConfigVariableDouble('trolley-countdown-time', TROLLEY_COUNTDOWN_TIME).getValue()
         self.fsm = ClassicFSM.ClassicFSM(
             'DistributedTrolleyAI',
             [
@@ -46,12 +47,12 @@ class DistributedTrolleyAI(DistributedObjectAI.DistributedObjectAI):
         DistributedObjectAI.DistributedObjectAI.delete(self)
 
     def findAvailableSeat(self):
-        for i in xrange(len(self.seats)):
+        for i in range(len(self.seats)):
             if self.seats[i] is None:
                 return i
 
     def findAvatar(self, avId):
-        for i in xrange(len(self.seats)):
+        for i in range(len(self.seats)):
             if self.seats[i] == avId:
                 return i
 
@@ -170,7 +171,7 @@ class DistributedTrolleyAI(DistributedObjectAI.DistributedObjectAI):
     def enterOff(self):
         self.accepting = 0
         if hasattr(self, 'doId'):
-            for seatIndex in xrange(4):
+            for seatIndex in range(4):
                 taskMgr.remove(self.uniqueName('clearEmpty-' + str(seatIndex)))
 
     def exitOff(self):
@@ -273,7 +274,7 @@ class DistributedTrolleyAI(DistributedObjectAI.DistributedObjectAI):
                     playerArray.append(i)
             startingVotes = None
             metagameRound = -1
-            trolleyGoesToMetagame = simbase.config.GetBool('want-travel-game', 0)
+            trolleyGoesToMetagame = ConfigVariableBool('want-travel-game', False).getValue()
             trolleyHoliday = simbase.air.holidayManager.isHolidayRunning(TROLLEY_HOLIDAY) or\
                 simbase.air.holidayManager.isHolidayRunning(SILLY_SATURDAY_TROLLEY)
             trolleyWeekend = simbase.air.holidayManager.isHolidayRunning(TROLLEY_WEEKEND)
@@ -286,7 +287,7 @@ class DistributedTrolleyAI(DistributedObjectAI.DistributedObjectAI):
                 startingVotes=startingVotes, metagameRound=metagameRound)
             minigameZone = mgDict['minigameZone']
             minigameId = mgDict['minigameId']
-            for seatIndex in xrange(len(self.seats)):
+            for seatIndex in range(len(self.seats)):
                 avId = self.seats[seatIndex]
                 if avId:
                     self.sendUpdateToAvatarId(avId, 'setMinigameZone', [minigameZone, minigameId])

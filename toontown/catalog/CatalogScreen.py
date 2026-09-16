@@ -1,15 +1,14 @@
+from panda3d.core import Camera, ConfigVariableBool, DisplayRegion, NodePath, PerspectiveLens, Plane, PlaneNode, Point3, TextNode, Vec3, Vec4
 from direct.actor import Actor
 from direct.gui.DirectGui import *
 from direct.gui.DirectScrolledList import *
-from pandac.PandaModules import *
-from pandac.PandaModules import *
 import random
 
-import CatalogFurnitureItem
-import CatalogInvalidItem
-import CatalogItem
-import CatalogItemPanel
-import CatalogItemTypes
+from . import CatalogFurnitureItem
+from . import CatalogInvalidItem
+from . import CatalogItem
+from . import CatalogItemPanel
+from . import CatalogItemTypes
 from toontown.chat.ChatBalloon import ChatBalloon
 from toontown.nametag import NametagGlobals
 from toontown.nametag import NametagGroup
@@ -192,7 +191,7 @@ class CatalogScreen(DirectFrame):
         self.emblemCatalogButton['state'] = DGG.DISABLED
 
     def showNewItems(self, index = None):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: New item')
         taskMgr.remove('clarabelleHelpText1')
         messenger.send('wakeup')
@@ -208,7 +207,7 @@ class CatalogScreen(DirectFrame):
         self.showPageItems()
 
     def showBackorderItems(self, index = None):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: Backorder item')
         taskMgr.remove('clarabelleHelpText1')
         messenger.send('wakeup')
@@ -224,7 +223,7 @@ class CatalogScreen(DirectFrame):
         self.showPageItems()
 
     def showLoyaltyItems(self, index = None):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: Special item')
         taskMgr.remove('clarabelleHelpText1')
         messenger.send('wakeup')
@@ -240,7 +239,7 @@ class CatalogScreen(DirectFrame):
         self.showPageItems()
 
     def showEmblemItems(self, index = None):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: CATALOG: Emblem item')
         taskMgr.remove('clarabelleHelpText1')
         messenger.send('wakeup')
@@ -330,11 +329,11 @@ class CatalogScreen(DirectFrame):
             pIndex = 0
             randGen = random.Random()
             randGen.seed(base.localAvatar.catalogScheduleCurrentWeek + (self.pageIndex << 8) + (newOrBackOrLoyalty << 16))
-            for i in xrange(NUM_CATALOG_ROWS):
-                for j in xrange(NUM_CATALOG_COLS):
+            for i in range(NUM_CATALOG_ROWS):
+                for j in range(NUM_CATALOG_COLS):
                     if pIndex < len(self.visiblePanels):
                         type = self.visiblePanels[pIndex]['item'].getTypeCode()
-                        self.squares[i][j].setColor(CatalogPanelColors.values()[randGen.randint(0, len(CatalogPanelColors) - 1)])
+                        self.squares[i][j].setColor(list(CatalogPanelColors.values())[randGen.randint(0, len(CatalogPanelColors) - 1)])
                         cs = 0.7 + 0.3 * randGen.random()
                         self.squares[i][j].setColorScale(0.7 + 0.3 * randGen.random(), 0.7 + 0.3 * randGen.random(), 0.7 + 0.3 * randGen.random(), 1)
                     else:
@@ -369,7 +368,7 @@ class CatalogScreen(DirectFrame):
     def adjustForSound(self):
         numEmoteItems = 0
         emotePanels = []
-        for visIndex in xrange(len(self.visiblePanels)):
+        for visIndex in range(len(self.visiblePanels)):
             panel = self.visiblePanels[visIndex]
             item = panel['item']
             catalogType = item.getTypeCode()
@@ -510,9 +509,9 @@ class CatalogScreen(DirectFrame):
         emblemIcon = loader.loadModel('phase_3.5/models/gui/tt_m_gui_gen_emblemIcons')
         silverModel = emblemIcon.find('**/tt_t_gui_gen_emblemSilver')
         goldModel = emblemIcon.find('**/tt_t_gui_gen_emblemGold')
-        self.silverLabel = DirectLabel(parent=self, relief=None, pos=(1.05, 0, -0.6), scale=priceScale, image=silverModel, image_pos=(-0.4, 0, 0.4), text=str(localAvatar.emblems[ToontownGlobals.EmblemTypes.Silver]), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
+        self.silverLabel = DirectLabel(parent=self, relief=None, pos=(1.05, 0, -0.6), scale=priceScale, image=silverModel, image_pos=(-0.4, 0, 0.4), text=str(localAvatar.emblems[ToontownGlobals.EmblemType.SILVER]), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
         base.silverLabel = self.silverLabel
-        self.goldLabel = DirectLabel(parent=self, relief=None, pos=(1.05, 0, -0.8), scale=priceScale, image=goldModel, image_pos=(-0.4, 0, 0.4), text=str(localAvatar.emblems[ToontownGlobals.EmblemTypes.Gold]), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
+        self.goldLabel = DirectLabel(parent=self, relief=None, pos=(1.05, 0, -0.8), scale=priceScale, image=goldModel, image_pos=(-0.4, 0, 0.4), text=str(localAvatar.emblems[ToontownGlobals.EmblemType.GOLD]), text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1), text_font=ToontownGlobals.getSignFont(), text_align=TextNode.ALeft)
         base.goldLabel = self.goldLabel
         if not base.cr.wantEmblems:
             self.hideEmblems()
@@ -598,7 +597,7 @@ class CatalogScreen(DirectFrame):
             self.__chooseFriend(self.ffList[0][0], self.ffList[0][1])
             self.update()
             self.createdGiftGui = 1
-        for i in xrange(4):
+        for i in range(4):
             self.newCatalogButton.component('text%d' % i).setR(90)
             self.newCatalogButton2.component('text%d' % i).setR(90)
             self.backCatalogButton.component('text%d' % i).setR(90)
@@ -612,20 +611,14 @@ class CatalogScreen(DirectFrame):
          [],
          [],
          []]
-        for i in xrange(NUM_CATALOG_ROWS):
-            for j in xrange(NUM_CATALOG_COLS):
+        for i in range(NUM_CATALOG_ROWS):
+            for j in range(NUM_CATALOG_COLS):
                 square = guiItems.find('**/square%d%db' % (i + 1, j + 1))
                 label = DirectLabel(self.base, image=square, relief=None, state='normal')
                 self.squares[i].append(label)
 
-        def priceSort(a, b, type):
-            priceA = a.getPrice(type)
-            priceB = b.getPrice(type)
-            return priceB - priceA
-
         itemList = base.localAvatar.monthlyCatalog + base.localAvatar.weeklyCatalog
-        itemList.sort(lambda a, b: priceSort(a, b, CatalogItem.CatalogTypeWeekly))
-        itemList.reverse()
+        itemList.sort(key=lambda x: x.getPrice(CatalogItem.CatalogTypeWeekly))
         allClosetItems = CatalogFurnitureItem.getAllClosets()
         isMaxClosetOfferred = False
         for item in itemList:
@@ -647,8 +640,7 @@ class CatalogScreen(DirectFrame):
                 self.panelList.append(CatalogItemPanel.CatalogItemPanel(parent=hidden, item=item, type=CatalogItem.CatalogTypeWeekly, parentCatalogScreen=self))
 
         itemList = base.localAvatar.backCatalog
-        itemList.sort(lambda a, b: priceSort(a, b, CatalogItem.CatalogTypeBackorder))
-        itemList.reverse()
+        itemList.sort(key=lambda x: x.getPrice(CatalogItem.CatalogTypeBackorder))
         for item in itemList:
             if isinstance(item, CatalogInvalidItem.CatalogInvalidItem):
                 self.notify.warning('skipping catalog invalid item %s' % item)
@@ -672,17 +664,17 @@ class CatalogScreen(DirectFrame):
         self.setNumEmblemPages(numPages)
         currentWeek = base.localAvatar.catalogScheduleCurrentWeek - 1
         if currentWeek < 57:
-            seriesNumber = currentWeek / ToontownGlobals.CatalogNumWeeksPerSeries + 1
+            seriesNumber = currentWeek // ToontownGlobals.CatalogNumWeeksPerSeries + 1
             weekNumber = currentWeek % ToontownGlobals.CatalogNumWeeksPerSeries + 1
         elif currentWeek < 65:
             seriesNumber = 6
             weekNumber = currentWeek - 56
         else:
-            seriesNumber = currentWeek / ToontownGlobals.CatalogNumWeeksPerSeries + 2
+            seriesNumber = currentWeek // ToontownGlobals.CatalogNumWeeksPerSeries + 2
             weekNumber = currentWeek % ToontownGlobals.CatalogNumWeeksPerSeries + 1
         geom = NodePath('cover')
         cover = guiItems.find('**/cover')
-        maxSeries = ToontownGlobals.CatalogNumWeeks / ToontownGlobals.CatalogNumWeeksPerSeries + 1
+        maxSeries = ToontownGlobals.CatalogNumWeeks // ToontownGlobals.CatalogNumWeeksPerSeries + 1
         coverSeries = (seriesNumber - 1) % maxSeries + 1
         coverPicture = cover.find('**/cover_picture%s' % coverSeries)
         if not coverPicture.isEmpty():

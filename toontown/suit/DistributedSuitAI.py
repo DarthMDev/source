@@ -1,25 +1,25 @@
+from panda3d.core import ConfigVariableBool, Point3, Vec3
 from otp.ai.AIBaseGlobal import *
-from pandac.PandaModules import *
 from direct.distributed.ClockDelta import *
 from otp.avatar import DistributedAvatarAI
-import SuitTimings
+from . import SuitTimings
 from direct.task import Task
-import SuitPlannerBase
-import SuitBase
-import SuitDialog
-import SuitDNA
-from SuitLegList import *
+from . import SuitPlannerBase
+from . import SuitBase
+from . import SuitDialog
+from . import SuitDNA
+from .SuitLegList import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.building.SuitBuildingGlobals import getPossibleBuildingDifficulty
 from toontown.building import FADoorCodes
-import DistributedSuitBaseAI
+from . import DistributedSuitBaseAI
 from toontown.hood import ZoneUtil
 from toontown.toon import NPCToons
 import random
 
 class DistributedSuitAI(DistributedSuitBaseAI.DistributedSuitBaseAI):
-    SUIT_BUILDINGS = simbase.config.GetBool('want-suit-buildings', 1)
-    DEBUG_SUIT_POSITIONS = simbase.config.GetBool('debug-suit-positions', 0)
+    SUIT_BUILDINGS = ConfigVariableBool('want-suit-buildings', True).getValue()
+    DEBUG_SUIT_POSITIONS = ConfigVariableBool('debug-suit-positions', False).getValue()
     UPDATE_TIMESTAMP_INTERVAL = 180.0
     myId = 0
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedSuitAI')
@@ -212,7 +212,7 @@ class DistributedSuitAI(DistributedSuitBaseAI.DistributedSuitBaseAI):
         self.makeLegList()
         if self.notify.getDebug():
             self.notify.debug('Leg list:')
-            print self.legList
+            print(self.legList)
         idx1 = self.startPoint.getIndex()
         idx2 = self.endPoint.getIndex()
         self.pathStartTime = globalClock.getFrameTime()
@@ -262,7 +262,7 @@ class DistributedSuitAI(DistributedSuitBaseAI.DistributedSuitBaseAI):
             taskMgr.remove(self.taskName('move'))
             taskMgr.doMethodLater(delay, self.moveToNextLeg, self.taskName('move'))
         else:
-            if simbase.config.GetBool('want-cogbuildings', True):
+            if ConfigVariableBool('want-cogbuildings', True).getValue():
                 self.startTakeOver()
             self.requestRemoval()
         return Task.done
@@ -365,7 +365,7 @@ class DistributedSuitAI(DistributedSuitBaseAI.DistributedSuitBaseAI):
             self.notify.debug('Suit %s taking over building %s in %s' % (self.getDoId(), blockNumber, self.zoneId))
             difficulty = random.choice(getPossibleBuildingDifficulty(self.level + 1, self.sp.zoneId))
             dept = SuitDNA.getSuitDept(self.dna.name)
-            if self.buildingDestinationIsCogdo:
+            if simbase.air.wantCogdominiums and self.buildingDestinationIsCogdo:
                 self.sp.cogdoTakeOver(blockNumber, dept, difficulty, self.buildingHeight)
             else:
                 self.sp.suitTakeOver(blockNumber, dept, difficulty, self.buildingHeight)

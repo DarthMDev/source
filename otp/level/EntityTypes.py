@@ -1,4 +1,5 @@
-from EntityTypeDesc import EntityTypeDesc
+from panda3d.core import CollisionSolid, Point3, Vec3
+from .EntityTypeDesc import EntityTypeDesc
 from toontown.coghq.SpecImports import *
 
 class Entity(EntityTypeDesc):

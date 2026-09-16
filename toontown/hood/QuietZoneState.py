@@ -1,4 +1,3 @@
-from pandac.PandaModules import *
 from direct.showbase.PythonUtil import Functor
 from toontown.util.PriorityCallbacks import PriorityCallbacks
 from direct.task import Task
@@ -8,7 +7,7 @@ from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import StateData
 from direct.fsm import ClassicFSM
 from direct.fsm import State
-import ZoneUtil
+from . import ZoneUtil
 
 class QuietZoneState(StateData.StateData):
     notify = DirectNotifyGlobal.directNotify.newCategory('QuietZoneState')
@@ -140,7 +139,7 @@ class QuietZoneState(StateData.StateData):
         return
 
     def handleWaitForQuietZoneResponse(self, msgType, di):
-        self.notify.debug('handleWaitForQuietZoneResponse(' + 'msgType=' + str(msgType) + ', di=' + str(di) + ')')
+        self.notify.debug('handleWaitForQuietZoneResponse(' + 'msgType=' + repr(msgType) + ', di=' + repr(di) + ')')
         if msgType == CLIENT_ENTER_OBJECT_REQUIRED:
             base.cr.handleQuietZoneGenerateWithRequired(di)
         elif msgType == CLIENT_ENTER_OBJECT_REQUIRED_OTHER:
@@ -153,7 +152,7 @@ class QuietZoneState(StateData.StateData):
             base.cr.handlePlayGame(msgType, di)
 
     def handleWaitForZoneRedirect(self, msgType, di):
-        self.notify.debug('handleWaitForZoneRedirect(' + 'msgType=' + str(msgType) + ', di=' + str(di) + ')')
+        self.notify.debug('handleWaitForZoneRedirect(' + 'msgType=' + repr(msgType) + ', di=' + repr(di) + ')')
         if msgType == CLIENT_ENTER_OBJECT_REQUIRED:
             base.cr.handleQuietZoneGenerateWithRequired(di)
         elif msgType == CLIENT_ENTER_OBJECT_REQUIRED_OTHER:
@@ -292,7 +291,7 @@ class QuietZoneState(StateData.StateData):
             if base.placeBeforeObjects:
                 self._leftQuietZoneCallbacks()
                 self._leftQuietZoneCallbacks = None
-                fdcs = self._leftQuietZoneLocalCallbacks.values()
+                fdcs = list(self._leftQuietZoneLocalCallbacks.values())
                 self._leftQuietZoneLocalCallbacks = {}
                 for fdc in fdcs:
                     if not fdc.isFinished():
@@ -333,7 +332,7 @@ class QuietZoneState(StateData.StateData):
         requestStatus = self._requestStatus
         self._setZoneCompleteCallbacks()
         self._setZoneCompleteCallbacks = None
-        fdcs = self._setZoneCompleteLocalCallbacks.values()
+        fdcs = list(self._setZoneCompleteLocalCallbacks.values())
         self._setZoneCompleteLocalCallbacks = {}
         for fdc in fdcs:
             if not fdc.isFinished():

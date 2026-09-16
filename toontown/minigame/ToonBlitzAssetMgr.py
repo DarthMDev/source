@@ -1,9 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.core import CardMaker, CollideMask, CollisionNode, CollisionPlane, NodePath, Plane, Point3, Vec3
 from direct.showbase.DirectObject import DirectObject
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.minigame import ToonBlitzGlobals, TwoDBlock
-from pandac.PandaModules import CardMaker
 
 class ToonBlitzAssetMgr(DirectObject):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedToonBlitzAssets')
@@ -36,7 +35,7 @@ class ToonBlitzAssetMgr(DirectObject):
         self.treasureModelList.append(corpIcon)
         self.particleGlow = loader.loadModel('phase_4/models/minigames/particleGlow')
         self.blockTypes = []
-        for i in xrange(4):
+        for i in range(4):
             blockType = loader.loadModel('phase_4/models/minigames/toonblitz_game_block0' + str(i))
             self.blockTypes.append(blockType)
 
@@ -46,7 +45,7 @@ class ToonBlitzAssetMgr(DirectObject):
         dropPlane.addSolid(plane)
         dropPlane.setCollideMask(ToontownGlobals.FloorBitmask)
         self.world.attachNewNode(dropPlane)
-        self.gameMusic = base.loadMusic('phase_4/audio/bgm/MG_TwoDGame.ogg')
+        self.gameMusic = base.loader.loadMusic('phase_4/audio/bgm/MG_TwoDGame.ogg')
         self.treasureGrabSound = loader.loadSfx('phase_4/audio/sfx/SZ_DD_treasure.ogg')
         self.sndOof = loader.loadSfx('phase_4/audio/sfx/MG_cannon_hit_dirt.ogg')
         self.soundJump = loader.loadSfx('phase_4/audio/sfx/MG_sfx_vine_game_jump.ogg')
@@ -68,7 +67,7 @@ class ToonBlitzAssetMgr(DirectObject):
         self.progressLine.setScale(self.faceEndPos[0] - self.faceStartPos[0], 1, 0.01)
         self.progressLine.setPos(0, 0, self.faceStartPos[2])
         self.cardMaker.setName('RaceProgressLineHash')
-        for n in xrange(ToonBlitzGlobals.NumSections[self.game.getSafezoneId()] + 1):
+        for n in range(ToonBlitzGlobals.NumSections[self.game.getSafezoneId()] + 1):
             hash = self.aspect2dRoot.attachNewNode(self.cardMaker.generate())
             hash.setScale(self.progressLine.getScale()[2], 1, self.progressLine.getScale()[2] * 5)
             t = float(n) / ToonBlitzGlobals.NumSections[self.game.getSafezoneId()]

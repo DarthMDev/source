@@ -1,6 +1,6 @@
+from panda3d.core import CollideMask
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase import DirectObject
-from pandac.PandaModules import *
 import random
 
 from toontown.hood import ZoneUtil
@@ -247,7 +247,7 @@ class HoodMgr(DirectObject.DirectObject):
 
     def getZonesInPhase(self, phase):
         p = []
-        for i in ToontownGlobals.phaseMap.items():
+        for i in list(ToontownGlobals.phaseMap.items()):
             if i[1] == phase:
                 p.append(i[0])
         return p
@@ -286,7 +286,7 @@ class HoodMgr(DirectObject.DirectObject):
         tunnelOriginList = []
         for i in nodeList:
             linkTunnelNPC = i.findAllMatches('**/linktunnel*')
-            for p in xrange(linkTunnelNPC.getNumPaths()):
+            for p in range(linkTunnelNPC.getNumPaths()):
                 linkTunnel = linkTunnelNPC.getPath(p)
                 name = linkTunnel.getName()
                 nameParts = name.split('_')

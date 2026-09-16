@@ -1,10 +1,10 @@
+from panda3d.core import CollideMask, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableBool, CullBinManager, NodePath, Point3, TextureStage, Vec3
 import copy
 from direct.actor import Actor
 from direct.distributed.ClockDelta import *
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 import random
 
 from otp.avatar import Avatar
@@ -39,10 +39,10 @@ class OZSafeZoneLoader(SafeZoneLoader):
     def load(self):
         self.done = 0
         self.geyserTrack = None
-        if ToontownGlobals.OutdoorZone in base.cr.zoneManager.modifiedZones:
-            self.dnaFile, self.safeZoneStorageDNAFile = base.cr.zoneManager.getDNAFiles(ToontownGlobals.OutdoorZone)
+        #if ToontownGlobals.OutdoorZone in base.cr.zoneManager.modifiedZones:
+        #    self.dnaFile, self.safeZoneStorageDNAFile = base.cr.zoneManager.getDNAFiles(ToontownGlobals.OutdoorZone)
         SafeZoneLoader.load(self)
-        self.birdSound = map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg', 'phase_4/audio/sfx/SZ_TC_bird2.ogg', 'phase_4/audio/sfx/SZ_TC_bird3.ogg'])
+        self.birdSound = list(map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg', 'phase_4/audio/sfx/SZ_TC_bird2.ogg', 'phase_4/audio/sfx/SZ_TC_bird3.ogg']))
         self.underwaterSound = loader.loadSfx('phase_4/audio/sfx/AV_ambient_water.ogg')
         self.swimSound = loader.loadSfx('phase_4/audio/sfx/AV_swim_single_stroke.ogg')
         self.submergeSound = loader.loadSfx('phase_5.5/audio/sfx/AV_jump_in_water.ogg')
@@ -115,7 +115,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
         # self.constructionSign.setPosHpr(-47.941, -138.724, 0.122, 181, 0, 0)
 
         # If Chestnut Park is under construction, create the construction site:
-        if base.config.GetBool('want-chestnut-park-construction', False):
+        if ConfigVariableBool('want-chestnut-park-construction', False).getValue():
             self.constructionSite = render.attachNewNode('constructionSite')
 
             self.constructionSiteBlocker = self.constructionSite.attachNewNode(CollisionNode('constructionSiteBlocker'))
@@ -145,7 +145,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
             self.paintersWantedSign.reparentTo(self.constructionSite)
             self.paintersWantedSign.setPosHpr(-57, -129.613, 0.025, 160, 0, 0)
 
-            if base.config.GetBool('want-oz-painter-pete', False):
+            if ConfigVariableBool('want-oz-painter-pete', False).getValue():
                 self.painterPete = Toon.Toon()
 
                 self.painterPete.setName('Painter Pete')
@@ -274,7 +274,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
                 base.holder = holder
                 toonPos = av.getPos(render)
                 toonHpr = av.getHpr(render)
-                print 'av Pos %s' % av.getPos()
+                print('av Pos %s' % av.getPos())
                 base.toonPos = toonPos
                 holder.setPos(toonPos)
                 av.reparentTo(holder)
@@ -286,7 +286,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
                     lookIn = Vec3(0 + lookAt, -30, 0)
                 else:
                     lookIn = Vec3(360 + lookAt, -30, 0)
-                print 'Camera Hprs toon %s; lookIn %s; final %s' % (newHpr, lookIn, lookIn - newHpr)
+                print('Camera Hprs toon %s; lookIn %s; final %s' % (newHpr, lookIn, lookIn - newHpr))
                 if local == 1:
                     camPosOriginal = base.camera.getPos()
                     camHprOriginal = base.camera.getHpr()
@@ -349,7 +349,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
 
     def doPrint(self, thing):
         return 0
-        print thing
+        print(thing)
 
     def unload(self):
         del self.birdSound
@@ -444,7 +444,7 @@ class OZSafeZoneLoader(SafeZoneLoader):
         del self.golfCourseId
 
     def handleRaceOver(self):
-        print 'you done!!'
+        print('you done!!')
 
     def handleLeftGolf(self):
         req = {'loader': 'safeZoneLoader',

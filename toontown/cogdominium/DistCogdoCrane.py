@@ -1,3 +1,6 @@
+from panda3d.physics import ActorNode, PhysicalNode, PhysicsCollisionHandler, PhysicsObject
+from panda3d.direct import SmoothMover
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionInvSphere, CollisionNode, CollisionSphere, CollisionTube, GeomNode, Mat4, NodePath, NodePathCollection, Point3, RopeNode, TextNode, Texture, TextureStage, VBase3, VBase4, Vec3
 from direct.distributed import DistributedObject
 from direct.distributed.ClockDelta import *
 from direct.fsm import FSM
@@ -6,7 +9,6 @@ from direct.interval.IntervalGlobal import *
 from direct.showbase import PythonUtil
 from direct.showutil import Rope
 from direct.task import Task
-from pandac.PandaModules import *
 import random
 
 from otp.otpbase import OTPGlobals
@@ -73,11 +75,11 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
         self.heldObject = None
         self.craneAdviceLabel = None
         self.magnetAdviceLabel = None
-        self.atLimitSfx = base.loadSfx('phase_4/audio/sfx/MG_cannon_adjust.ogg')
-        self.magnetOnSfx = base.loadSfx('phase_10/audio/sfx/CBHQ_CFO_magnet_on.ogg')
-        self.magnetLoopSfx = base.loadSfx('phase_10/audio/sfx/CBHQ_CFO_magnet_loop.ogg')
+        self.atLimitSfx = base.loader.loadSfx('phase_4/audio/sfx/MG_cannon_adjust.ogg')
+        self.magnetOnSfx = base.loader.loadSfx('phase_10/audio/sfx/CBHQ_CFO_magnet_on.ogg')
+        self.magnetLoopSfx = base.loader.loadSfx('phase_10/audio/sfx/CBHQ_CFO_magnet_loop.ogg')
         self.magnetSoundInterval = Parallel(SoundInterval(self.magnetOnSfx), Sequence(Wait(0.5), Func(base.playSfx, self.magnetLoopSfx, looping=1)))
-        self.craneMoveSfx = base.loadSfx('phase_9/audio/sfx/CHQ_FACT_elevator_up_down.ogg')
+        self.craneMoveSfx = base.loader.loadSfx('phase_9/audio/sfx/CHQ_FACT_elevator_up_down.ogg')
         self.fadeTrack = None
         return
 
@@ -235,7 +237,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
             self.physicsActivated = 0
 
     def __straightenCable(self):
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             an, anp, cnp = self.activeLinks[linkNum]
             an.getPhysicsObject().setVelocity(0, 0, 0)
             z = float(linkNum + 1) / float(self.numLinks) * self.cableLength
@@ -258,7 +260,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
         self.links = []
         self.links.append((self.topLink, Point3(0, 0, 0)))
         anchor = self.topLink
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             anchor = self.__makeLink(anchor, linkNum)
 
         self.collisions.stash()
@@ -393,7 +395,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
     def __enableControlInterface(self):
         gui = loader.loadModel('phase_3.5/models/gui/avatar_panel_gui')
         self.accept(base.JUMP, self.__controlPressed)
-        self.accept('control-up', self.__controlReleased)
+        self.accept(base.JUMP + '-up', self.__controlReleased)
         self.accept('InputState-forward', self.__upArrow)
         self.accept('InputState-reverse', self.__downArrow)
         self.accept('InputState-turnLeft', self.__leftArrow)
@@ -411,7 +413,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
         self.__cleanupMagnetAdvice()
         self.ignore('escape')
         self.ignore(base.JUMP)
-        self.ignore('control-up')
+        self.ignore(base.JUMP + '-up')
         self.ignore('InputState-forward')
         self.ignore('InputState-reverse')
         self.ignore('InputState-turnLeft')
@@ -554,7 +556,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
     def startFlicker(self):
         self.magnetSoundInterval.start()
         self.lightning = []
-        for i in xrange(4):
+        for i in range(4):
             t = float(i) / 3.0 - 0.5
             l = self.craneGame.lightning.copyTo(self.gripper)
             l.setScale(random.choice([1, -1]), 1, 5)
@@ -683,7 +685,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
         self.armSmoother.setPos(self.crane.getPos())
         self.armSmoother.setHpr(self.arm.getHpr())
         self.armSmoother.setPhonyTimestamp()
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             smoother = self.linkSmoothers[linkNum]
             an, anp, cnp = self.activeLinks[linkNum]
             smoother.clearPositions(0)
@@ -692,7 +694,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
 
     def doSmoothTask(self, task):
         self.armSmoother.computeAndApplySmoothPosHpr(self.crane, self.arm)
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             smoother = self.linkSmoothers[linkNum]
             anp = self.activeLinks[linkNum][1]
             smoother.computeAndApplySmoothPos(anp)
@@ -719,7 +721,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
             self.armSmoother.applySmoothPos(self.crane)
             self.armSmoother.applySmoothHpr(self.arm)
         self.armSmoother.clearPositions(1)
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             smoother = self.linkSmoothers[linkNum]
             an, anp, cnp = self.activeLinks[linkNum]
             if smoother.getLatestPosition():
@@ -735,7 +737,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
             self.armSmoother.setH(h)
             self.armSmoother.setTimestamp(local)
             self.armSmoother.markPosition()
-            for linkNum in xrange(self.numLinks):
+            for linkNum in range(self.numLinks):
                 smoother = self.linkSmoothers[linkNum]
                 lp = links[linkNum]
                 smoother.setPos(*lp)
@@ -749,7 +751,7 @@ class DistCogdoCrane(DistributedObject.DistributedObject, FSM.FSM):
     def d_sendCablePos(self):
         timestamp = globalClockDelta.getFrameNetworkTime()
         links = []
-        for linkNum in xrange(self.numLinks):
+        for linkNum in range(self.numLinks):
             an, anp, cnp = self.activeLinks[linkNum]
             p = anp.getPos()
             links.append((p[0], p[1], p[2]))

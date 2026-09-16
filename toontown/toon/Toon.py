@@ -1,19 +1,18 @@
+from panda3d.direct import HideInterval, ShowInterval
+from panda3d.core import CollideMask, ColorBlendAttrib, ConfigVariable, ConfigVariableBool, ConfigVariableInt, Filename, GeomNode, LODNode, NodePath, PartBundle, Plane, PlaneNode, Point3, Texture, VBase3, VBase4, Vec3
+import os
+import posixpath
 from direct.actor import Actor
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 from direct.showbase.PythonUtil import Functor
 from direct.task.Task import Task
-from pandac.PandaModules import *
-import random
-import types
-import os
-import posixpath
 
-import AccessoryGlobals
-import Motion
-import TTEmote
-import ToonDNA
-from ToonHead import *
+from . import AccessoryGlobals
+from . import Motion
+from . import TTEmote
+from . import ToonDNA
+from .ToonHead import *
 from otp.avatar import Avatar
 from otp.avatar import Emote
 from otp.avatar.Avatar import teleportNotify
@@ -182,9 +181,9 @@ TorsoDict = {
 
 
 def preload():
-    print 'Preloading Toon assets...'
+    print('Preloading Toon assets...')
 
-    for fileRoot in (LegDict.values() + TorsoDict.values()):
+    for fileRoot in (list(LegDict.values()) + list(TorsoDict.values())):
         for lodName in ('1000', '500', '250'):
             preloader.loadModel('phase_3' + fileRoot + lodName + '.bam')
 
@@ -263,7 +262,7 @@ def loadPhaseAnims(phaseStr = 'phase_3', loadFlag = 1):
         animList = Phase12AnimList
     else:
         self.notify.error('Unknown phase string %s' % phaseStr)
-    for key in LegDict.keys():
+    for key in list(LegDict.keys()):
         for anim in animList:
             if loadFlag:
                 pass
@@ -271,7 +270,7 @@ def loadPhaseAnims(phaseStr = 'phase_3', loadFlag = 1):
                 if base.localAvatar.style.legs == key:
                     base.localAvatar.unloadAnims([anim[0]], 'legs', None)
 
-    for key in TorsoDict.keys():
+    for key in list(TorsoDict.keys()):
         for anim in animList:
             if loadFlag:
                 pass
@@ -279,7 +278,7 @@ def loadPhaseAnims(phaseStr = 'phase_3', loadFlag = 1):
                 if base.localAvatar.style.torso == key:
                     base.localAvatar.unloadAnims([anim[0]], 'torso', None)
 
-    for key in HeadDict.keys():
+    for key in list(HeadDict.keys()):
         if key.find('d') >= 0:
             for anim in animList:
                 if loadFlag:
@@ -309,19 +308,19 @@ def compileGlobalAnimList():
      'phase_12']
     for animList in phaseList:
         phaseStr = phaseStrList[phaseList.index(animList)]
-        for key in LegDict.keys():
+        for key in list(LegDict.keys()):
             LegsAnimDict.setdefault(key, {})
             for anim in animList:
                 file = phaseStr + LegDict[key] + anim[1]
                 LegsAnimDict[key][anim[0]] = file
 
-        for key in TorsoDict.keys():
+        for key in list(TorsoDict.keys()):
             TorsoAnimDict.setdefault(key, {})
             for anim in animList:
                 file = phaseStr + TorsoDict[key] + anim[1]
                 TorsoAnimDict[key][anim[0]] = file
 
-        for key in HeadDict.keys():
+        for key in list(HeadDict.keys()):
             if key.find('d') >= 0:
                 HeadAnimDict.setdefault(key, {})
                 for anim in animList:
@@ -399,7 +398,7 @@ def unloadDialog():
 
 class Toon(Avatar.Avatar, ToonHead):
     notify = DirectNotifyGlobal.directNotify.newCategory('Toon')
-    afkTimeout = base.config.GetInt('afk-timeout', 600)
+    afkTimeout = ConfigVariableInt('afk-timeout', 600).getValue()
 
     def __init__(self):
         try:
@@ -598,7 +597,7 @@ class Toon(Avatar.Avatar, ToonHead):
     def parentToonParts(self):
         if self.hasLOD():
             for lodName in self.getLODNames():
-                if base.config.GetBool('want-new-anims', 1):
+                if ConfigVariableBool('want-new-anims', True).getValue():
                     if not self.getPart('torso', lodName).find('**/def_head').isEmpty():
                         self.attach('head', 'torso', 'def_head', lodName)
                     else:
@@ -625,12 +624,12 @@ class Toon(Avatar.Avatar, ToonHead):
 
     def setLODs(self):
         self.setLODNode()
-        levelOneIn = base.config.GetInt('lod1-in', 20)
-        levelOneOut = base.config.GetInt('lod1-out', 0)
-        levelTwoIn = base.config.GetInt('lod2-in', 80)
-        levelTwoOut = base.config.GetInt('lod2-out', 20)
-        levelThreeIn = base.config.GetInt('lod3-in', 280)
-        levelThreeOut = base.config.GetInt('lod3-out', 80)
+        levelOneIn = ConfigVariableInt('lod1-in', 600).getValue()
+        levelOneOut = ConfigVariableInt('lod1-out', 0).getValue()
+        levelTwoIn = ConfigVariableInt('lod2-in', 800).getValue()
+        levelTwoOut = ConfigVariableInt('lod2-out', 600).getValue()
+        levelThreeIn = ConfigVariableInt('lod3-in', 1280).getValue()
+        levelThreeOut = ConfigVariableInt('lod3-out', 800).getValue()
         self.addLOD(1000, levelOneIn, levelOneOut)
         self.addLOD(500, levelTwoIn, levelTwoOut)
         self.addLOD(250, levelThreeIn, levelThreeOut)
@@ -655,14 +654,14 @@ class Toon(Avatar.Avatar, ToonHead):
         self.leftHand = None
         for lodName in self.getLODNames():
             hand = self.getPart('torso', lodName).find('**/joint_Rhold')
-            if base.config.GetBool('want-new-anims', 1):
+            if ConfigVariableBool('want-new-anims', True).getValue():
                 if not self.getPart('torso', lodName).find('**/def_joint_right_hold').isEmpty():
                     hand = self.getPart('torso', lodName).find('**/def_joint_right_hold')
             else:
                 hand = self.getPart('torso', lodName).find('**/joint_Rhold')
             self.rightHands.append(hand)
             rightHand = rightHand.instanceTo(hand)
-            if base.config.GetBool('want-new-anims', 1):
+            if ConfigVariableBool('want-new-anims', True).getValue():
                 if not self.getPart('torso', lodName).find('**/def_joint_left_hold').isEmpty():
                     hand = self.getPart('torso', lodName).find('**/def_joint_left_hold')
             else:
@@ -678,7 +677,6 @@ class Toon(Avatar.Avatar, ToonHead):
         self.legsParts = self.findAllMatches('**/__Actor_legs')
         self.hipsParts = self.legsParts.findAllMatches('**/joint_hips')
         self.torsoParts = self.hipsParts.findAllMatches('**/__Actor_torso')
-        return
 
     def initializeBodyCollisions(self, collIdStr):
         Avatar.Avatar.initializeBodyCollisions(self, collIdStr)
@@ -993,7 +991,7 @@ class Toon(Avatar.Avatar, ToonHead):
                 sleeves.setTexture(sleeveTex, 1)
                 sleeves.setColor(sleeveColor)
                 bottoms = thisPart.findAllMatches('**/torso-bot')
-                for bottomNum in xrange(0, bottoms.getNumPaths()):
+                for bottomNum in range(0, bottoms.getNumPaths()):
                     bottom = bottoms.getPath(bottomNum)
                     bottom.setTexture(bottomTex, 1)
                     bottom.setColor(bottomColor)
@@ -1274,14 +1272,14 @@ class Toon(Avatar.Avatar, ToonHead):
             self.lerpLookAt(Point3(x, 1.5, y), blink=1)
             return
         nodePathList = []
-        for id, obj in self.cr.doId2do.items():
+        for id, obj in list(self.cr.doId2do.items()):
             if hasattr(obj, 'getStareAtNodeAndOffset') and obj != self:
                 node, offset = obj.getStareAtNodeAndOffset()
                 if node.getY(self) > 0.0:
                     nodePathList.append((node, offset))
 
         if nodePathList:
-            nodePathList.sort(lambda x, y: cmp(x[0].getDistance(self), y[0].getDistance(self)))
+            nodePathList.sort(key=lambda x: x[0].getDistance(self))
             if len(nodePathList) >= 2:
                 if self.randGen.random() < 0.9:
                     chosenNodePath = nodePathList[0]
@@ -2183,14 +2181,16 @@ class Toon(Avatar.Avatar, ToonHead):
         self.setChatAbsolute(SLEEP_STRING, CFThought)
         if self == base.localAvatar:
             self.notify.debug('Adding timeout task to Toon.')
-            taskMgr.doMethodLater(self.afkTimeout, self.__handleAfkTimeout, self.uniqueName('afkTimeout'))
+            taskMgr.doMethodLater(self.afkTimeout, self.handleAfkTimeout, self.uniqueName('afkTimeout'))
         self.setActiveShadow(0)
 
-    def __handleAfkTimeout(self, task):
+    def handleAfkTimeout(self, task = None):
         self.notify.debug('Handling timeout task on Toon.')
         self.ignore('wakeup')
         self.takeOffSuit()
-        base.cr.playGame.getPlace().fsm.request('final')
+        place = base.cr.playGame.getPlace()
+        if place is not None:
+            place.fsm.request('final')
         self.b_setAnimState('TeleportOut', 1, self.__handleAfkExitTeleport, [0])
         return Task.done
 
@@ -2204,7 +2204,7 @@ class Toon(Avatar.Avatar, ToonHead):
             self.startLookAround()
         self.openEyes()
         self.startBlink()
-        if config.GetBool('stuck-sleep-fix', 1):
+        if ConfigVariableBool('stuck-sleep-fix', True).getValue():
             doClear = SLEEP_STRING in (self.nametag.getChatText(), self.nametag.getStompChatText())
         else:
             doClear = self.nametag.getChatText() == SLEEP_STRING
@@ -2355,11 +2355,11 @@ class Toon(Avatar.Avatar, ToonHead):
             for partName, pieceNames in pieces:
                 part = self.getPart(partName, lodName)
                 if part:
-                    if type(pieceNames) == types.StringType:
+                    if type(pieceNames) == str:
                         pieceNames = (pieceNames,)
                     for pieceName in pieceNames:
                         npc = part.findAllMatches('**/%s;+s' % pieceName)
-                        for i in xrange(npc.getNumPaths()):
+                        for i in range(npc.getNumPaths()):
                             results.append(npc[i])
 
         return results
@@ -2400,7 +2400,7 @@ class Toon(Avatar.Avatar, ToonHead):
         if scale == None:
             scale = ToontownGlobals.toonHeadScales[self.style.getAnimal()]
         track = Parallel()
-        for hi in xrange(self.headParts.getNumPaths()):
+        for hi in range(self.headParts.getNumPaths()):
             head = self.headParts[hi]
             track.append(LerpScaleInterval(head, lerpTime, scale, blendType='easeInOut'))
 
@@ -2413,7 +2413,7 @@ class Toon(Avatar.Avatar, ToonHead):
         else:
             invScale = 1.0 / scale
         track = Parallel()
-        for li in xrange(self.legsParts.getNumPaths()):
+        for li in range(self.legsParts.getNumPaths()):
             legs = self.legsParts[li]
             torso = self.torsoParts[li]
             track.append(LerpScaleInterval(legs, lerpTime, scale, blendType='easeInOut'))
@@ -2527,10 +2527,10 @@ class Toon(Avatar.Avatar, ToonHead):
 
             def hideParts():
                 self.notify.debug('HidePaths')
-                for hi in xrange(self.headParts.getNumPaths()):
+                for hi in range(self.headParts.getNumPaths()):
                     head = self.headParts[hi]
                     parts = head.getChildren()
-                    for pi in xrange(parts.getNumPaths()):
+                    for pi in range(parts.getNumPaths()):
                         p = parts[pi]
                         if not p.isHidden():
                             p.hide()
@@ -2547,10 +2547,10 @@ class Toon(Avatar.Avatar, ToonHead):
 
             def showHiddenParts():
                 self.notify.debug('ShowHiddenPaths')
-                for hi in xrange(self.headParts.getNumPaths()):
+                for hi in range(self.headParts.getNumPaths()):
                     head = self.headParts[hi]
                     parts = head.getChildren()
-                    for pi in xrange(parts.getNumPaths()):
+                    for pi in range(parts.getNumPaths()):
                         p = parts[pi]
                         if not self.snowMen.hasPath(p) and p.getTag('snowman') == 'enabled':
                             p.show()
@@ -2831,7 +2831,7 @@ class Toon(Avatar.Avatar, ToonHead):
 
     def setPartsAdd(self, parts):
         actorCollection = parts
-        for thingIndex in xrange(0, actorCollection.getNumPaths()):
+        for thingIndex in range(0, actorCollection.getNumPaths()):
             thing = actorCollection[thingIndex]
             if thing.getName() not in ('joint_attachMeter', 'joint_nameTag'):
                 thing.setAttrib(ColorBlendAttrib.make(ColorBlendAttrib.MAdd))
@@ -2840,7 +2840,7 @@ class Toon(Avatar.Avatar, ToonHead):
 
     def setPartsNormal(self, parts, alpha = 0):
         actorCollection = parts
-        for thingIndex in xrange(0, actorCollection.getNumPaths()):
+        for thingIndex in range(0, actorCollection.getNumPaths()):
             thing = actorCollection[thingIndex]
             if thing.getName() not in ('joint_attachMeter', 'joint_nameTag'):
                 thing.setAttrib(ColorBlendAttrib.make(ColorBlendAttrib.MNone))
@@ -3088,9 +3088,9 @@ class Toon(Avatar.Avatar, ToonHead):
                 self.stopTrackAnimToSpeed()
                 self.startTrackAnimToSpeed()
             self.controlManager.disableAvatarJump()
-            indices = range(OTPLocalizer.SCMenuCommonCogIndices[0], OTPLocalizer.SCMenuCommonCogIndices[1] + 1)
+            indices = list(range(OTPLocalizer.SCMenuCommonCogIndices[0], OTPLocalizer.SCMenuCommonCogIndices[1] + 1))
             customIndices = OTPLocalizer.SCMenuCustomCogIndices[suitType]
-            indices += range(customIndices[0], customIndices[1] + 1)
+            indices += list(range(customIndices[0], customIndices[1] + 1))
             self.chatMgr.chatInputSpeedChat.addCogMenu(indices)
         self.suit.loop('neutral')
         self.isDisguised = 1

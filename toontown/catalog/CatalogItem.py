@@ -1,13 +1,12 @@
-from pandac.PandaModules import *
+from panda3d.direct import STInt16, STInt8
+from panda3d.core import Datagram, DatagramIterator, Filename, Notify, Texture, VBase3, VBase4, Vec3, oldToNewHpr
+from direct.directnotify.DirectNotifyGlobal import directNotify
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownGlobals
 from direct.interval.IntervalGlobal import *
 from direct.distributed.PyDatagram import PyDatagram
 from direct.distributed.PyDatagramIterator import PyDatagramIterator
-import types
 import sys
-
-
 CatalogReverseType = None
 CatalogItemVersion = 8
 CatalogBackorderMarkup = 1.2
@@ -22,7 +21,6 @@ CatalogTypeWeekly = 1
 CatalogTypeBackorder = 2
 CatalogTypeMonthly = 3
 CatalogTypeLoyalty = 4
-
 
 class CatalogItem:
     notify = directNotify.newCategory('CatalogItem')
@@ -40,11 +38,9 @@ class CatalogItem:
             self.decodeDatagram(*args, **kw)
         else:
             self.makeNewItem(*args, **kw)
-        return
 
     def isAward(self):
-        result = self.specialEventId != 0
-        return result
+        return self.specialEventId != 0
 
     def makeNewItem(self):
         pass
@@ -247,16 +243,28 @@ class CatalogItem:
         return self.output()
 
     def compareTo(self, other):
-        return 0
+        # All CatalogItem type objects are equivalent.
+        # Specializations of this class will redefine this method
+        # appropriately.  Must return True if both comparisons
+        # are the same; False otherwise.
+        return False
 
     def getHashContents(self):
         return None
 
-    def __cmp__(self, other):
-        c = cmp(self.__class__, other.__class__)
-        if c != 0:
-            return c
+    def __eq__(self, other):
+        self.notify.debug(f'Comparing {self.output()} == {other}')
+        # If the classes are different, they must be different objects.
+        if not self.__class__.__name__ == other.__class__.__name__:
+            return False
+
+        # Otherwise, they are the same class; use compareTo.
+        self.notify.debug('same class, calling compareTo')
         return self.compareTo(other)
+
+    def __ne__(self, other):
+        self.notify.debug(f'{self.output()} != {other}')
+        return not (self == other)
 
     def __hash__(self):
         return hash((self.__class__, self.getHashContents()))
@@ -277,28 +285,10 @@ class CatalogItem:
             x = di.getArg(STInt16, 10)
             y = di.getArg(STInt16, 10)
             z = di.getArg(STInt16, 100)
-            if versionNumber < 2:
-                h = di.getArg(STInt16, 10)
-                p = 0.0
-                r = 0.0
-            elif versionNumber < 5:
-                h = di.getArg(STInt8, 256.0 / 360.0)
-                p = di.getArg(STInt8, 256.0 / 360.0)
-                r = di.getArg(STInt8, 256.0 / 360.0)
-                hpr = oldToNewHpr(VBase3(h, p, r))
-                h = hpr[0]
-                p = hpr[1]
-                r = hpr[2]
-            else:
-                h = di.getArg(STInt8, 256.0 / 360.0)
-                p = di.getArg(STInt8, 256.0 / 360.0)
-                r = di.getArg(STInt8, 256.0 / 360.0)
-            self.posHpr = (x,
-             y,
-             z,
-             h,
-             p,
-             r)
+            h = di.getArg(STInt16, 256.0 / 360.0)
+            p = di.getArg(STInt16, 256.0 / 360.0)
+            r = di.getArg(STInt16, 256.0 / 360.0)
+            self.posHpr = (x, y, z, h, p, r)
         if store & GiftTag:
             self.giftTag = di.getString()
         if versionNumber >= 8:
@@ -310,26 +300,18 @@ class CatalogItem:
         if store & DeliveryDate:
             dg.addUint32(self.deliveryDate)
         if store & Location:
-            h = self.posHpr[3]
-
-            if h > 127:
-                h = 127
-
-            if h > 127.0:
-                h = 127.0
-
             dg.putArg(self.posHpr[0], STInt16, 10)
             dg.putArg(self.posHpr[1], STInt16, 10)
             dg.putArg(self.posHpr[2], STInt16, 100)
-            dg.putArg(h, STInt8, 256.0 / 360.0)
-            dg.putArg(self.posHpr[4], STInt8, 256.0 / 360.0)
-            dg.putArg(self.posHpr[5], STInt8, 256.0 / 360.0)
+            dg.putArg(self.posHpr[3], STInt16, 256.0 / 360.0)
+            dg.putArg(self.posHpr[4], STInt16, 256.0 / 360.0)
+            dg.putArg(self.posHpr[5], STInt16, 256.0 / 360.0)
         if store & GiftTag:
             dg.addString(self.giftTag)
         dg.addUint8(self.specialEventId)
 
     def getTypeCode(self):
-        import CatalogItemTypes
+        from . import CatalogItemTypes
         return CatalogItemTypes.CatalogItemTypes[self.__class__]
 
     def applyColor(self, model, colorDesc):
@@ -339,22 +321,20 @@ class CatalogItem:
             matches = model.findAllMatches(partName)
             if color == None:
                 matches.hide()
-            elif isinstance(color, types.StringType):
+            elif isinstance(color, str):
                 tex = loader.loadTexture(color)
                 tex.setMinfilter(Texture.FTLinearMipmapLinear)
                 tex.setMagfilter(Texture.FTLinear)
-                for i in xrange(matches.getNumPaths()):
+                for i in range(matches.getNumPaths()):
                     matches.getPath(i).setTexture(tex, 1)
 
             else:
                 needsAlpha = color[3] != 1
                 color = VBase4(color[0], color[1], color[2], color[3])
-                for i in xrange(matches.getNumPaths()):
+                for i in range(matches.getNumPaths()):
                     matches.getPath(i).setColorScale(color, 1)
                     if needsAlpha:
                         matches.getPath(i).setTransparency(1)
-
-        return
 
     def makeFrame(self):
         from direct.gui.DirectGui import DirectFrame
@@ -410,7 +390,7 @@ class CatalogItem:
 
 
 def encodeCatalogItem(dg, item, store):
-    import CatalogItemTypes
+    from . import CatalogItemTypes
     flags = item.getTypeCode()
     if item.isSaleItem():
         flags |= CatalogItemTypes.CatalogItemSaleFlag
@@ -423,15 +403,14 @@ def encodeCatalogItem(dg, item, store):
             item.giftCode = 0
         dg.addUint8(item.giftCode)
     item.encodeDatagram(dg, store)
-    return
 
 
 def decodeCatalogItem(di, versionNumber, store):
     global CatalogReverseType
-    import CatalogItemTypes
+    from . import CatalogItemTypes
     if CatalogReverseType == None:
         CatalogReverseType = {}
-        for itemClass, index in CatalogItemTypes.CatalogItemTypes.items():
+        for itemClass, index in list(CatalogItemTypes.CatalogItemTypes.items()):
             CatalogReverseType[index] = itemClass
 
     startIndex = di.getCurrentIndex()
@@ -445,11 +424,11 @@ def decodeCatalogItem(di, versionNumber, store):
             code = di.getUint8()
         itemClass = CatalogReverseType[typeIndex]
         item = itemClass(di, versionNumber, store=store)
-    except Exception, e:
+    except Exception as e:
         CatalogItem.notify.warning('Invalid catalog item in stream: %s, %s' % (sys.exc_info()[0], e))
         d = Datagram(di.getDatagram().getMessage()[startIndex:])
         d.dumpHex(Notify.out())
-        import CatalogInvalidItem
+        from . import CatalogInvalidItem
         return CatalogInvalidItem.CatalogInvalidItem()
 
     if flags & CatalogItemTypes.CatalogItemSaleFlag:
@@ -465,8 +444,8 @@ def getItem(blob, store = 0):
     try:
         versionNumber = di.getUint8()
         return decodeCatalogItem(di, versionNumber, store)
-    except Exception, e:
+    except Exception as e:
         CatalogItem.notify.warning('Invalid catalog item: %s, %s' % (sys.exc_info()[0], e))
         dg.dumpHex(Notify.out())
-        import CatalogInvalidItem
+        from . import CatalogInvalidItem
         return CatalogInvalidItem.CatalogInvalidItem()

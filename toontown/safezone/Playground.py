@@ -1,5 +1,5 @@
+from panda3d.core import LineSegs, NodePath, TextNode, Vec4
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.battle import BattlePlace
@@ -350,13 +350,13 @@ class Playground(BattlePlace.BattlePlace):
 
     def showTreasurePoints(self, points):
         self.hideDebugPointText()
-        for i in xrange(len(points)):
+        for i in range(len(points)):
             p = points[i]
             self.showDebugPointText(str(i), p)
 
     def showDropPoints(self, points):
         self.hideDebugPointText()
-        for i in xrange(len(points)):
+        for i in range(len(points)):
             p = points[i]
             self.showDebugPointText(str(i), p)
 
@@ -371,7 +371,7 @@ class Playground(BattlePlace.BattlePlace):
         lines = LineSegs()
         lines.setColor(1, 0, 0, 1)
         from toontown.classicchars import CCharPaths
-        for name, pointDef in paths.items():
+        for name, pointDef in list(paths.items()):
             self.showDebugPointText(name, pointDef[0])
             for connectTo in pointDef[1]:
                 toDef = paths[connectTo]
@@ -390,7 +390,7 @@ class Playground(BattlePlace.BattlePlace):
     def hideDebugPointText(self):
         if hasattr(self, 'debugText'):
             children = self.debugText.getChildren()
-            for i in xrange(children.getNumPaths()):
+            for i in range(children.getNumPaths()):
                 children[i].removeNode()
 
     def showDebugPointText(self, text, point):
@@ -475,7 +475,7 @@ class Playground(BattlePlace.BattlePlace):
         elif ds == 'incomplete':
             self.fsm.request('DFAReject')
         else:
-            self.notify.error('Unknown done status for DownloadForceAcknowledge: ' + `doneStatus`)
+            self.notify.error('Unknown done status for DownloadForceAcknowledge: ' + repr(doneStatus))
 
     def enterHFA(self, requestStatus):
         self.acceptOnce(self.hfaDoneEvent, self.enterHFACallback, [requestStatus])
@@ -501,7 +501,7 @@ class Playground(BattlePlace.BattlePlace):
         elif doneStatus['mode'] == 'incomplete':
             self.fsm.request('HFAReject')
         else:
-            self.notify.error('Unknown done status for HealthForceAcknowledge: ' + `doneStatus`)
+            self.notify.error('Unknown done status for HealthForceAcknowledge: ' + repr(doneStatus))
 
     def enterHFAReject(self):
         self.fsm.request('walk')
@@ -525,7 +525,7 @@ class Playground(BattlePlace.BattlePlace):
         elif doneStatus['mode'] == 'incomplete':
             self.fsm.request('NPCFAReject')
         else:
-            self.notify.error('Unknown done status for NPCForceAcknowledge: ' + `doneStatus`)
+            self.notify.error('Unknown done status for NPCForceAcknowledge: ' + repr(doneStatus))
 
     def enterNPCFAReject(self):
         self.fsm.request('walk')
@@ -707,7 +707,7 @@ class Playground(BattlePlace.BattlePlace):
 
     def makeDictionaries(self, dnaStore):
         self.nodeList = []
-        for i in xrange(dnaStore.getNumDNAVisGroups()):
+        for i in range(dnaStore.getNumDNAVisGroups()):
             groupFullName = dnaStore.getDNAVisGroupName(i)
             groupName = base.cr.hoodMgr.extractGroupName(groupFullName)
             groupNode = self.geom.find('**/' + groupFullName)
@@ -722,7 +722,7 @@ class Playground(BattlePlace.BattlePlace):
 
     def removeLandmarkBlockNodes(self):
         npc = self.geom.findAllMatches('**/suit_building_origin')
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             npc.getPath(i).removeNode()
 
     def enterTFA(self, requestStatus):

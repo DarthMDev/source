@@ -14,19 +14,19 @@ class SZPlayground(Playground.Playground):
             DNAParser.loadDNAFileAI(dnaStorage, dnaFileName)
 
             zoneVisDict = {}
-            for i in xrange(dnaStorage.getNumDNAVisGroupsAI()):
+            for i in range(dnaStorage.getNumDNAVisGroupsAI()):
                 groupFullName = dnaStorage.getDNAVisGroupName(i)
                 visGroup = dnaStorage.getDNAVisGroupAI(i)
                 visZoneId = int(base.cr.hoodMgr.extractGroupName(groupFullName))
                 visZoneId = ZoneUtil.getTrueZoneId(visZoneId, self.zoneId)
                 visibles = []
-                for i in xrange(visGroup.getNumVisibles()):
+                for i in range(visGroup.getNumVisibles()):
                     visibles.append(int(visGroup.visibles[i]))
                 visibles.append(ZoneUtil.getBranchZone(visZoneId))
                 zoneVisDict[visZoneId] = visibles
 
             dnaStorage.cleanup()
-            base.cr.sendSetZoneMsg(self.zoneId, zoneVisDict.values()[0])
+            base.cr.sendSetZoneMsg(self.zoneId, list(zoneVisDict.values())[0])
 
             self.loadDestroyedBuildings()
 

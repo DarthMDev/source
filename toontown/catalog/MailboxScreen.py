@@ -1,17 +1,17 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.gui.DirectGui import *
-from direct.showbase import DirectObject, PythonUtil
-from pandac.PandaModules import *
+from direct.showbase import DirectObject
 from toontown.parties import PartyGlobals
 from toontown.parties.InviteInfo import InviteInfoBase
-from toontown.parties.PartyGlobals import InviteStatus
 from toontown.parties.SimpleMailBase import SimpleMailBase
 from toontown.toonbase import TTLocalizer, ToontownGlobals
 from toontown.toontowngui import TTDialog
 from toontown.toontowngui.TeaserPanel import TeaserPanel
 from toontown.parties.InviteVisual import InviteVisual
-import CatalogItem
-from direct.showbase.PythonUtil import StackTrace
+from . import CatalogItem
+if __debug__:
+    from direct.showbase.PythonUtil import StackTrace
 
 class MailboxScreen(DirectObject.DirectObject):
     notify = directNotify.newCategory('MailboxScreen')
@@ -45,9 +45,10 @@ class MailboxScreen(DirectObject.DirectObject):
         else:
             self.notify.warning('hide called, but frame is deleted, self.frame deleted in:')
             if hasattr(self, 'frameDelStackTrace'):
-                print self.frameDelStackTrace
+                print(self.frameDelStackTrace)
             self.notify.warning('current stackTrace =')
-            print StackTrace()
+            if __debug__:
+                print(StackTrace())
             self.notify.warning('crash averted, but root cause unknown')
 
     def load(self):
@@ -139,7 +140,8 @@ class MailboxScreen(DirectObject.DirectObject):
         if hasattr(self, 'frame'):
             self.frame.destroy()
             del self.frame
-            self.frameDelStackTrace = StackTrace()
+            if __debug__:
+                self.frameDelStackTrace = StackTrace()
         else:
             self.notify.warning('unload, no self.frame')
         if hasattr(self, 'mailbox'):
@@ -176,7 +178,7 @@ class MailboxScreen(DirectObject.DirectObject):
             messenger.send(self.doneEvent)
 
     def __handleAccept(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: MAILBOX: Accept item')
         if self.acceptingIndex != None:
             return
@@ -237,7 +239,7 @@ class MailboxScreen(DirectObject.DirectObject):
         if not hasattr(self, 'frame'):
             return
         if retcode == ToontownGlobals.P_UserCancelled:
-            print 'mailbox screen user canceled'
+            print('mailbox screen user canceled')
             self.acceptingIndex = None
             self.__updateItems()
             return
@@ -288,7 +290,7 @@ class MailboxScreen(DirectObject.DirectObject):
             self.dialogBox = None
         self.items = self.getItems()
         if self.itemIndex > index or self.itemIndex >= len(self.items):
-            print 'adjusting item index -1'
+            print('adjusting item index -1')
             self.itemIndex -= 1
         if len(self.items) < 1:
             self.__handleExit()
@@ -308,10 +310,10 @@ class MailboxScreen(DirectObject.DirectObject):
             self.dialogBox = None
         self.items = self.getItems()
         if self.itemIndex >= len(self.items):
-            print 'adjusting item index -1'
+            print('adjusting item index -1')
             self.itemIndex = len(self.items) - 1
         if len(self.items) == 0:
-            print 'exiting due to lack of items'
+            print('exiting due to lack of items')
             self.__handleExit()
             return
         self.itemCountLabel['text'] = (self.__getNumberOfItemsText(),)
@@ -420,7 +422,7 @@ class MailboxScreen(DirectObject.DirectObject):
                 MailboxScreen.notify.error('Unable to find party with id %d to match invitation %s' % (item.partyId, item))
 
             if self.mailbox:
-                if item.status == PartyGlobals.InviteStatus.NotRead:
+                if item.status == PartyGlobals.EInviteStatus.NOT_READ:
                     self.mailbox.sendInviteReadButNotReplied(item.inviteKey)
             senderId = partyInfo.hostId
             nameOfSender = self.getSenderName(senderId)

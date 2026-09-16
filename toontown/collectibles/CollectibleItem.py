@@ -1,4 +1,4 @@
-from panda3d.core import NodePath, CardMaker, TransparencyAttrib
+from panda3d.core import CardMaker, NodePath, Texture, TransparencyAttrib
 from direct.actor import Actor
 from direct.gui.DirectGui import DirectButton, DGG
 from toontown.battle import ParticleDefs
@@ -201,8 +201,8 @@ class CollectibleCategory:
 
     def getOrderedItems(self, minId=0, maxId=None):
         if maxId is None:
-            maxId = len(self.items.values())
+            maxId = len(list(self.items.values()))
         # Sort our items by id
-        sortedItems = sorted(self.items.values(), key=lambda item: item.id)
+        sortedItems = sorted(list(self.items.values()), key=lambda item: item.id)
         # Return the range of items we want
         return sortedItems[minId:maxId]

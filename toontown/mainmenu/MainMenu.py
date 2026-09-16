@@ -1,9 +1,9 @@
+from panda3d.core import CompassEffect, NodePath, TransparencyAttrib, Vec4
 import random
 
 from direct.fsm.FSM import FSM
 from direct.gui.DirectGui import *
 from direct.task.Task import Task
-from pandac.PandaModules import *
 
 from toontown.mainmenu.HomeScreen import HomeScreen
 from toontown.mainmenu.HostScreen import HostScreen
@@ -32,6 +32,9 @@ class MainMenu(DirectFrame, FSM):
         self.background.setTransparency(TransparencyAttrib.MAlpha)
         self.background.hide()
 
+        self.environment = NodePath('mainMenu-environment')
+        self.environment.reparentTo(hidden)
+
         self.homeScreen = HomeScreen(self)
         self.homeScreen.hide()
         self.playScreen = PlayScreen(self)
@@ -50,8 +53,6 @@ class MainMenu(DirectFrame, FSM):
         else:
             ToontownGlobals.getMinnieFont()
 
-        self.environment = NodePath('mainMenu-environment')
-        self.environment.reparentTo(hidden)
 
     def destroy(self):
         self.environment.removeNode()
@@ -72,6 +73,10 @@ class MainMenu(DirectFrame, FSM):
         self.loopyLane.setPosHpr(34, -12, 0, 5, 0, 0)
         self.loopyLane.reparentTo(self.environment)
         self.loopyLane.find('**/door_double_curved_ur_flat').removeNode()
+
+        self.doorAbyss = loader.loadModel('phase_4/models/modules/doors_practical_abyss')
+        self.doorAbyss.setPosHpr(-392.20, -246.90, 4, 185, 0, 0)
+        self.doorAbyss.reparentTo(self.environment)
 
     def loadRandomToons(self):
         self.randomToon = Toon()

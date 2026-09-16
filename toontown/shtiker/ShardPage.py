@@ -1,7 +1,7 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableInt, NodePath, TextNode, Vec4
 from direct.directnotify import DirectNotifyGlobal
 from direct.gui.DirectGui import *
 from direct.task.Task import Task
-from pandac.PandaModules import *
 from toontown.distributed import ToontownDistrictStats
 from toontown.hood import ZoneUtil
 from toontown.shtiker import ShtikerPage
@@ -15,15 +15,6 @@ POP_COLORS = (
 )
 
 
-def compareShardTuples(a, b):
-    if a[1] < b[1]:
-        return -1
-    elif b[1] < a[1]:
-        return 1
-    else:
-        return 0
-
-
 class ShardPage(ShtikerPage.ShtikerPage):
     notify = DirectNotifyGlobal.directNotify.newCategory('ShardPage')
 
@@ -31,8 +22,8 @@ class ShardPage(ShtikerPage.ShtikerPage):
         ShtikerPage.ShtikerPage.__init__(self)
 
         self.ShardInfoUpdateInterval = 5.0
-        self.showTotalPop = config.GetBool('show-total-population', 0)
-        self.midPop = config.GetInt('shard-mid-pop', 300)
+        self.showTotalPop = ConfigVariableBool('show-total-population', False).getValue()
+        self.midPop = ConfigVariableInt('shard-mid-pop', 300).getValue()
         self.highPop = -1
 
         self.shards = []
@@ -126,16 +117,6 @@ class ShardPage(ShtikerPage.ShtikerPage):
             itemFrame_frameColor=(0.85, 0.95, 1, 1),
             itemFrame_borderWidth=(0.0025, 0.0025)
         )
-        self.unsupportedWarning = OnscreenText(
-            parent=self.mainFrame,
-            text=TTLocalizer.ShardPageUnsupported,
-            scale=0.06,
-            wordwrap=20,
-            align=TextNode.ACenter,
-            font=ToontownGlobals.getInterfaceFont(),
-            fg=(1, 0, 0, 1),
-            pos=(0, -0.4, 0.0)
-        )
         self.updateEntries()
 
         listGui.removeNode()
@@ -149,10 +130,10 @@ class ShardPage(ShtikerPage.ShtikerPage):
             self.shardList.removeAllItems()
 
         curShardTuples = base.cr.listActiveShards()
-        curShardTuples.sort(compareShardTuples)
+        curShardTuples.sort(key=lambda shard: shard[1])
         totalPop = 0
 
-        for i in xrange(len(curShardTuples)):
+        for i in range(len(curShardTuples)):
             shardId, name, pop, WVPop, invasionStatus, timeZone = curShardTuples[i]
 
             # Get the formatted timezone string
@@ -223,9 +204,9 @@ class ShardWidget(DirectButton):
         self.population = population
         self.listObject = listObject
 
-        self.lowPop = config.GetInt('shard-low-pop', 150)
-        self.midPop = config.GetInt('shard-mid-pop', 300)
-        self.noTeleport = config.GetBool('shard-page-disable', 0)
+        self.lowPop = ConfigVariableInt('shard-low-pop', 150).getValue()
+        self.midPop = ConfigVariableInt('shard-mid-pop', 300).getValue()
+        self.noTeleport = ConfigVariableBool('shard-page-disable', False).getValue()
 
         frameColor = (0.9, 0.9, 0.9, 0)
         self.timezone = timezone

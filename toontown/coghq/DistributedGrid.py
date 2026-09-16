@@ -1,7 +1,6 @@
-from pandac.PandaModules import *
 from direct.interval.IntervalGlobal import *
 from toontown.toonbase.ToontownGlobals import *
-from CrateGlobals import *
+from .CrateGlobals import *
 from otp.level import BasicEntities
 from direct.directnotify import DirectNotifyGlobal
 
@@ -11,7 +10,6 @@ class DistributedGrid(BasicEntities.DistributedNodePathEntity):
     def __init__(self, cr):
         BasicEntities.DistributedNodePathEntity.__init__(self, cr)
         self.model = None
-        return
 
     def generateInit(self):
         self.notify.debug('generateInit')
@@ -38,7 +36,7 @@ class DistributedGrid(BasicEntities.DistributedNodePathEntity):
     def loadModel(self):
         self.notify.debug('loadModel')
         texSize = 6.0
-        scale = self.cellSize / texSize
+        scale = self.cellSize // texSize
         self.model = loader.loadModel('phase_9/models/cogHQ/FloorWear.bam')
         self.model.reparentTo(self)
         long = self.numCol

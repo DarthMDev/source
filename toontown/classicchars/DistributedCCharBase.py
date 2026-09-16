@@ -1,14 +1,15 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerFloor, CollisionNode, CollisionRay, \
+    CollisionSphere, NodePath, TransparencyAttrib, Vec4
 import copy
 from direct.controls.ControlManager import CollisionHandlerRayStart
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 import string
 
-import CCharChatter
-import CCharPaths
+from . import CCharChatter
+from . import CCharPaths
 from otp.avatar import Avatar
 from toontown.char import CharDNA
 from toontown.char import DistributedChar
@@ -97,12 +98,14 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
             self.__deleteCollisions()
             DistributedChar.DistributedChar.delete(self)
 
-    def generate(self, diffPath = None):
+    def generate(self, diffPath=None):
         DistributedChar.DistributedChar.generate(self)
         if diffPath == None:
-            self.setPos(CCharPaths.getNodePos(CCharPaths.startNode, CCharPaths.getPaths(self.getName(), self.getCCLocation())))
+            self.setPos(
+                CCharPaths.getNodePos(CCharPaths.startNode, CCharPaths.getPaths(self.getName(), self.getCCLocation())))
         else:
-            self.setPos(CCharPaths.getNodePos(CCharPaths.startNode, CCharPaths.getPaths(diffPath, self.getCCLocation())))
+            self.setPos(
+                CCharPaths.getNodePos(CCharPaths.startNode, CCharPaths.getPaths(diffPath, self.getCCLocation())))
         self.setHpr(0, 0, 0)
         self.setParent(ToontownGlobals.SPRender)
         self.startBlink()
@@ -147,9 +150,9 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
 
     def __handleChatUpdateSCToontask(self, taskId, toNpcId, toonProgress, msgIndex):
         self.sendUpdate('setNearbyAvatarSCToontask', [taskId,
-         toNpcId,
-         toonProgress,
-         msgIndex])
+                                                      toNpcId,
+                                                      toonProgress,
+                                                      msgIndex])
 
     def makeTurnToHeadingTrack(self, heading):
         curHpr = self.getHpr()
@@ -193,7 +196,7 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
                 chatFlags = CFThought | CFTimeout
                 if hasattr(base.cr, 'newsManager') and base.cr.newsManager:
                     holidayIds = base.cr.newsManager.getHolidayIdList()
-                    if ToontownGlobals.APRIL_FOOLS_DAY in holidayIds:
+                    if ToontownGlobals.APRIL_FOOLS_COSTUMES in holidayIds:
                         if self.getName() == Pluto:
                             chatFlags = CFTimeout | CFSpeech
             elif self.getName() == DonaldDock:
@@ -213,7 +216,7 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
     def walkSpeed(self):
         return 0.1
 
-    def enableRaycast(self, enable = 1):
+    def enableRaycast(self, enable=1):
         if not self.cTrav or not hasattr(self, 'cRayNode') or not self.cRayNode:
             self.notify.debug('raycast info not found for ' + self.getName())
             return
@@ -250,8 +253,8 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
                 self.CCChatter = ToontownGlobals.WACKY_WINTER_DECORATIONS
             elif ToontownGlobals.VALENTINES_DAY in holidayIds:
                 self.CCChatter = ToontownGlobals.VALENTINES_DAY
-            elif ToontownGlobals.APRIL_FOOLS_DAY in holidayIds:
-                self.CCChatter = ToontownGlobals.APRIL_FOOLS_DAY
+            elif ToontownGlobals.APRIL_FOOLS_COSTUMES in holidayIds:
+                self.CCChatter = ToontownGlobals.APRIL_FOOLS_COSTUMES
             elif ToontownGlobals.SILLY_CHATTER_ONE in holidayIds:
                 self.CCChatter = ToontownGlobals.SILLY_CHATTER_ONE
             elif ToontownGlobals.SILLY_CHATTER_TWO in holidayIds:
@@ -270,11 +273,14 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
                 self.CCChatter = ToontownGlobals.SELLBOT_FIELD_OFFICE
 
     def fadeAway(self):
-        fadeOut = self.colorScaleInterval(0.5, Vec4(1, 1, 1, 0.5), startColorScale=Vec4(1, 1, 1, 1), blendType='easeInOut')
+        fadeOut = self.colorScaleInterval(0.5, Vec4(1, 1, 1, 0.5), startColorScale=Vec4(1, 1, 1, 1),
+                                          blendType='easeInOut')
         fadeOut.start()
         self.loop('neutral')
         if self.fsm:
-            self.fsm.addState(State.State('TransitionToCostume', self.enterTransitionToCostume, self.exitTransitionToCostume, ['Off']))
+            self.fsm.addState(
+                State.State('TransitionToCostume', self.enterTransitionToCostume, self.exitTransitionToCostume,
+                            ['Off']))
             self.fsm.request('TransitionToCostume', force=1)
         self.ignoreAll()
 
@@ -286,7 +292,8 @@ class DistributedCCharBase(DistributedChar.DistributedChar):
             dustCloud.setZ(4)
             dustCloud.setScale(0.6)
             dustCloud.createTrack()
-            return Sequence(Func(dustCloud.reparentTo, self), dustCloud.track, Func(dustCloud.destroy), name='dustCloadIval')
+            return Sequence(Func(dustCloud.reparentTo, self), dustCloud.track, Func(dustCloud.destroy),
+                            name='dustCloadIval')
 
         dust = getDustCloudIval()
         dust.start()

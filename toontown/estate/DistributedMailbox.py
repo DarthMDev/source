@@ -1,6 +1,7 @@
+from panda3d.core import TextNode, VBase3
 from direct.distributed import DistributedObject
 from toontown.toonbase import ToontownGlobals
-import MailboxGlobals
+from . import MailboxGlobals
 from toontown.catalog import CatalogItem
 from toontown.catalog import CatalogItemList
 from toontown.toontowngui import TTDialog
@@ -8,7 +9,6 @@ from toontown.toonbase import TTLocalizer
 from toontown.catalog import MailboxScreen
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.distributed.ClockDelta import *
-from pandac.PandaModules import *
 import random
 from direct.interval.IntervalGlobal import SoundInterval
 FlagPitchEmpty = -70
@@ -170,9 +170,9 @@ class DistributedMailbox(DistributedObject.DistributedObject):
             return
         elif mode == MailboxGlobals.MAILBOX_MOVIE_EXIT:
             if random.random() < 0.5:
-                sfx = loader.loadSfx('phase_5.5/audio/sfx/mailbox_close_1.ogg')
+                sfx = base.loader.loadSfx('phase_5.5/audio/sfx/mailbox_close_1.ogg')
             else:
-                sfx = loader.loadSfx('phase_5.5/audio/sfx/mailbox_close_2.ogg')
+                sfx = base.loader.loadSfx('phase_5.5/audio/sfx/mailbox_close_2.ogg')
             sfxTrack = SoundInterval(sfx, node=self.model)
             sfxTrack.start()
             DistributedMailbox.notify.debug('setMovie: exit')
@@ -190,9 +190,9 @@ class DistributedMailbox(DistributedObject.DistributedObject):
         elif mode == MailboxGlobals.MAILBOX_MOVIE_READY:
             DistributedMailbox.notify.debug('setMovie: ready')
             if random.random() < 0.5:
-                sfx = loader.loadSfx('phase_5.5/audio/sfx/mailbox_open_1.ogg')
+                sfx = base.loader.loadSfx('phase_5.5/audio/sfx/mailbox_open_1.ogg')
             else:
-                sfx = loader.loadSfx('phase_5.5/audio/sfx/mailbox_open_2.ogg')
+                sfx = base.loader.loadSfx('phase_5.5/audio/sfx/mailbox_open_2.ogg')
             sfxTrack = SoundInterval(sfx, node=self.model)
             sfxTrack.start()
             if isLocalToon:
@@ -225,7 +225,7 @@ class DistributedMailbox(DistributedObject.DistributedObject):
     def acceptItemResponse(self, context, retcode):
         DistributedMailbox.notify.debug('acceptItemResponse')
         if retcode == ToontownGlobals.P_UserCancelled:
-            print 'DistributedMailbox User Canceled'
+            print('DistributedMailbox User Canceled')
         self.doCallbackContext(context, [retcode])
 
     def discardItem(self, item, index, callback, optional = -1):

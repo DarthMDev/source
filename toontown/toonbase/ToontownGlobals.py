@@ -1,8 +1,11 @@
-import TTLocalizer
-from otp.otpbase.OTPGlobals import *
-from direct.showbase.PythonUtil import Enum, invertDict
+import enum
+import os
+import random
+import sys
 from panda3d.core import BitMask32, Vec4
-import sys, os, random
+from . import TTLocalizer
+from otp.otpbase.OTPGlobals import *
+from direct.showbase.PythonUtil import invertDict
 
 from toontown.toonbase.HolidayGlobals import *
 
@@ -27,7 +30,7 @@ MakeAToonCameraFov = 48.0
 CogdoFov = 56.9
 VPElevatorFov = 53.0
 CFOElevatorFov = 43.0
-CJElevatorFov = 59.0
+CJElevatorFov = 47.0
 CEOElevatorFov = 59.0
 CBElevatorFov = 42.0
 WantPromotion = 0
@@ -137,7 +140,7 @@ FontAwesome = None
 
 def getMac():
     if sys.platform == 'android':
-        if 'uuid' in settings and isinstance(settings['uuid'], (int, long)):
+        if 'uuid' in settings and isinstance(settings['uuid'], int):
             uid = settings['uuid']
         else:
             uid = random.SystemRandom().getrandbits(50)
@@ -148,8 +151,9 @@ def getMac():
     return ':'.join(('%012X' % uid)[i:i+2] for i in range(0, 12, 2))
 
 def getIp():
-    import urllib2
-    return urllib2.urlopen('http://ip.42.pl/raw').read()
+    import socket
+    hostname = socket.gethostname()
+    return socket.gethostbyname(hostname)
 
 def getToonFont():
     global ToonFont
@@ -175,7 +179,7 @@ def getMinnieFont():
 def getSuitFont():
     global SuitFont
     if SuitFont == None:
-        SuitFont = loader.loadFont(TTLocalizer.SuitFont, pixelsPerUnit=40, spaceAdvance=0.25, lineHeight=1.0)
+        SuitFont = loader.loadFont(TTLocalizer.SuitFont, spaceAdvance=0.25, lineHeight=1.0)
     return SuitFont
 
 
@@ -213,6 +217,25 @@ OakStreet = 5300
 LullabyLane = 9100
 PajamaPlace = 9200
 ToonHall = 2513
+EstateWakeWaterHeight = -.3
+ZoneIdToWakeHeight = {
+    ToontownCentral: -4.79,
+    DonaldsDock: 1.669,
+    TheBrrrgh: 0,
+    MinniesMelodyland: -16,
+    DaisyGardens: -1,
+    DonaldsDreamland: -19,
+    OutdoorZone: -0.5,
+}
+HoodHierarchy = {
+    ToontownCentral: (SillyStreet, LoopyLane, PunchlinePlace),
+    DonaldsDock: (BarnacleBoulevard, SeaweedStreet, LighthouseLane),
+    TheBrrrgh: (WalrusWay, SleetStreet, PolarPlace),
+    MinniesMelodyland: (AltoAvenue, BaritoneBoulevard, TenorTerrace),
+    DaisyGardens: (ElmStreet, MapleStreet, OakStreet),
+    DonaldsDreamland: (LullabyLane, PajamaPlace),
+    GoofySpeedway: ()
+}
 WelcomeValleyToken = 0
 BossbotHQ = 10000
 BossbotLobby = 10100
@@ -247,16 +270,6 @@ WelcomeValleyBegin = 22000
 WelcomeValleyEnd = 61000
 DynamicZonesBegin = 61000
 DynamicZonesEnd = 1 << 20
-HoodHierarchy = {
-    ToontownCentral: (SillyStreet, LoopyLane, PunchlinePlace),
-    DonaldsDock: (BarnacleBoulevard, SeaweedStreet, LighthouseLane),
-    TheBrrrgh: (WalrusWay, SleetStreet, PolarPlace),
-    MinniesMelodyland: (AltoAvenue, BaritoneBoulevard, TenorTerrace),
-    DaisyGardens: (ElmStreet, MapleStreet, OakStreet),
-    DonaldsDreamland: (LullabyLane, PajamaPlace),
-    FunnyFarm: (),
-    GoofySpeedway: ()
-}
 cogDept2index = {
     'c': 0,
     'l': 1,
@@ -316,10 +329,9 @@ HoodIdToName = {
     MinniesMelodyland: TTLocalizer.lMinniesMelodyland,
     DaisyGardens: TTLocalizer.lDaisyGardens,
     DonaldsDreamland: TTLocalizer.lDonaldsDreamland,
-    FunnyFarm: TTLocalizer.lFunnyFarm,
     GoofySpeedway: TTLocalizer.lGoofySpeedway,
     OutdoorZone: TTLocalizer.lOutdoorZone,
-    StrikeZone: TTLocalizer.lStrikeZone[2],
+    StrikeZone: TTLocalizer.lStrikeZone,
     BossbotHQ: TTLocalizer.BossbotHQ[2],
     SellbotHQ: TTLocalizer.SellbotHQ[2],
     CashbotHQ: TTLocalizer.CashbotHQ[2],
@@ -425,7 +437,7 @@ factoryId2factoryType = {
     LawbotOfficeInt: FT_FullSuit
 }
 StreetNames = TTLocalizer.GlobalStreetNames
-StreetBranchZones = StreetNames.keys()
+StreetBranchZones = list(StreetNames.keys())
 Hoods = (
     DonaldsDock,
     ToontownCentral,
@@ -433,6 +445,7 @@ Hoods = (
     MinniesMelodyland,
     DaisyGardens,
     OutdoorZone,
+    FunnyFarm,
     GoofySpeedway,
     DonaldsDreamland,
     BossbotHQ,
@@ -484,7 +497,6 @@ IceGameId = 13
 CogThiefGameId = 14
 TwoDGameId = 15
 PhotoGameId = 16
-CogThiefRewrittenGameId = 17
 TravelGameId = 100
 MinigameNames = {
     'race': RaceGameId,
@@ -506,7 +518,6 @@ MinigameNames = {
     'thief': CogThiefGameId,
     '2d': TwoDGameId,
     'photo': PhotoGameId,
-    'thief rewritten': CogThiefRewrittenGameId,
     'travel': TravelGameId
 }
 MinigameTemplateId = -1
@@ -527,14 +538,13 @@ MinigameIDs = (
     CogThiefGameId,
     TwoDGameId,
     PhotoGameId,
-    CogThiefRewrittenGameId,
     TravelGameId
 )
 MinigamePlayerMatrix = {
-    1: (CannonGameId, MazeGameId, TugOfWarGameId, RingGameId, VineGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId, CogThiefRewrittenGameId),
-    2: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, TagGameId, RingGameId, VineGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId, CogThiefRewrittenGameId),
-    3: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, RaceGameId, TagGameId, VineGameId, RingGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId, CogThiefRewrittenGameId),
-    4: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, RaceGameId, TagGameId, VineGameId, RingGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId, CogThiefRewrittenGameId),
+    1: (CannonGameId, MazeGameId, TugOfWarGameId, RingGameId, VineGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId),
+    2: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, TagGameId, RingGameId, VineGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId),
+    3: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, RaceGameId, TagGameId, VineGameId, RingGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId),
+    4: (CannonGameId, MazeGameId, TugOfWarGameId, PatternGameId, RaceGameId, TagGameId, VineGameId, RingGameId, IceGameId, CogThiefGameId, TwoDGameId, DivingGameId, PairingGameId, CatchGameId, TargetGameId, PhotoGameId),
 }
 MinigameReleaseDates = {
     IceGameId: (2008, 8, 5),
@@ -552,6 +562,7 @@ phaseMap = {
     GoofySpeedway: 6,
     TheBrrrgh: 8,
     DaisyGardens: 8,
+    FunnyFarm: 8,
     DonaldsDreamland: 8,
     OutdoorZone: 6,
     BossbotHQ: 12,
@@ -560,7 +571,6 @@ phaseMap = {
     LawbotHQ: 11,
     GolfZone: 6,
     PartyHood: 13,
-    FunnyFarm: 6,
     StrikeZone: 6,
     StrikeZoneBoss: 6
 }
@@ -571,6 +581,7 @@ streetPhaseMap = {
     GoofySpeedway: 6,
     TheBrrrgh: 8,
     DaisyGardens: 8,
+    FunnyFarm: 8,
     DonaldsDreamland: 8,
     OutdoorZone: 8,
     BossbotHQ: 12,
@@ -578,7 +589,7 @@ streetPhaseMap = {
     CashbotHQ: 10,
     LawbotHQ: 11,
     PartyHood: 13,
-    StrikeZone: 6,
+    StrikeZone: 6
 }
 dnaMap = {
     Tutorial: 'toontown_central',
@@ -588,15 +599,15 @@ dnaMap = {
     GoofySpeedway: 'goofy_speedway',
     TheBrrrgh: 'the_burrrgh',
     DaisyGardens: 'daisys_garden',
+    FunnyFarm: 'not done yet',
     DonaldsDreamland: 'donalds_dreamland',
     OutdoorZone: 'outdoor_zone',
-    FunnyFarm: 'funny_farm',
     StrikeZone: 'strike_zone',
     BossbotHQ: 'cog_hq_bossbot',
     SellbotHQ: 'cog_hq_sellbot',
     CashbotHQ: 'cog_hq_cashbot',
     LawbotHQ: 'cog_hq_lawbot',
-    GolfZone: 'golf_zone',
+    GolfZone: 'golf_zone'
 }
 hoodNameMap = {
     DonaldsDock: TTLocalizer.DonaldsDock,
@@ -605,6 +616,7 @@ hoodNameMap = {
     MinniesMelodyland: TTLocalizer.MinniesMelodyland,
     DaisyGardens: TTLocalizer.DaisyGardens,
     OutdoorZone: TTLocalizer.OutdoorZone,
+    FunnyFarm: TTLocalizer.FunnyFarm,
     GoofySpeedway: TTLocalizer.GoofySpeedway,
     DonaldsDreamland: TTLocalizer.DonaldsDreamland,
     BossbotHQ: TTLocalizer.BossbotHQ,
@@ -615,7 +627,6 @@ hoodNameMap = {
     MyEstate: TTLocalizer.MyEstate,
     GolfZone: TTLocalizer.GolfZone,
     PartyHood: TTLocalizer.PartyHood,
-    FunnyFarm: TTLocalizer.FunnyFarm,
     StrikeZone: TTLocalizer.StrikeZone
 }
 safeZoneCountMap = {
@@ -627,11 +638,11 @@ safeZoneCountMap = {
     GoofySpeedway: 500,
     TheBrrrgh: 8,
     DaisyGardens: 9,
+    FunnyFarm: 500,
     DonaldsDreamland: 5,
     OutdoorZone: 500,
     GolfZone: 500,
-    PartyHood: 500,
-    FunnyFarm: 500
+    PartyHood: 500
 }
 townCountMap = {
     MyEstate: 8,
@@ -642,6 +653,7 @@ townCountMap = {
     GoofySpeedway: 40,
     TheBrrrgh: 40,
     DaisyGardens: 40,
+    FunnyFarm: 40,
     DonaldsDreamland: 40,
     OutdoorZone: 40,
     PartyHood: 20
@@ -655,6 +667,7 @@ hoodCountMap = {
     GoofySpeedway: 2,
     TheBrrrgh: 2,
     DaisyGardens: 2,
+    FunnyFarm: 2,
     DonaldsDreamland: 2,
     OutdoorZone: 2,
     BossbotHQ: 2,
@@ -994,10 +1007,6 @@ CashbotBossSafeKnockImpact = 0.5
 CashbotBossSafeNewImpact = 0.0
 CashbotBossGoonImpact = 0.1
 CashbotBossKnockoutDamage = 15
-TTWakeWaterHeight = -4.79
-DDWakeWaterHeight = 1.669
-EstateWakeWaterHeight = -.3
-OZWakeWaterHeight = -0.5
 WakeRunDelta = 0.1
 WakeWalkDelta = 0.2
 NoItems = 0
@@ -1043,6 +1052,7 @@ LawbotBossTopRampPosB = (80, -35, 18)
 LawbotBossTopRampTurnPosB = (80, 10, 18)
 LawbotBossP3PosB = (55, -9, 0)
 LawbotBossBattleThreePosHpr = LawbotBossBattleTwoPosHpr
+LawbotBossInChambersPos = (-2.798, 120, 21.15)
 LawbotBossBottomPos = (50, 39, 0)
 LawbotBossDeathPos = (50, 40, 0)
 LawbotBossGavelPosHprs = [(35,
@@ -1657,11 +1667,17 @@ gmMagicWordList = ['restock',
  'who',
  'who all']
 NewsPageScaleAdjust = 0.85
-AnimPropTypes = Enum(('Unknown',
- 'Hydrant',
- 'Mailbox',
- 'Trashcan'), start=-1)
-EmblemTypes = Enum(('Silver', 'Gold'))
+
+class AnimPropType(enum.IntEnum):
+    UNKNOWN = -1
+    HYDRANT = 0
+    MAILBOX = 1
+    TRASHCAN = 2
+
+class EmblemType(enum.IntEnum):
+    SILVER = 0
+    GOLD = 1
+
 NumEmblemTypes = 2
 MaxBankMoney = 50000
 DefaultBankItemId = 1350
@@ -1719,48 +1735,19 @@ AV_TOUCH_CHECK_TIMELIMIT_CL = 0.002
 AV_TOUCH_COUNT_LIMIT = 5
 AV_TOUCH_COUNT_TIME = 300
 BMovementSpeed = 0
-BMovementSpeedMultiplier = 1.3
+BMovementSpeedMultiplier = 1.2
 BGagAccuracy = 1
 BGagAccuracyMultiplier = 1.3
 CSM_LOGIN_ERROR_CREDENTIALS_INVALID = 0
 CSM_LOGIN_ERROR_TOO_FAST = 1
+CSM_LOGIN_ERROR_TOKEN_INVALID = 3
+CSM_LOGIN_ERROR_ACCOUNT_SERVER = 4
 CommonDisplayResolutions = {
-    (25, 16): ((1600, 1024),),
-    (931, 524): ((1862, 1048),),
-    (1707, 1067): ((1707, 1067),),
-    (707, 397): ((1414, 794),),
-    (16, 9): (
-        (640, 360), (720, 405), (848, 480), (960, 540), (1024, 576),
-        (1280, 720), (1366, 768), (1600, 900), (1920, 1080),
-        (2560, 1440), (2560, 1440), (2880, 1620), (3200, 1800),
-        (3840, 2160), (3840, 2160), (4096, 2304), (5120, 2880)
-    ),
-    (3, 2): ((1440, 960),),
-    (569, 320): ((1707, 960),),
-    (902, 507): ((1804, 1014),),
-    (8, 5): ((1120, 700), (1152, 720), (1280, 800), (1344, 840), (1440, 900),
-             (1536, 960), (1680, 1050), (1920, 1200), (2560, 1600),
-             (2880, 1800)),
-    (307, 171): ((1842, 1026),),
-    (85, 64): ((1360, 1024),),
-    (64, 27): ((2560, 1080),),
-    (16, 3): ((5760, 1080),),
-    (24, 5): ((5760, 1200),),
-    (128, 75): ((1024, 600),),
-    (222, 125): ((1776, 1000),),
+    (4, 3): ((800, 600), (1024, 768), (1152, 864), (1280, 960), (1600, 1200),
+             (1920, 1440)),
     (5, 4): ((1280, 1024),),
-    (147, 83): ((1176, 664),),
-    (32, 15): ((1280, 600),),
-    (1024, 819): ((1024, 819),),
-    (43, 18): ((3440, 1440),),
     (5, 3): ((1280, 768),),
-    (221, 124): ((1768, 992),),
-    (1280, 853): ((1280, 853),),
-    (921, 518): ((1842, 1036),),
-    (683, 384): ((1366, 768),),
-    (57, 32): ((1368, 768),),
-    (85, 48): ((1360, 768),),
-    (1067, 600): ((1067, 600),),
-    (4, 3): ((800, 600), (1024, 768), (1152, 864), (1280, 960), (1400, 1050),
-             (1600, 1200)),
+    (8, 5): ((1280, 800), (1680, 1050), (1920, 1200)),
+    (16, 9): ((1280, 720), (1360, 768), (1366, 768), (1600, 900), (1920, 1080),
+              (2560, 1440), (3840, 2160)),
 }

@@ -1,7 +1,7 @@
+from panda3d.core import ConfigVariableBool, Point4, TextEncoder, TextNode, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase.ToontownBattleGlobals import *
-import InventoryBase
+from . import InventoryBase
 from toontown.toonbase import TTLocalizer
 from toontown.quest import BlinkingArrows
 from direct.interval.IntervalGlobal import *
@@ -39,27 +39,30 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.initialiseoptions(InventoryNew)
         self.battleCreditLevel = None
         self.detailCredit = None
-        self.__battleCreditMultiplier = base.baseXpMultiplier
-        self.__invasionCreditMultiplier = base.baseXpMultiplier
+        self.__battleCreditMultiplier = 1
+        self.__invasionCreditMultiplier = 1
+        self.__xpMultiplier = base.baseXpMultiplier
         self.__respectInvasions = 1
         self.interactivePropTrackBonus = -1
         self.tutorialFlag = 0
         self.gagTutMode = 0
         self.showSuperGags = ShowSuperGags
         self.clickSuperGags = 1
-        self.propAndOrganicBonusStack = base.config.GetBool('prop-and-organic-bonus-stack', 0)
+        self.propAndOrganicBonusStack = ConfigVariableBool('prop-and-organic-bonus-stack', False).getValue()
         self.propBonusIval = Parallel()
         self.activateMode = 'book'
         if toon.isLocal():
             self.load()
             self.hide()
-        return
 
     def setBattleCreditMultiplier(self, mult):
         self.__battleCreditMultiplier = mult
 
     def getBattleCreditMultiplier(self):
         return self.__battleCreditMultiplier
+
+    def setXpMultiplier(self, mult):
+        self.__xpMultiplier = mult
 
     def setInteractivePropTrackBonus(self, trackBonus):
         self.interactivePropTrackBonus = trackBonus
@@ -97,14 +100,14 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
     def uberGagToggle(self, showSuperGags = 1):
         self.showSuperGags = showSuperGags
         for itemList in self.invModels:
-            for itemIndex in xrange(MAX_LEVEL_INDEX + 1):
+            for itemIndex in range(MAX_LEVEL_INDEX + 1):
                 if itemIndex <= LAST_REGULAR_GAG_LEVEL + 1 or self.showSuperGags:
                     itemList[itemIndex].show()
                 else:
                     itemList[itemIndex].hide()
 
         for buttonList in self.buttons:
-            for buttonIndex in xrange(MAX_LEVEL_INDEX + 1):
+            for buttonIndex in range(MAX_LEVEL_INDEX + 1):
                 if buttonIndex <= LAST_REGULAR_GAG_LEVEL or self.showSuperGags:
                     buttonList[buttonIndex].show()
                 else:
@@ -114,7 +117,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         if enableSG != -1:
             self.clickSuperGags = enableSG
         for buttonList in self.buttons:
-            for buttonIndex in xrange(LAST_REGULAR_GAG_LEVEL + 1, MAX_LEVEL_INDEX + 1):
+            for buttonIndex in range(LAST_REGULAR_GAG_LEVEL + 1, MAX_LEVEL_INDEX + 1):
                 if self.clickSuperGags:
                     pass
                 else:
@@ -168,21 +171,20 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         del self.trackNameLabels
         del self.trackBars
         for buttonList in self.buttons:
-            for buttonIndex in xrange(MAX_LEVEL_INDEX + 1):
+            for buttonIndex in range(MAX_LEVEL_INDEX + 1):
                 buttonList[buttonIndex].destroy()
 
         del self.buttons
         InventoryBase.InventoryBase.unload(self)
         DirectFrame.destroy(self)
-        return
 
     def load(self):
         self.notify.debug('Loading Inventory for %d' % self.toon.doId)
         invModel = loader.loadModel('phase_3.5/models/gui/inventory_icons')
         self.invModels = []
-        for track in xrange(len(AvPropsNew)):
+        for track in range(len(AvPropsNew)):
             itemList = []
-            for item in xrange(len(AvPropsNew[track])):
+            for item in range(len(AvPropsNew[track])):
                 itemList.append(invModel.find('**/' + AvPropsNew[track][item]))
 
             self.invModels.append(itemList)
@@ -217,7 +219,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.trackNameLabels = []
         self.trackBars = []
         self.buttons = []
-        for track in xrange(0, len(Tracks)):
+        for track in range(0, len(Tracks)):
             trackFrame = DirectFrame(parent=self.invFrame, image=self.rowModel, scale=(1.0, 1.0, 1.1), pos=(0, 0.3, self.TrackYOffset + track * self.TrackYSpacing), image_color=(TrackColors[track][0],
              TrackColors[track][1],
              TrackColors[track][2],
@@ -238,7 +240,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
              TrackColors[track][2] * 0.9,
              1), text='0 / 0', text_scale=0.16, text_fg=(0, 0, 0, 0.8), text_align=TextNode.ACenter, text_pos=(0, -0.05)))
             self.buttons.append([])
-            for item in xrange(0, len(Levels[track])):
+            for item in range(0, len(Levels[track])):
                 button = DirectButton(parent=self.trackRows[track], image=(self.upButton,
                  self.downButton,
                  self.rolloverButton,
@@ -246,8 +248,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
                 button.bind(DGG.ENTER, self.showDetail, extraArgs=[track, item])
                 button.bind(DGG.EXIT, self.hideDetail)
                 self.buttons[track].append(button)
-
-        return
 
     def __handleSelection(self, track, level):
         if self.activateMode == 'purchaseDelete' or self.activateMode == 'bookDelete' or self.activateMode == 'storePurchaseDelete':
@@ -317,36 +317,30 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
          'bonus': damageBonusStr,
          'singleOrGroup': self.getSingleGroupStr(track, level)})
         if self.itemIsCredit(track, level):
-            mult = self.__battleCreditMultiplier
+            mult = self.__battleCreditMultiplier * self.__xpMultiplier
             if self.__respectInvasions:
                 mult *= self.__invasionCreditMultiplier
             self.setDetailCredit(track, (level + 1) * mult)
         else:
             self.setDetailCredit(track, None)
         self.detailCreditLabel.show()
-        return
 
     def setDetailCredit(self, track, credit):
         if credit != None:
             if self.toon.earnedExperience:
                 maxCredit = ExperienceCap - self.toon.earnedExperience[track]
-                credit = min(credit, maxCredit)
-            credit = int(credit * 10 + 0.5)
-            if credit % 10 == 0:
-                credit /= 10
-            else:
-                credit /= 10.0
+                if credit > maxCredit:
+                    credit = maxCredit
         if self.detailCredit == credit:
             return
         if credit != None:
-            self.detailCreditLabel['text'] = TTLocalizer.InventorySkillCredit % credit
+            self.detailCreditLabel['text'] = TTLocalizer.InventorySkillCredit % ('%g' % credit)
             if self.detailCredit == None:
                 self.detailCreditLabel['text_fg'] = (0.05, 0.14, 0.4, 1)
         else:
             self.detailCreditLabel['text'] = TTLocalizer.InventorySkillCreditNone
             self.detailCreditLabel['text_fg'] = (0.5, 0.0, 0.0, 1.0)
         self.detailCredit = credit
-        return
 
     def hideDetail(self, event = None):
         self.totalLabel.show()
@@ -416,7 +410,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             self.plantTreeDeactivateButtons()
         else:
             self.notify.error('No such mode as %s' % self.previousActivateMode)
-        return None
 
     def __activateButtons(self):
         if hasattr(self, 'activateMode'):
@@ -444,7 +437,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
                 self.plantTreeActivateButtons()
             else:
                 self.notify.error('No such mode as %s' % self.activateMode)
-        return None
 
     def bookActivateButtons(self):
         self.setPos(0, 0, 0.52)
@@ -462,10 +454,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.invFrame.setScale(1)
         self.deleteEnterButton['command'] = self.setActivateMode
         self.deleteEnterButton['extraArgs'] = ['bookDelete']
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -476,11 +468,8 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             else:
                 self.hideTrack(track)
 
-        return None
-
     def bookDeactivateButtons(self):
         self.deleteEnterButton['command'] = None
-        return
 
     def bookDeleteActivateButtons(self):
         messenger.send('enterBookDelete')
@@ -498,10 +487,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.invFrame.setScale(1)
         self.deleteExitButton['command'] = self.setActivateMode
         self.deleteExitButton['extraArgs'] = [self.previousActivateMode]
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -540,10 +529,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.setScale(0.75)
         self.deleteExitButton['command'] = self.setActivateMode
         self.deleteExitButton['extraArgs'] = [self.previousActivateMode]
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -557,16 +546,14 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             else:
                 self.hideTrack(track)
 
-        return
-
     def purchaseDeleteDeactivateButtons(self):
         self.invFrame.reparentTo(self)
         self.purchaseFrame.hide()
         self.deleteDeactivateButtons()
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -600,10 +587,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.setScale(0.75)
         self.deleteExitButton['command'] = self.setActivateMode
         self.deleteExitButton['extraArgs'] = [self.previousActivateMode]
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -616,8 +603,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def storePurchaseDeleteDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -642,10 +627,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.hide()
         self.deleteExitButton.setPos(-0.551, 0, -0.91)
         self.deleteExitButton.setScale(0.75)
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -655,8 +640,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def storePurchaseBrokeDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -670,10 +653,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.show()
         self.deleteExitButton['command'] = self.setActivateMode
         self.deleteExitButton['extraArgs'] = [self.previousActivateMode]
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -687,11 +670,8 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             else:
                 self.hideTrack(track)
 
-        return None
-
     def deleteDeactivateButtons(self):
         self.deleteExitButton['command'] = None
-        return
 
     def purchaseActivateButtons(self):
         self.reparentTo(aspect2d)
@@ -717,10 +697,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             self.deleteEnterButton.hide()
         self.deleteEnterButton['command'] = self.setActivateMode
         self.deleteEnterButton['extraArgs'] = ['purchaseDelete']
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -733,8 +713,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def purchaseDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -762,10 +740,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.setScale(0.75)
         self.deleteEnterButton['command'] = self.setActivateMode
         self.deleteEnterButton['extraArgs'] = ['storePurchaseDelete']
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -778,8 +756,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def storePurchaseDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -805,10 +781,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.setScale(0.75)
         if self.gagTutMode:
             self.deleteEnterButton.hide()
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -819,8 +795,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def purchaseBrokeDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -845,10 +819,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.deleteExitButton.setPos(-0.441, 0, -0.917)
         self.deleteExitButton.setScale(0.75)
         self.deleteEnterButton.hide()
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -858,8 +832,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def gagTutDisabledDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -901,10 +873,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             else:
                 self.fireButton['state'] = DGG.DISABLED
                 self.fireButton['image_color'] = Vec4(0.4, 0.4, 0.4, 1)
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level):
                         button.show()
@@ -921,7 +893,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
                 self.hideTrack(track)
 
         self.propBonusIval.loop()
-        return
 
     def battleDeactivateButtons(self):
         self.invFrame.reparentTo(self)
@@ -947,10 +918,10 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.sosButton.hide()
         self.passButton['text'] = TTLocalizer.lCancel
         self.passButton.show()
-        for track in xrange(len(Tracks)):
+        for track in range(len(Tracks)):
             if self.toon.hasTrackAccess(track):
                 self.showTrack(track)
-                for level in xrange(len(Levels[track])):
+                for level in range(len(Levels[track])):
                     button = self.buttons[track][level]
                     if self.itemIsUsable(track, level) and (level == 0 or self.toon.doIHaveRequiredTrees(track, level)):
                         button.show()
@@ -963,8 +934,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
 
             else:
                 self.hideTrack(track)
-
-        return
 
     def plantTreeDeactivateButtons(self):
         self.passButton['text'] = TTLocalizer.InventoryPass
@@ -989,7 +958,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             return 1
         else:
             return level < self.battleCreditLevel
-        return
 
     def getMax(self, track, level):
         if self.gagTutMode and (track not in (4, 5) or level > 0):
@@ -1085,13 +1053,13 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
     def hideTrack(self, trackIndex):
         self.trackNameLabels[trackIndex].show()
         self.trackBars[trackIndex].hide()
-        for levelIndex in xrange(0, len(Levels[trackIndex])):
+        for levelIndex in range(0, len(Levels[trackIndex])):
             self.buttons[trackIndex][levelIndex].hide()
 
     def showTrack(self, trackIndex):
         self.trackNameLabels[trackIndex].show()
         self.trackBars[trackIndex].show()
-        for levelIndex in xrange(0, len(Levels[trackIndex])):
+        for levelIndex in range(0, len(Levels[trackIndex])):
             self.buttons[trackIndex][levelIndex].show()
 
         curExp, nextExp = self.getCurAndNextExpValues(trackIndex)
@@ -1110,7 +1078,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         InventoryBase.InventoryBase.updateInvString(self, invString)
         if self.toon.isLocal():
             self.updateGUI()
-        return None
 
     def updateButton(self, track, level):
         button = self.buttons[track][level]
@@ -1135,7 +1102,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
             return
         self.updateTotalPropsText()
         if track == None and level == None:
-            for track in xrange(len(Tracks)):
+            for track in range(len(Tracks)):
                 curExp, nextExp = self.getCurAndNextExpValues(track)
                 if curExp >= UnpaidMaxSkills[track] and self.toon.getGameAccess() != OTPGlobals.AccessFull:
                     self.trackBars[track]['range'] = nextExp
@@ -1147,7 +1114,7 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
                     self.trackBars[track]['text'] = TTLocalizer.InventoryTrackExp % {'curExp': curExp,
                      'nextExp': nextExp}
                     self.trackBars[track]['value'] = curExp
-                for level in xrange(0, len(Levels[track])):
+                for level in range(0, len(Levels[track])):
                     self.updateButton(track, level)
 
         elif track != None and level != None:
@@ -1155,7 +1122,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         else:
             self.notify.error('Invalid use of updateGUI')
         self.__activateButtons()
-        return
 
     def getSingleGroupStr(self, track, level):
         if track == HEAL_TRACK:
@@ -1193,7 +1159,6 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.tutArrows = BlinkingArrows.BlinkingArrows(parent=self.battleFrame)
         battleModels.removeNode()
         self.battleFrame.hide()
-        return
 
     def loadPurchaseFrame(self):
         purchaseModels = loader.loadModel('phase_4/models/gui/purchase_gui')
@@ -1201,14 +1166,12 @@ class InventoryNew(InventoryBase.InventoryBase, DirectFrame):
         self.purchaseFrame.setX(-.06)
         self.purchaseFrame.hide()
         purchaseModels.removeNode()
-        return
 
     def loadStorePurchaseFrame(self):
         storePurchaseModels = loader.loadModel('phase_4/models/gui/gag_shop_purchase_gui')
         self.storePurchaseFrame = DirectFrame(relief=None, image=storePurchaseModels.find('**/gagShopPanel'), image_pos=(-0.21, 0, 0.18), parent=self)
         self.storePurchaseFrame.hide()
         storePurchaseModels.removeNode()
-        return
 
     def buttonLookup(self, track, level):
         return self.invModels[track][level]

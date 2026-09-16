@@ -1,14 +1,13 @@
-from pandac.PandaModules import CollisionSphere, CollisionTube, CollisionNode
-from pandac.PandaModules import NodePath, BitMask32
-from pandac.PandaModules import Point3, Point4, WaitInterval, Vec3, Vec4
+from panda3d.direct import WaitInterval
+from panda3d.core import BitMask32, CollideMask, CollisionNode, CollisionSphere, CollisionTube, NodePath, Point3, Point4, Vec3, Vec4
 from direct.interval.IntervalGlobal import LerpScaleInterval, LerpColorScaleInterval, LerpPosInterval, LerpFunc
 from direct.interval.IntervalGlobal import Func, Sequence, Parallel
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import Task
 from toontown.toonbase import ToontownGlobals
-import CogdoMazeGameGlobals as Globals
-from CogdoGameExit import CogdoGameExit
-import CogdoUtil
+from . import CogdoMazeGameGlobals as Globals
+from .CogdoGameExit import CogdoGameExit
+from . import CogdoUtil
 import math
 import random
 

@@ -1,4 +1,3 @@
-from panda3d.core import CollisionNode, CollisionSphere
 from toontown.safezone import SafeZoneLoader
 from toontown.safezone import TTPlayground
 from toontown.toonbase import ToontownGlobals
@@ -16,11 +15,13 @@ class TTSafeZoneLoader(SafeZoneLoader.SafeZoneLoader):
         self.safeZoneStorageDNAFile = 'phase_4/dna/storage_TT_sz.pdna'
 
     def load(self):
+        #if ToontownGlobals.ToontownCentral in base.cr.zoneManager.modifiedZones:
+        #    self.dnaFile, self.safeZoneStorageDNAFile = base.cr.zoneManager.getDNAFiles(ToontownGlobals.ToontownCentral)
         SafeZoneLoader.SafeZoneLoader.load(self)
 
-        self.birdSound = map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg',
+        self.birdSound = list(map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg',
                                             'phase_4/audio/sfx/SZ_TC_bird2.ogg',
-                                            'phase_4/audio/sfx/SZ_TC_bird3.ogg'])
+                                            'phase_4/audio/sfx/SZ_TC_bird3.ogg']))
         bank = self.geom.find('**/*toon_landmark_TT_bank_DNARoot')
         doorTrigger = bank.find('**/door_trigger*')
         doorTrigger.setY(doorTrigger.getY() - 1.5)

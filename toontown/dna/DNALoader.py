@@ -1,33 +1,34 @@
-from pandac.PandaModules import *
+from panda3d.core import LVector3f, NodePath, PandaNode
 from direct.distributed.PyDatagramIterator import PyDatagramIterator
 from direct.distributed.PyDatagram import PyDatagram
 from direct.stdpy.file import *
 
-import DNAUtil
-import DNAError
-import DNAAnimBuilding
-import DNAAnimProp
-import DNACornice
-import DNADoor
-import DNAFlatBuilding
-import DNAFlatDoor
-import DNAGroup
-import DNAInteractiveProp
-import DNALandmarkBuilding
-import DNANode
-import DNAProp
-import DNASign
-import DNASignBaseline
-import DNASignGraphic
-import DNASignText
-import DNAStreet
-import DNAVisGroup
-import DNAWall
-import DNAWindows
-import DNABattleCell
-import DNASuitPoint
+from otp.util.Compressor import Compressor
 
-import zlib
+from . import DNAUtil
+from . import DNAError
+from . import DNAAnimBuilding
+from . import DNAAnimProp
+from . import DNACornice
+from . import DNADoor
+from . import DNAFlatBuilding
+from . import DNAFlatDoor
+from . import DNAGroup
+from . import DNAInteractiveProp
+from . import DNALandmarkBuilding
+from . import DNANode
+from . import DNAProp
+from . import DNASign
+from . import DNASignBaseline
+from . import DNASignGraphic
+from . import DNASignText
+from . import DNAStreet
+from . import DNAVisGroup
+from . import DNAWall
+from . import DNAWindows
+from . import DNABattleCell
+from . import DNASuitPoint
+
 import sys
 sys.setrecursionlimit(10000)
 
@@ -76,23 +77,23 @@ class DNALoader:
     def handleStorageData(self, dgi):
         # Catalog Codes
         numRoots = dgi.getUint16()
-        for _ in xrange(numRoots):
+        for _ in range(numRoots):
             root = DNAUtil.dgiExtractString8(dgi)
             numCodes = dgi.getUint8()
-            for i in xrange(numCodes):
+            for i in range(numCodes):
                 code = DNAUtil.dgiExtractString8(dgi)
                 self.dnaStorage.storeCatalogCode(root, code)
 
         # Textures
         numTextures = dgi.getUint16()
-        for _ in xrange(numTextures):
+        for _ in range(numTextures):
             code = DNAUtil.dgiExtractString8(dgi)
             filename = DNAUtil.dgiExtractString8(dgi)
             self.dnaStorage.storeTexture(code, loader.loadTexture(filename, okMissing=True))
 
         # Fonts
         numFonts = dgi.getUint16()
-        for _ in xrange(numFonts):
+        for _ in range(numFonts):
             code = DNAUtil.dgiExtractString8(dgi)
             filename = DNAUtil.dgiExtractString8(dgi)
             self.dnaStorage.storeFont(code, loader.loadFont(filename))
@@ -104,7 +105,7 @@ class DNALoader:
 
         # Blocks
         numBlocks = dgi.getUint16()
-        for _ in xrange(numBlocks):
+        for _ in range(numBlocks):
             number = dgi.getUint8()
             zone = dgi.getUint16()
             title = DNAUtil.dgiExtractString8(dgi)
@@ -114,30 +115,30 @@ class DNALoader:
 
         # Suit Points
         numPoints = dgi.getUint16()
-        for _ in xrange(numPoints):
+        for _ in range(numPoints):
             index = dgi.getUint16()
             pointType = dgi.getUint8()
-            x, y, z = (dgi.getInt32() / 100.0 for i in xrange(3))
+            x, y, z = (dgi.getInt32() / 100.0 for i in range(3))
             graph = dgi.getUint8()
             landmarkBuildingIndex = dgi.getInt8()
             self.dnaStorage.storeSuitPoint(DNASuitPoint.DNASuitPoint(index, pointType, LVector3f(x, y, z), landmarkBuildingIndex))
 
         # Suit Edges
         numEdges = dgi.getUint16()
-        for _ in xrange(numEdges):
+        for _ in range(numEdges):
             index = dgi.getUint16()
             numPoints = dgi.getUint16()
-            for i in xrange(numPoints):
+            for i in range(numPoints):
                 endPoint = dgi.getUint16()
                 zoneId = dgi.getUint16()
                 self.dnaStorage.storeSuitEdge(index, endPoint, zoneId)
 
         # Battle Cells
         numCells = dgi.getUint16()
-        for _ in xrange(numCells):
+        for _ in range(numCells):
             w = dgi.getUint8()
             h = dgi.getUint8()
-            x, y, z = (dgi.getInt32() / 100.0 for i in xrange(3))
+            x, y, z = (dgi.getInt32() / 100.0 for i in range(3))
             self.dnaStorage.storeBattleCell(DNABattleCell.DNABattleCell(w, h, LVector3f(x, y, z)))
 
     def handleCompData(self, dgi):
@@ -156,7 +157,7 @@ class DNALoader:
             elif propCode in compClassTable:
                 propClass = compClassTable[propCode]
 
-                if propClass.__init__.func_code.co_argcount > 1:
+                if propClass.__init__.__code__.co_argcount > 1:
                     newComp = propClass('unnamed_comp')
                 else:
                     newComp = propClass()
@@ -185,7 +186,7 @@ class DNALoader:
         if target is None:
             return
         numNodes = dgi.getUint16()
-        for _ in xrange(numNodes):
+        for _ in range(numNodes):
             code = DNAUtil.dgiExtractString8(dgi)
             path = DNAUtil.dgiExtractString8(dgi)
             node = DNAUtil.dgiExtractString8(dgi)
@@ -199,13 +200,13 @@ class DNALoader:
         dgi = PyDatagramIterator(dg)
         dnaFile.close()
         header = dgi.extractBytes(5)
-        if header != 'PDNA\n':
+        if header != b'PDNA\n':
             raise DNAError.DNAError('Invalid header: %s' % (header))
         compressed = dgi.getBool()
         dgi.skipBytes(1)
         if compressed:
             data = dgi.getRemainingBytes()
-            data = zlib.decompress(data)
+            data = Compressor.decompress(data)
             dg = PyDatagram(data)
             dgi = PyDatagramIterator(dg)
         self.handleStorageData(dgi)

@@ -19,12 +19,15 @@ class FriendManagerAI(DistributedObjectAI):
         context = self.currentContext
         self.requests[context] = [ [ avId, requested ], 'friendQuery']
         self.currentContext += 1
+        for watchedId in (avId, requested):
+            self.acceptOnce(self.air.getAvatarExitEvent(watchedId), self.__handleAvatarExit, extraArgs=[watchedId])
         self.sendUpdateToAvatarId(requested, 'inviteeFriendQuery', [avId, self.air.doId2do[avId].getName(), self.air.doId2do[avId].getDNAString(), context])
 
     def cancelFriendQuery(self, context):
         avId = self.air.getAvatarIdFromSender()
         if not context in self.requests:
-            self.air.writeServerEvent('suspicious', avId, 'Player tried to cancel a request that doesn\'t exist!')
+            # The request may already have been cleaned up (ex. the invitee logged out)
+            self.notify.debug('%s tried to cancel request %s that no longer exists.' % (avId, context))
             return
         if avId != self.requests[context][0][0]:
             self.air.writeServerEvent('suspicious', avId, 'Player tried to cancel someone elses request!')
@@ -98,6 +101,15 @@ class FriendManagerAI(DistributedObjectAI):
             self.air.writeServerEvent('suspicious', avId, 'Player tried to cancel non-cancelled request!')
             return
         del self.requests[context]
+
+    def __handleAvatarExit(self, avId):
+        for context, ((inviterId, inviteeId), state) in list(self.requests.items()):
+            if avId == inviteeId:
+                del self.requests[context]
+            elif avId == inviterId and state != 'cancelled':
+                # Close the invitee's dialog
+                self.requests[context][1] = 'cancelled'
+                self.sendUpdateToAvatarId(inviteeId, 'inviteeCancelFriendQuery', [context])
 
 
     def friendConsidering(self, todo0, todo1):

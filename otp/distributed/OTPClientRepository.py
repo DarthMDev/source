@@ -1,12 +1,16 @@
-import __builtin__
+import builtins
+import enum
 import gc
+import json
 import os
 import sys
 import time
 import types
 import hashlib
-
 import yaml
+from panda3d.direct import CConnectionRepository
+from panda3d.core import ConfigVariableBool, ConfigVariableDouble, ConfigVariableInt, ConfigVariableString, Datagram, DatagramIterator, HTTPClient, MemoryUsage, NodePath, Notify, StringStream, hashPrcVariables, ostream
+
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed import DistributedSmoothNode
 from direct.distributed.ClientRepositoryBase import ClientRepositoryBase
@@ -20,9 +24,9 @@ from direct.showbase import PythonUtil, GarbageReport
 from direct.showbase.ContainerLeakDetector import ContainerLeakDetector
 from direct.showbase.GarbageReportScheduler import GarbageReportScheduler
 from direct.task import Task
-from pandac.PandaModules import *
 
 from otp.ai.GarbageLeakServerEventAggregator import GarbageLeakServerEventAggregator
+from otp.ai.MagicWordGlobal import spellbook
 from otp.avatar.DistributedPlayer import DistributedPlayer
 from otp.distributed import OtpDoGlobals
 from otp.distributed.OtpDoGlobals import *
@@ -40,16 +44,22 @@ from toontown.mainmenu.MainMenu import MainMenu
 from toontown.server import ServerGlobals
 from toontown.servermenu.ServerMenu import ServerMenu
 from toontown.toontowngui.LocalServerStarter import LocalServerStarter
-from toontown.toonbase import TTLocalizer
+from toontown.toonbase import EventGlobals, TTLocalizer, ToontownGlobals
 
+if not __debug__:
+    def exceptionLogged(append = True):
+        return lambda method: method
+
+
+class EWishNameResult(enum.IntEnum):
+    FAILURE = 0
+    PENDING_APPROVAL = 1
+    APPROVED = 2
+    REJECTED = 3
 
 class OTPClientRepository(ClientRepositoryBase):
     notify = directNotify.newCategory('OTPClientRepository')
     avatarLimit = 6
-    WishNameResult = Enum(['Failure',
-     'PendingApproval',
-     'Approved',
-     'Rejected'])
     whiteListChatEnabled = 1 # TODO: Have server set this on localAvatar on login.
 
     def __init__(self, serverVersion, launcher = None, playGame = None):
@@ -58,42 +68,60 @@ class OTPClientRepository(ClientRepositoryBase):
         self.launcher = launcher
         base.launcher = launcher
         self.__currentAvId = 0
-        self.productName = config.GetString('product-name', 'DisneyOnline-US')
+        self.productName = ConfigVariableString('product-name', 'DisneyOnline-US').getValue()
         self.createAvatarClass = None
         self.systemMessageSfx = None
         self.blue = None
         base.isLoggingOut = None
 
-        self.failureSfx = base.loadSfx('phase_4/audio/sfx/MG_sfx_travel_game_no_bonus_2.ogg')
+        self.failureSfx = base.loader.loadSfx('phase_4/audio/sfx/MG_sfx_travel_game_no_bonus_2.ogg')
 
         self.playToken = None
+        # All 'None' when the game was started manually, 
+        # which is what keeps the main menu the normal way in
+        self.serverMode = None
+        self.profile = None
+        self.profileKey = None
         if self.launcher:
             self.playToken = self.launcher.getPlayToken()
+            self.serverMode = self.launcher.getServerMode()
+            self.profile = self.launcher.getProfile()
+            self.profileKey = self.launcher.getProfileKey()
+
+        # The launcher's session starts connecting while the intro cinematic is
+        # still on screen. Only production plays one; everywhere else the
+        # launcher has already settled what the cinematic used to lead up to.
+        self.introPending = False
+        self.warmupAvList = None
+        self.warmupBox = None
 
         self.wantMagicWords = False
+
+        # Filled in by acceptLogin. Until the server has spoken, nothing is
+        # treated as official.
+        self.serverFlags = {}
 
         if self.launcher and hasattr(self.launcher, 'http'):
             self.http = self.launcher.http
         else:
             self.http = HTTPClient()
 
-        self.accountOldAuth = config.GetBool('account-old-auth', 0)
+        self.accountOldAuth = ConfigVariableBool('account-old-auth', False).getValue()
 
-        self.accountOldAuth = config.GetBool('%s-account-old-auth' % process,
-                                             self.accountOldAuth)
+        self.accountOldAuth = ConfigVariableBool(f'{process}-account-old-auth', self.accountOldAuth).getValue()
 
         self.loginInterface = LoginTTIAccount.LoginTTIAccount(self)
 
 
-        self.secretChatAllowed = base.config.GetBool('allow-secret-chat', True)
-        self.openChatAllowed = base.config.GetBool('allow-open-chat', False)
+        self.secretChatAllowed = ConfigVariableBool('allow-secret-chat', True).getValue()
+        self.openChatAllowed = ConfigVariableBool('allow-open-chat', False).getValue()
 
-        self.secretChatNeedsParentPassword = base.config.GetBool('secret-chat-needs-parent-password', 0)
+        self.secretChatNeedsParentPassword = ConfigVariableBool('secret-chat-needs-parent-password', False).getValue()
 
-        self.parentPasswordSet = base.config.GetBool('parent-password-set', True)
+        self.parentPasswordSet = ConfigVariableBool('parent-password-set', True).getValue()
 
 
-        self.userSignature = base.config.GetString('signature', 'none')
+        self.userSignature = ConfigVariableString('signature', 'none').getValue()
 
         self.freeTimeExpiresAt = -1
         self.__isPaid = 1
@@ -107,19 +135,19 @@ class OTPClientRepository(ClientRepositoryBase):
 
         self.timeManager = None
 
-        if config.GetBool('detect-leaks', 0) or config.GetBool('client-detect-leaks', 0):
+        if ConfigVariableBool('detect-leaks', False).getValue() or ConfigVariableBool('client-detect-leaks', False).getValue():
             self.startLeakDetector()
 
-        if config.GetBool('detect-messenger-leaks', 0) or config.GetBool('ai-detect-messenger-leaks', 0):
+        if ConfigVariableBool('detect-messenger-leaks', False).getValue() or ConfigVariableBool('ai-detect-messenger-leaks', False).getValue():
             self.messengerLeakDetector = MessengerLeakDetector.MessengerLeakDetector('client messenger leak detector')
 
-            if config.GetBool('leak-messages', 0):
+            if ConfigVariableBool('leak-messages', False).getValue():
                 MessengerLeakDetector._leakMessengerObject()
 
-        if config.GetBool('run-garbage-reports', 0) or config.GetBool('client-run-garbage-reports', 0):
+        if ConfigVariableBool('run-garbage-reports', False).getValue() or ConfigVariableBool('client-run-garbage-reports', False).getValue():
             noneValue = -1.0
-            reportWait = config.GetFloat('garbage-report-wait', noneValue)
-            reportWaitScale = config.GetFloat('garbage-report-wait-scale', noneValue)
+            reportWait = ConfigVariableDouble('garbage-report-wait', noneValue).getValue()
+            reportWaitScale = ConfigVariableDouble('garbage-report-wait-scale', noneValue).getValue()
             if reportWait == noneValue:
                 reportWait = 60.0 * 2.0
             if reportWaitScale == noneValue:
@@ -127,13 +155,13 @@ class OTPClientRepository(ClientRepositoryBase):
             self.garbageReportScheduler = GarbageReportScheduler(waitBetween=reportWait,
                                                                  waitScale=reportWaitScale)
 
-        self._proactiveLeakChecks = config.GetBool('proactive-leak-checks', 1) or config.GetBool('client-proactive-leak-checks', 1)
-        self._crashOnProactiveLeakDetect = config.GetBool('crash-on-proactive-leak-detect', 1)
+        self._proactiveLeakChecks = ConfigVariableBool('proactive-leak-checks', True).getValue() or ConfigVariableBool('client-proactive-leak-checks', True).getValue()
+        self._crashOnProactiveLeakDetect = ConfigVariableBool('crash-on-proactive-leak-detect', True).getValue()
         self.activeDistrictMap = {}
         self.telemetryLimiter = TelemetryLimiter()
         self.serverVersion = serverVersion
         self.waitingForDatabase = None
-        self.mainMenu = MainMenu()
+        self.mainMenu = None
         self.serverMenu = ServerMenu()
         self.localServerStarter = LocalServerStarter()
 
@@ -149,6 +177,7 @@ class OTPClientRepository(ClientRepositoryBase):
                   self.exitConnect, [
                       'noConnection',
                       'serverMenu',
+                      'waitForGameList',
                       'failedToConnect',
                       'failedToGetServerConstants']),
             State('createAccount',
@@ -214,7 +243,7 @@ class OTPClientRepository(ClientRepositoryBase):
                   self.exitNoConnection, [
                       'connect',
                       'mainMenu',
-                      'serverMenu'
+                      'serverMenu',
                       'shutdown']),
             State('afkTimeout',
                   self.enterAfkTimeout,
@@ -331,13 +360,14 @@ class OTPClientRepository(ClientRepositoryBase):
             'gameOff', 'gameOff')
         self.loginFSM.getStateNamed('playingGame').addChild(self.gameFSM)
         self.loginFSM.enterInitialState()
+        self.afkDialog = None
         self.music = None
         self.gameDoneEvent = 'playGameDone'
         self.playGame = playGame(self.gameFSM, self.gameDoneEvent)
         self.shardListHandle = None
         self.uberZoneInterest = None
-        self.wantSwitchboard = config.GetBool('want-switchboard', 0)
-        self.wantSwitchboardHacks = base.config.GetBool('want-switchboard-hacks', 0)
+        self.wantSwitchboard = ConfigVariableBool('want-switchboard', False).getValue()
+        self.wantSwitchboardHacks = ConfigVariableBool('want-switchboard-hacks', False).getValue()
 
         self.__pendingGenerates = {}
         self.__pendingMessages = {}
@@ -354,11 +384,11 @@ class OTPClientRepository(ClientRepositoryBase):
         self.dclassesByNumber = {}
         self.hashVal = 0
 
-        if isinstance(dcFileNames, types.StringTypes):
+        if isinstance(dcFileNames, (str,)):
             # If we were given a single string, make it a list.
             dcFileNames = [dcFileNames]
 
-        if hasattr(__builtin__, 'dcData'):
+        if hasattr(builtins, 'dcData'):
             dcFileNames = [StringStream(dcData)]
 
         dcImports = {}
@@ -382,7 +412,9 @@ class OTPClientRepository(ClientRepositoryBase):
 
             # Generate a Astron config file.
             path = os.path.join(base.tempDir, 'server.yml')
-            data = ServerGlobals.getAstronConfig(dcFileNames=(dcFilePath,), version=version)
+            data = ServerGlobals.getAstronConfig(
+                dcFileNames=(dcFilePath,), version=version,
+                port=ServerGlobals.getHostPort())
             with open(path, 'w') as f:
                 yaml.dump(data, f)
 
@@ -445,7 +477,7 @@ class OTPClientRepository(ClientRepositoryBase):
                         continue
                     classDef = getattr(classDef, className)
 
-                if type(classDef) != types.ClassType and type(classDef) != types.TypeType:
+                if type(classDef) != type and type(classDef) != type:
                     self.notify.error('Symbol %s is not a class name.' % className)
                 else:
                     dclass.setClassDef(classDef)
@@ -510,7 +542,7 @@ class OTPClientRepository(ClientRepositoryBase):
     def startLeakDetector(self):
         if hasattr(self, 'leakDetector'):
             return False
-        firstCheckDelay = config.GetFloat('leak-detector-first-check-delay', 2 * 60.0)
+        firstCheckDelay = ConfigVariableDouble('leak-detector-first-check-delay', 2 * 60.0).getValue()
         self.leakDetector = ContainerLeakDetector('client container leak detector', firstCheckDelay=firstCheckDelay)
         self.objectTypesLeakDetector = LeakDetectors.ObjectTypesLeakDetector()
         self.garbageLeakDetector = LeakDetectors.GarbageLeakDetector()
@@ -538,10 +570,11 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def enterConnect(self, serverList):
         base.initialEntry = False
+        self.serverFlags = {}
         self.serverList = serverList
         dialogClass = OTPGlobals.getGlobalDialogClass()
         self.connectingBox = dialogClass(message=OTPLocalizer.CRConnecting)
-        if base.isHosting:
+        if base.isHosting or self.introPending:
             self.connectingBox.hide()
         self.renderFrame()
         self.handler = self.handleConnecting
@@ -561,6 +594,9 @@ class OTPClientRepository(ClientRepositoryBase):
             self.handleMessageType(msgtype, di)
 
     def failedToConnect(self, statusCode, statusString):
+        if self.warmupInterrupted():
+            return
+
         self.loginFSM.request('failedToConnect', [statusCode, statusString])
 
     def exitConnect(self):
@@ -587,7 +623,7 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def gotoFirstScreen(self):
         self.startReaderPollTask()
-        if config.GetBool('want-heartbeat', True):
+        if ConfigVariableBool('want-heartbeat', True).getValue():
             self.startHeartbeat()
 
         # Leave this commented out until feature/main-menu is ready to be merged into master
@@ -596,6 +632,318 @@ class OTPClientRepository(ClientRepositoryBase):
         # else:
             # self.loginFSM.request('login')
         base.initialEntry = True
+
+        # Started from the launcher
+        if self.playToken:
+            self.__performTokenLogin()
+            return
+
+        # The launcher holds the player's username and password, so there is nothing to ask for here either:
+        if self.profile and self.profileKey:
+            self.__performProfileLogin()
+            return
+
+        self.loginFSM.request('serverMenu')
+
+    def isProductionServer(self):
+        """
+        True when the server we are logged into told us it is the official one.
+        """
+        return bool(self.serverFlags.get('official'))
+
+    def setServerFlags(self, raw):
+        """
+        Applies the flags set at login.
+        """
+        try:
+            flags = json.loads(raw) if raw else {}
+        except ValueError:
+            self.notify.warning('Server sent unreadable flags %r.' % raw)
+            flags = {}
+
+        if not isinstance(flags, dict):
+            self.notify.warning('Server sent non-dict flags %r.' % raw)
+            flags = {}
+
+        self.serverFlags = flags
+
+        if self.isProductionServer():
+            spellbook.useLiveAccess()
+
+    def isLauncherSession(self):
+        """
+        True when the launcher picked the server and logged us in, whichever one
+        it picked.
+        """
+        return self.serverMode is not None
+
+    def requestMenuOrExit(self):
+        """
+        The menu is how a client started from source backs out. A launcher
+        session has the launcher behind it and that is where the server and the
+        account get chosen now, so there we quit back to it instead.
+        """
+        if self.isLauncherSession():
+            self.loginFSM.request('shutdown')
+        else:
+            self.loginFSM.request('mainMenu')
+
+    def startLauncherSession(self):
+        """
+        Connects to the server the launcher picked, skipping the main menu.
+        """
+        mode = self.serverMode
+
+        if mode == 'local':
+            self.__startLocalServer()
+            return True
+
+        if mode in ('direct', 'production'):
+            address = self.launcher.getGameServer()
+            if not address:
+                self.notify.warning(
+                    'TTI_SERVER_MODE is %r but TTI_GAMESERVER is unset; '
+                    'showing the menu instead.' % mode)
+                return False
+            base.isHosting = False
+            self.__connectToAddress(address)
+            return True
+
+        if mode:
+            self.notify.warning('Unknown TTI_SERVER_MODE %r; showing the menu.' % mode)
+
+        return False
+
+    def startWarmupSession(self):
+        """
+        Starts the launcher's session while the intro is still playing.
+        """
+        if self.serverMode not in ('direct', 'production'):
+            return False
+
+        if not ConfigVariableBool('want-connection-warmup', True).getValue():
+            return False
+
+        self.notify.info('Connecting behind the intro.')
+
+        self.introPending = True
+        if not self.startLauncherSession():
+            self.introPending = False
+            return False
+
+        return self.introPending
+
+    def finishWarmupSession(self):
+        """
+        Picks the warmed-up session back up when the player clicks through the
+        intro.
+        """
+        if not self.introPending:
+            return False
+
+        self.introPending = False
+
+        if self.warmupAvList is not None:
+            avList, self.warmupAvList = self.warmupAvList, None
+            base.transitions.noFade()
+            self.loginFSM.request('chooseAvatar', [avList])
+        else:
+            self.__waitOutWarmup()
+
+        return True
+
+    def warmupInterrupted(self):
+        """
+        True when the session warming up behind the intro ran into trouble.
+        """
+        if not self.introPending:
+            return False
+
+        self.notify.info('The warm-up connection failed; retrying after the intro.')
+        self.introPending = False
+        self.warmupAvList = None
+        self.cleanupWaitingForDatabase()
+        self.stopReaderPollTask()
+        self.sendDisconnect()
+        self.resetInterestStateForConnectionLoss()
+        self.loginFSM.forceTransition('loginOff')
+        return True
+
+    def __waitOutWarmup(self):
+        dialogClass = OTPGlobals.getGlobalDialogClass()
+        self.warmupBox = dialogClass(message=OTPLocalizer.CRConnecting)
+        self.warmupBox.show()
+        self.accept('connectionIssue', self.__cleanupWarmupBox)
+        self.renderFrame()
+
+    def __cleanupWarmupBox(self):
+        self.ignore('connectionIssue')
+        if self.warmupBox is not None:
+            self.warmupBox.cleanup()
+            self.warmupBox = None
+            base.transitions.noFade()
+
+    def __startLocalServer(self):
+        """
+        Brings up the player's own server, or joins the one already running.
+        """
+        if self.localServerStarter.isServerAlive():
+            self.notify.info('A local server is already running; connecting to it.')
+            base.isHosting = False
+            base.connectToServer('127.0.0.1', self.localServerStarter.getPort())
+        else:
+            self.notify.info('Starting a local server.')
+            self.__watchLocalServer()
+            self.localServerStarter.demand('Start')
+
+    def __watchLocalServer(self):
+        """
+        # HostStartScreen normally listens for the starter's events, but if we skip the main menu
+        # (like when launched directly), nothing is watching. This would leave users waiting 
+        # at a black screen with no feedback.
+        """
+        self.__closeLocalServerDialog()
+
+        dialogClass = OTPGlobals.getDialogClass()
+        self.localServerDialog = dialogClass(
+            text=TTLocalizer.LocalServerStarting,
+            dialogName='LocalServerStarting',
+            style=OTPDialog.NoButtons)
+        self.localServerDialog.show()
+
+        self.accept(EventGlobals.LocalServerStarterProcess,
+                    self.__handleLocalServerProcess)
+        self.accept(EventGlobals.LocalServerStarterDone,
+                    self.__handleLocalServerDone)
+        self.accept(EventGlobals.LocalServerStarterFailed,
+                    self.__handleLocalServerFailed)
+        self.accept(EventGlobals.LocalServerStarterFailedRunning,
+                    self.__handleLocalServerFailedRunning)
+
+    def __ignoreLocalServer(self):
+        self.ignore(EventGlobals.LocalServerStarterProcess)
+        self.ignore(EventGlobals.LocalServerStarterDone)
+        self.ignore(EventGlobals.LocalServerStarterFailed)
+        self.ignore(EventGlobals.LocalServerStarterFailedRunning)
+
+    def __closeLocalServerDialog(self):
+        dialog = getattr(self, 'localServerDialog', None)
+
+        if dialog is not None:
+            dialog.cleanup()
+            self.localServerDialog = None
+
+    def __handleLocalServerProcess(self, processName):
+        if getattr(self, 'localServerDialog', None) is None:
+            return
+
+        self.localServerDialog['text'] = (
+            TTLocalizer.StartingServerDev % processName
+            if __debug__
+            else TTLocalizer.StartingServerLive)
+
+    def __handleLocalServerDone(self):
+        self.__ignoreLocalServer()
+        self.__closeLocalServerDialog()
+
+    def __handleLocalServerFailed(self, processName):
+        self.__localServerFailure(TTLocalizer.StartingFailed % processName)
+
+    def __handleLocalServerFailedRunning(self):
+        self.__localServerFailure(TTLocalizer.LocalServerRunningAlready)
+
+    def __localServerFailure(self, message):
+        """
+        The server didn't come up. Say which part failed, then hand over the menu
+        rather than sitting on a black screen.
+        """
+        self.__ignoreLocalServer()
+        self.__closeLocalServerDialog()
+        self.notify.warning('Local server failed to start: %s' % message)
+
+        dialogClass = OTPGlobals.getGlobalDialogClass()
+        self.localServerErrorBox = dialogClass(
+            message=message, doneEvent='localServerFailedAck',
+            style=OTPDialog.Acknowledge)
+        self.localServerErrorBox.show()
+        self.acceptOnce('localServerFailedAck', self.__handleLocalServerFailedAck)
+
+    def __handleLocalServerFailedAck(self):
+        self.localServerErrorBox.cleanup()
+        del self.localServerErrorBox
+        self.loginFSM.request('mainMenu')
+
+    def __connectToAddress(self, address):
+        """Splits a `host` or `host:port` the way the join screen does."""
+        host, separator, port = address.partition(':')
+
+        if separator and port:
+            try:
+                base.connectToServer(host, int(port))
+                return
+            except ValueError:
+                self.notify.warning(
+                    'Bad port in TTI_GAMESERVER %r; using the default.' % address)
+
+        base.connectToServer(host)
+
+    def __performTokenLogin(self):
+        """
+        Trades the launcher's play token for a login, skipping the LoginScreen.
+        """
+        self.notify.info('Logging in with the launcher\'s play token.')
+        self.__acceptLauncherLogin()
+        self.csm.performTokenLogin(EventGlobals.LoginDone, self.playToken)
+        self.waitForDatabaseTimeout(requestName='WaitOnCSMTokenLoginResponse')
+
+    def __performProfileLogin(self):
+        """
+        Logs in with the username and password the launcher keeps, on a server that
+        owns its own accounts. The server creates the account the first time it
+        sees the username.
+        """
+        self.notify.info('Logging in as %r.' % self.profile)
+        self.__acceptLauncherLogin()
+        password = hashlib.sha512(self.profileKey.encode('utf-8')).hexdigest()
+        self.csm.performLogin(EventGlobals.LoginDone, self.profile, password)
+        self.waitForDatabaseTimeout(requestName='WaitOnCSMProfileLoginResponse')
+
+    def __acceptLauncherLogin(self):
+        self.acceptOnce(EventGlobals.LoginDone, self.__handleLauncherLoginDone)
+        self.acceptOnce(EventGlobals.LoginError, self.__handleLauncherLoginError)
+
+    def __handleLauncherLoginDone(self, doneStatus):
+        self.ignore(EventGlobals.LoginError)
+        self.handleLoginDone(doneStatus)
+
+    def __handleLauncherLoginError(self, errorCode):
+        """
+        If the launch token is used or expired, show an error and redirect to login.
+        """
+        self.ignore(EventGlobals.LoginDone)
+        self.notify.warning('Launcher login was rejected (%s).' % errorCode)
+        if self.warmupInterrupted():
+            return
+
+        self.cleanupWaitingForDatabase()
+        self.playToken = None
+        self.profile = None
+        self.profileKey = None
+
+        message = TTLocalizer.LoginError.get(
+            errorCode, TTLocalizer.LoginError[ToontownGlobals.CSM_LOGIN_ERROR_TOKEN_INVALID])
+
+        dialogClass = OTPGlobals.getGlobalDialogClass()
+        self.launcherLoginErrorBox = dialogClass(
+            message=message, doneEvent='launcherLoginErrorAck',
+            style=OTPDialog.Acknowledge)
+        self.launcherLoginErrorBox.show()
+        self.accept('launcherLoginErrorAck', self.__handleLauncherLoginErrorAck)
+
+    def __handleLauncherLoginErrorAck(self):
+        self.ignore('launcherLoginErrorAck')
+        self.launcherLoginErrorBox.cleanup()
+        del self.launcherLoginErrorBox
         self.loginFSM.request('serverMenu')
 
     def handleLoginDone(self, doneStatus):
@@ -684,7 +1032,7 @@ class OTPClientRepository(ClientRepositoryBase):
             self.loginFSM.request('connect', [self.serverList])
             messenger.send('connectionRetrying')
         elif doneStatus == 'cancel':
-            self.loginFSM.request('mainMenu')
+            self.requestMenuOrExit()
         else:
             self.notify.error('Unrecognized doneStatus: ' + str(doneStatus))
 
@@ -755,7 +1103,7 @@ class OTPClientRepository(ClientRepositoryBase):
     def waitForGetGameListResponse(self):
         if self.isGameListCorrect():
             self.loginFSM.request('waitForShardList')
-        else:
+        elif not self.warmupInterrupted():
             self.loginFSM.request('missingGameRootObject')
 
     def isGameListCorrect(self):
@@ -778,7 +1126,7 @@ class OTPClientRepository(ClientRepositoryBase):
         if doneStatus == 'ok':
             self.loginFSM.request('waitForGameList')
         elif doneStatus == 'cancel':
-            self.loginFSM.request('mainMenu')
+            self.requestMenuOrExit()
         else:
             self.notify.error('Unrecognized doneStatus: ' + str(doneStatus))
 
@@ -798,12 +1146,12 @@ class OTPClientRepository(ClientRepositoryBase):
     def _wantShardListComplete(self):
         if self._shardsAreReady():
             self.loginFSM.request('waitForAvatarList')
-        else:
+        elif not self.warmupInterrupted():
             self.loginFSM.request('noShards')
 
     def _shardsAreReady(self):
-        maxPop = config.GetInt('shard-mid-pop', 300)
-        for shard in self.activeDistrictMap.values():
+        maxPop = ConfigVariableInt('shard-mid-pop', 300).getValue()
+        for shard in list(self.activeDistrictMap.values()):
             if shard.available:
                 if shard.avatarCount < maxPop:
                     return True
@@ -828,7 +1176,7 @@ class OTPClientRepository(ClientRepositoryBase):
             messenger.send('connectionRetrying')
             self.loginFSM.request('noShardsWait')
         elif doneStatus == 'cancel':
-            self.loginFSM.request('mainMenu')
+            self.requestMenuOrExit()
         else:
             self.notify.error('Unrecognized doneStatus: ' + str(doneStatus))
 
@@ -912,7 +1260,7 @@ class OTPClientRepository(ClientRepositoryBase):
         if self.lostConnectionBox.doneStatus == 'ok' and self.loginInterface.supportsRelogin():
             self.loginFSM.request('connect', [self.serverList])
         else:
-            self.loginFSM.request('mainMenu')
+            self.requestMenuOrExit()
 
     def exitNoConnection(self):
         self.handler = None
@@ -934,7 +1282,6 @@ class OTPClientRepository(ClientRepositoryBase):
             self.afkDialog.cleanup()
             self.afkDialog = None
         self.handler = None
-        return
 
     def enterPeriodTimeout(self):
         self.sendSetAvatarIdMsg(0)
@@ -969,6 +1316,13 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def handleAvatarsList(self, avatars):
         self.avList = avatars
+
+        if self.introPending:
+            self.cleanupWaitingForDatabase()
+            self.warmupAvList = avatars
+            return
+
+        self.__cleanupWarmupBox()
         self.loginFSM.request('chooseAvatar', [self.avList])
 
     def enterChooseAvatar(self, avList):
@@ -1058,7 +1412,7 @@ class OTPClientRepository(ClientRepositoryBase):
             else:
                 logFunc = self.notify.warning
                 allowExit = False
-            if base.config.GetBool('direct-gui-edit', 0):
+            if ConfigVariableBool('direct-gui-edit', False).getValue():
                 logFunc('There are leaks: %s tasks, %s events, %s ivals, %s garbage cycles\nLeaked Events may be due to direct gui editing' % (leakedTasks,
                  leakedEvents,
                  leakedIvals,
@@ -1131,11 +1485,11 @@ class OTPClientRepository(ClientRepositoryBase):
                 continue
             else:
                 if hasattr(task, 'debugInitTraceback'):
-                    print task.debugInitTraceback
+                    print(task.debugInitTraceback)
                 problems.append(task.name)
 
         if problems:
-            print taskMgr
+            print(taskMgr)
             msg = "You can't leave until you clean up your tasks: {"
             for task in problems:
                 msg += '\n  ' + task
@@ -1202,7 +1556,7 @@ class OTPClientRepository(ClientRepositoryBase):
                         try:
                             value = whoAccepts[obj]
                             callback = value[0]
-                            guiObj = callback.im_self
+                            guiObj = callback.__self__
                             if hasattr(guiObj, 'getCreationStackTraceCompactStr'):
                                 msg += '\n   CREATIONSTACKTRACE:%s' % guiObj.getCreationStackTraceCompactStr()
                         except:
@@ -1218,21 +1572,21 @@ class OTPClientRepository(ClientRepositoryBase):
     def detectLeakedIntervals(self):
         numIvals = ivalMgr.getNumIntervals()
         if numIvals > 0:
-            print "You can't leave until you clean up your intervals: {"
-            for i in xrange(ivalMgr.getMaxIndex()):
+            print("You can't leave until you clean up your intervals: {")
+            for i in range(ivalMgr.getMaxIndex()):
                 ival = None
                 if i < len(ivalMgr.ivals):
                     ival = ivalMgr.ivals[i]
                 if ival == None:
                     ival = ivalMgr.getCInterval(i)
                 if ival:
-                    print ival
+                    print(ival)
                     if hasattr(ival, 'debugName'):
-                        print ival.debugName
+                        print(ival.debugName)
                     if hasattr(ival, 'debugInitTraceback'):
-                        print ival.debugInitTraceback
+                        print(ival.debugInitTraceback)
 
-            print '}'
+            print('}')
             self.notify.info("You can't leave until you clean up your intervals.")
             return numIvals
         else:
@@ -1298,7 +1652,7 @@ class OTPClientRepository(ClientRepositoryBase):
     def uberZoneInterestComplete(self):
         self.__gotTimeSync = 0
         self.cleanupWaitingForDatabase()
-        self.zoneManager.requestModifiedZones()
+        #self.zoneManager.requestModifiedZones()
 
         if self.timeManager == None:
             self.notify.info('TimeManager is not present.')
@@ -1306,12 +1660,6 @@ class OTPClientRepository(ClientRepositoryBase):
             self.gotTimeSync()
         else:
             DistributedSmoothNode.globalActivateSmoothing(1, 0)
-            h = HashVal()
-            hashPrcVariables(h)
-            pyc = HashVal()
-            if not __dev__:
-                self.hashFiles(pyc)
-            self.timeManager.d_setSignature(self.userSignature, h.asBin(), pyc.asBin())
             self.timeManager.sendCpuInfo()
             if self.timeManager.synchronize('startup'):
                 self.accept('gotTimeSync', self.gotTimeSync)
@@ -1319,14 +1667,12 @@ class OTPClientRepository(ClientRepositoryBase):
             else:
                 self.notify.info('No sync from TimeManager.')
                 self.gotTimeSync()
-        return
 
     def exitWaitOnEnterResponses(self):
         self.ignore('uberZoneInterestComplete')
         self.cleanupWaitingForDatabase()
         self.handler = None
         self.handlerArgs = None
-        return
 
     def enterCloseShard(self, loginState = None):
         self.notify.info('Exiting shard')
@@ -1334,7 +1680,7 @@ class OTPClientRepository(ClientRepositoryBase):
             loginState = 'waitForAvatarList'
         self._closeShardLoginState = loginState
         base.cr.setNoNewInterests(True)
-        return
+ 
 
     def _removeLocalAvFromStateServer(self):
         self.sendSetAvatarIdMsg(0)
@@ -1346,7 +1692,7 @@ class OTPClientRepository(ClientRepositoryBase):
             self.removeShardInterest(callback)
 
     def _removeAllOV(self):
-        ownerDoIds = self.doId2ownerView.keys()
+        ownerDoIds = list(self.doId2ownerView.keys())
         for doId in ownerDoIds:
             self.disableDoId(doId, ownerView=True)
 
@@ -1364,7 +1710,6 @@ class OTPClientRepository(ClientRepositoryBase):
             taskMgr.doMethodLater(base.slowCloseShardDelay * 0.5, Functor(self._callRemoveShardInterestCallback, callback), 'slowCloseShardCallback')
         else:
             self._callRemoveShardInterestCallback(callback, None)
-        return
 
     def _callRemoveShardInterestCallback(self, callback, task):
         callback()
@@ -1421,14 +1766,13 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def exitPlayGame(self):
         taskMgr.remove('globalScaleCheck')
-        base.cr.zoneManager.reset()
+        #base.cr.zoneManager.reset()
         self.handler = None
         self.playGame.exit()
         self.playGame.unload()
         self.ignore(self.gameDoneEvent)
         self.garbageLeakLogger.destroy()
         del self.garbageLeakLogger
-        return
 
     def gotTimeSync(self):
         self.notify.info('gotTimeSync')
@@ -1447,7 +1791,7 @@ class OTPClientRepository(ClientRepositoryBase):
         if not self.SupportTutorial or base.localAvatar.tutorialAck:
             self.gameFSM.request('playGame', [hoodId, zoneId, avId])
             return
-        if base.config.GetBool('force-tutorial', 0):
+        if ConfigVariableBool('force-tutorial', False).getValue():
             self.gameFSM.request('tutorialQuestion', [hoodId, zoneId, avId])
             return
         else:
@@ -1463,7 +1807,7 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def handlePlayGame(self, msgType, di):
         if self.notify.getDebug():
-            self.notify.debug('handle play game got message type: ' + `msgType`)
+            self.notify.debug('handle play game got message type: ' + repr(msgType))
         if self.__recordObjectMessage(msgType, di):
             return
         if msgType == CLIENT_ENTER_OBJECT_REQUIRED:
@@ -1494,9 +1838,9 @@ class OTPClientRepository(ClientRepositoryBase):
     def isFreeTimeExpired(self):
         if self.accountOldAuth:
             return 0
-        if base.config.GetBool('free-time-expired', 0):
+        if ConfigVariableBool('free-time-expired', False).getValue():
             return 1
-        if base.config.GetBool('unlimited-free-time', 0):
+        if ConfigVariableBool('unlimited-free-time', False).getValue():
             return 0
         if self.freeTimeExpiresAt == -1:
             return 0
@@ -1522,7 +1866,7 @@ class OTPClientRepository(ClientRepositoryBase):
         return self.blue != None
 
     def isPaid(self):
-        paidStatus = base.config.GetString('force-paid-status', '')
+        paidStatus = ConfigVariableString('force-paid-status', '').getValue()
         if not paidStatus:
             return self.__isPaid
         elif paidStatus == 'paid':
@@ -1540,7 +1884,7 @@ class OTPClientRepository(ClientRepositoryBase):
         self.__isPaid = isPaid
 
     def allowFreeNames(self):
-        return base.config.GetInt('allow-free-names', 1)
+        return ConfigVariableInt('allow-free-names', 1).getValue()
 
     def allowSecretChat(self):
         return self.secretChatAllowed or self.productName == 'Terra-DMC' and self.isBlue() and self.secretChatAllowed
@@ -1585,14 +1929,14 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def getStartingDistrict(self):
         district = None
-        if len(self.activeDistrictMap.keys()) == 0:
+        if len(list(self.activeDistrictMap.keys())) == 0:
             self.notify.info('no shards')
             return
 
-        maxPop = config.GetInt('shard-mid-pop', 300)
+        maxPop = ConfigVariableInt('shard-mid-pop', 300).getValue()
 
         # Join the least populated district.
-        for shard in self.activeDistrictMap.values():
+        for shard in list(self.activeDistrictMap.values()):
             if district:
                 if shard.avatarCount < district.avatarCount and shard.available:
                     if shard.avatarCount < maxPop:
@@ -1619,26 +1963,28 @@ class OTPClientRepository(ClientRepositoryBase):
             return 0
 
     def listActiveShards(self):
-        list = []
-        for s in self.activeDistrictMap.values():
+        _list = []
+        for s in list(self.activeDistrictMap.values()):
             if s.available:
-                list.append((s.doId, s.name, s.avatarCount, s.newAvatarCount,
-                             s.invasionStatus, s.timeZone))
+                _list.append((s.doId, s.name, s.avatarCount, s.newAvatarCount,
+                              s.invasionStatus, s.timeZone))
 
-        return list
+        return _list
 
     def getPlayerAvatars(self):
-        return [i for i in self.doId2do.values() if isinstance(i, DistributedPlayer)]
+        return [i for i in list(self.doId2do.values()) if isinstance(i, DistributedPlayer)]
 
     def queryObjectField(self, dclassName, fieldName, doId, context = 0):
         dclass = self.dclassesByName.get(dclassName)
         if dclass is not None:
             fieldId = dclass.getFieldByName(fieldName).getNumber()
             self.queryObjectFieldId(doId, fieldId, context)
-        return
 
     def lostConnection(self):
         ClientRepositoryBase.lostConnection(self)
+
+        if self.warmupInterrupted():
+            return
 
         self.loginFSM.request('noConnection')
 
@@ -1657,6 +2003,9 @@ class OTPClientRepository(ClientRepositoryBase):
         return
 
     def __showWaitingForDatabase(self, requestName):
+        if self.warmupInterrupted():
+            return Task.done
+
         messenger.send('connectionIssue')
         OTPClientRepository.notify.info('timed out waiting for %s at %s' % (requestName, globalClock.getFrameTime()))
         dialogClass = OTPGlobals.getDialogClass()
@@ -1673,7 +2022,7 @@ class OTPClientRepository(ClientRepositoryBase):
         return Task.done
 
     def __handleCancelWaiting(self, value):
-        self.loginFSM.request('mainMenu')
+        self.requestMenuOrExit()
 
     def renderFrame(self):
         gsg = base.win.getGsg()
@@ -1819,15 +2168,14 @@ class OTPClientRepository(ClientRepositoryBase):
             name = rejectedName
         else:
             name = ''
-        WNR = self.WishNameResult
         if returnCode:
-            result = WNR.Failure
+            result = EWishNameResult.FAILURE
         elif rejectedName:
-            result = WNR.Rejected
+            result = EWishNameResult.REJECTED
         elif pendingName:
-            result = WNR.PendingApproval
+            result = EWishNameResult.PENDING_APPROVAL
         elif approvedName:
-            result = WNR.Approved
+            result = EWishNameResult.APPROVED
         messenger.send(self.getWishNameResultMsg(), [result, avId, name])
 
     def replayDeferredGenerate(self, msgType, extra):
@@ -1843,7 +2191,7 @@ class OTPClientRepository(ClientRepositoryBase):
     @exceptionLogged(append=False)
     def handleDatagram(self, di):
         if self.notify.getDebug():
-            print 'ClientRepository received datagram:'
+            print('ClientRepository received datagram:')
             di.getDatagram().dumpHex(ostream)
         msgType = self.getMsgType()
         if msgType == 65535:
@@ -1858,18 +2206,6 @@ class OTPClientRepository(ClientRepositoryBase):
 
     def askAvatarKnown(self, avId):
         return 0
-
-    def hashFiles(self, pyc):
-        for dir in sys.path:
-            if dir == '':
-                dir = '.'
-            if os.path.isdir(dir):
-                for filename in os.listdir(dir):
-                    if filename.endswith('.pyo') or filename.endswith('.pyc') or filename.endswith('.py') or filename == 'library.zip':
-                        pathname = Filename.fromOsSpecific(os.path.join(dir, filename))
-                        hv = HashVal()
-                        hv.hashFile(pathname)
-                        pyc.mergeWith(hv)
 
     def queueRequestAvatarInfo(self, avId):
         pass
@@ -1917,7 +2253,7 @@ class OTPClientRepository(ClientRepositoryBase):
 
         # Decide whether we should add this to the interest's pending
         # generates, or process it right away:
-        for handle, interest in self._interests.items():
+        for handle, interest in list(self._interests.items()):
             if parentId != interest.parentId:
                 continue
 
@@ -2077,11 +2413,7 @@ class OTPClientRepository(ClientRepositoryBase):
     def addTaggedInterest(self, parentId, zoneId, mainTag, desc, otherTags = [], event = None):
         return self.addInterest(parentId, zoneId, desc, event)
 
-    def mainMenuTask(self, task):
-        if self.mainMenu is None:
-            self.mainMenu = MainMenu()
-        self.mainMenu.load()
-        self.mainMenu.request('PlayScreen')
+    def disconnectLocalServer(self):
         if self.isConnected() and base.isHosting:
             self.localServerStarter.demand('Off')
         if self.isConnected():
@@ -2089,12 +2421,20 @@ class OTPClientRepository(ClientRepositoryBase):
         base.isLoggingOut = False
         base.isHosting = None
 
+    def mainMenuTask(self, task):
+        if self.mainMenu is None:
+            self.mainMenu = MainMenu()
+        self.mainMenu.load()
+        self.mainMenu.request('PlayScreen')
+        self.disconnectLocalServer()
+
     def enterMainMenu(self):
         taskMgr.doMethodLater(0.1, self.mainMenuTask, 'mainMenuTask')
 
     def exitMainMenu(self):
-        self.mainMenu.destroy()
-        self.mainMenu = None
+        if self.mainMenu is not None:
+            self.mainMenu.destroy()
+            self.mainMenu = None
         taskMgr.remove('mainMenuTask')
 
     def enterServerMenu(self):

@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import LVector3, LVector3f, NodePath
 from direct.showbase.PythonUtil import weightedChoice, randFloat, Functor
 from direct.showbase.PythonUtil import list2dict
 from direct.showbase import DirectObject
@@ -11,7 +11,6 @@ from toontown.pets import PetConstants, PetObserve, PetGoal, PetGoalMgr
 from toontown.pets import PetTricks, PetLookerAI
 import random, types
 from math import sqrt
-from pandac.PandaModules import LVector3f
 
 class PetBrain(DirectObject.DirectObject):
     notify = DirectNotifyGlobal.directNotify.newCategory('PetBrain')
@@ -39,8 +38,8 @@ class PetBrain(DirectObject.DirectObject):
         del self.focus
         del self.pet
         if self.doId2goals:
-            self.notify.warning('destroy(): self.doId2goals is not empty: %s' % self.doId2goals.keys())
-            for goalList in self.doId2goals.values():
+            self.notify.warning('destroy(): self.doId2goals is not empty: %s' % list(self.doId2goals.keys()))
+            for goalList in list(self.doId2goals.values()):
                 for goal in goalList:
                     goal.destroy()
 
@@ -121,7 +120,7 @@ class PetBrain(DirectObject.DirectObject):
             self._updatePriorities()
             if len(self.nearbyAvs) > PetConstants.MaxAvatarAwareness:
                 self.nextAwarenessIndex %= len(self.nearbyAvs)
-                self._considerBecomeAwareOf(self.nearbyAvs.keys()[self.nextAwarenessIndex])
+                self._considerBecomeAwareOf(list(self.nearbyAvs.keys())[self.nextAwarenessIndex])
                 self.nextAwarenessIndex += 1
             curT = globalClock.getFrameTime()
             tSinceLastLonelinessUpdate = curT - self.tLastLonelinessUpdate
@@ -144,28 +143,28 @@ class PetBrain(DirectObject.DirectObject):
             PetBrain.notify.warning('%s: already looking at av %s' % (self.pet.doId, avId))
             return
         self.lookees[avId] = avId
-        self.observe(PetObserve.PetActionObserve(PetObserve.Actions.ATTENDING_START, avId))
+        self.observe(PetObserve.PetActionObserve(PetObserve.EAction.ATTENDING_START, avId))
 
     def _handleLookingAtOtherStop(self, avId):
         if avId not in self.lookees:
             PetBrain.notify.warning('%s: not looking at av %s' % (self.pet.doId, avId))
             return
         del self.lookees[avId]
-        self.observe(PetObserve.PetActionObserve(PetObserve.Actions.ATTENDING_STOP, avId))
+        self.observe(PetObserve.PetActionObserve(PetObserve.EAction.ATTENDING_STOP, avId))
 
     def _handleLookedAtByOtherStart(self, avId):
         if avId in self.lookers:
             PetBrain.notify.warning('%s: av %s already looking at me' % (self.pet.doId, avId))
             return
         self.lookers[avId] = avId
-        self.observe(PetObserve.PetActionObserve(PetObserve.Actions.ATTENDED_START, avId))
+        self.observe(PetObserve.PetActionObserve(PetObserve.EAction.ATTENDED_START, avId))
 
     def _handleLookedAtByOtherStop(self, avId):
         if avId not in self.lookers:
             PetBrain.notify.warning('%s: av %s not looking at me' % (self.pet.doId, avId))
             return
         del self.lookers[avId]
-        self.observe(PetObserve.PetActionObserve(PetObserve.Actions.ATTENDED_STOP, avId))
+        self.observe(PetObserve.PetActionObserve(PetObserve.EAction.ATTENDED_STOP, avId))
 
     def lookedAtBy(self, avId):
         return avId in self.lookers
@@ -193,7 +192,6 @@ class PetBrain(DirectObject.DirectObject):
 
     def clearFocus(self):
         self.setFocus(None)
-        return
 
     def _handleFocusHasLeft(self):
         if self.focus.isEmpty():
@@ -261,7 +259,6 @@ class PetBrain(DirectObject.DirectObject):
         self.setFocus(None)
         self.pet.actionFSM.request('Movie')
         self.inMovie = 1
-        return
 
     def _endMovie(self):
         self.inMovie = 0
@@ -272,7 +269,7 @@ class PetBrain(DirectObject.DirectObject):
     def _handleActionObserve(self, observe):
         action = observe.getAction()
         avId = observe.getAvId()
-        OA = PetObserve.Actions
+        OA = PetObserve.EAction
         dbg = PetBrain.notify.debug
         if action == OA.ATTENDED_START:
             dbg('avatar %s is looking at me' % avId)
@@ -351,7 +348,6 @@ class PetBrain(DirectObject.DirectObject):
             if avatar is not None:
                 if self.getFocus() == avatar:
                     self._wander()
-        return
 
     def _handlePhraseObserve(self, observe):
 
@@ -400,7 +396,6 @@ class PetBrain(DirectObject.DirectObject):
             if avatar is not None:
                 if self.getFocus() == avatar:
                     self._wander()
-            return
 
         def _handleDoTrick(trickId, avId, self = self):
             avatar = simbase.air.doId2do.get(avId)
@@ -409,13 +404,13 @@ class PetBrain(DirectObject.DirectObject):
                     if not self.goalMgr.hasTrickGoal():
                         if not self.pet._willDoTrick(trickId):
                             self.pet.trickFailLogger.addEvent(trickId)
-                            trickId = PetTricks.Tricks.BALK
+                            trickId = PetTricks.ETrick.BALK
                         trickGoal = PetGoal.DoTrick(avatar, trickId)
                         self.goalMgr.addGoal(trickGoal)
 
         phrase = observe.getPetPhrase()
         avId = observe.getAvId()
-        OP = PetObserve.Phrases
+        OP = PetObserve.EPhrase
         if phrase in list2dict([OP.COME,
          OP.FOLLOW_ME,
          OP.STAY,
@@ -455,8 +450,6 @@ class PetBrain(DirectObject.DirectObject):
             self.lastInteractTime.setdefault(avId, 0)
         for goal in self.doId2goals[avId]:
             self.goalMgr.addGoal(goal)
-
-        return
 
     def _removeGoalsReAvatar(self, avId):
         if avId not in self.doId2goals:
@@ -506,7 +499,6 @@ class PetBrain(DirectObject.DirectObject):
         if minInterestAvId != avId:
             self._removeAwarenessOf(minInterestAvId)
             becomeAwareOf(avId)
-        return
 
     def _removeAwarenessOf(self, avId):
         if avId in self.avAwareness:
@@ -525,7 +517,6 @@ class PetBrain(DirectObject.DirectObject):
         self.pet.lerpMoods({'excitement': 0.75,
          'loneliness': -.4})
         self._considerBecomeAwareOf(avId)
-        return
 
     def _handleAvatarLeave(self, avId):
         PetBrain.notify.debug('%s._handleAvatarLeave: %s' % (self.pet.doId, avId))
@@ -537,12 +528,14 @@ class PetBrain(DirectObject.DirectObject):
         self._removeAwarenessOf(avId)
 
     def _handleOwnerLeave(self):
-        self.pet.teleportOut()
-        taskMgr.doMethodLater(PetConstants.TELEPORT_OUT_DURATION, self.pet.requestDelete, self.getTeleportTaskName())
+        if not self.pet.leashMode:
+            self.pet.teleportOut()
+            taskMgr.doMethodLater(PetConstants.TELEPORT_OUT_DURATION, self.pet.requestDelete, self.getTeleportTaskName())
 
     def _handleEstateOwnerLeave(self):
-        self.pet.teleportOut()
-        taskMgr.doMethodLater(PetConstants.TELEPORT_OUT_DURATION, self.pet.requestDelete, self.getTeleportTaskName())
+        if not self.pet.leashMode:
+            self.pet.teleportOut()
+            taskMgr.doMethodLater(PetConstants.TELEPORT_OUT_DURATION, self.pet.requestDelete, self.getTeleportTaskName())
 
     def isAttendingUs(self, a2, a3):
         v3 = a3.getPos(a2)

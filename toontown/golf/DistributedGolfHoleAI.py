@@ -1,12 +1,10 @@
-from direct.distributed import DistributedObjectAI
-from direct.directnotify import DirectNotifyGlobal
-from toontown.toonbase import ToontownGlobals
-from pandac.PandaModules import *
-import DistributedPhysicsWorldAI
+from panda3d.core import ConfigVariableBool, NodePath, Vec3
+import random
+from direct.directnotify.DirectNotifyGlobal import directNotify
+from . import DistributedPhysicsWorldAI
 from direct.fsm.FSM import FSM
 from toontown.ai.ToonBarrier import *
 from toontown.golf import GolfGlobals
-import random
 from toontown.golf import GolfHoleBase
 
 class DistributedGolfHoleAI(DistributedPhysicsWorldAI.DistributedPhysicsWorldAI, FSM, GolfHoleBase.GolfHoleBase):
@@ -136,11 +134,11 @@ class DistributedGolfHoleAI(DistributedPhysicsWorldAI.DistributedPhysicsWorldAI,
          1,
          1,
          1]
-        for index in xrange(len(self.golfCourse.getGolferIds())):
+        for index in range(len(self.golfCourse.getGolferIds())):
             self.watched[index] = 0
 
     def setWatched(self, avId):
-        for index in xrange(len(self.golfCourse.getGolferIds())):
+        for index in range(len(self.golfCourse.getGolferIds())):
             if self.golfCourse.getGolferIds()[index] == avId:
                 self.watched[index] = 1
 
@@ -213,7 +211,7 @@ class DistributedGolfHoleAI(DistributedPhysicsWorldAI.DistributedPhysicsWorldAI,
             curNodePath = self.hardSurfaceNodePath.find('**/locator%d' % locatorNum)
 
     def loadBlockers(self):
-        loadAll = simbase.config.GetBool('golf-all-blockers', 0)
+        loadAll = ConfigVariableBool('golf-all-blockers', False).getValue()
         self.createLocatorDict()
         self.blockerNums = self.holeInfo['blockers']
         for locatorNum in self.locDict:
@@ -278,7 +276,7 @@ class DistributedGolfHoleAI(DistributedPhysicsWorldAI.DistributedPhysicsWorldAI,
     def choosePlayerToSimulate(self):
         stillPlaying = self.golfCourse.getStillPlayingAvIds()
         playerId = 0
-        if simbase.air.config.GetBool('golf-trust-driver-first', 0):
+        if ConfigVariableBool('golf-trust-driver-first', False).getValue():
             if stillPlaying:
                 playerId = stillPlaying[0]
         else:
@@ -455,14 +453,14 @@ class DistributedGolfHoleAI(DistributedPhysicsWorldAI.DistributedPhysicsWorldAI,
             if 'optionalMovers' in self.holeInfo:
                 for optionalMoverId in self.holeInfo['optionalMovers']:
                     searchStr = 'optional_mover_' + str(optionalMoverId)
-                    for objIndex in xrange(objectCollection.getNumPaths()):
+                    for objIndex in range(objectCollection.getNumPaths()):
                         object = objectCollection.getPath(objIndex)
                         if searchStr in object.getName():
                             self.fillLocator(objectCollection, objIndex)
                             break
 
         else:
-            for index in xrange(objectCollection.getNumPaths()):
+            for index in range(objectCollection.getNumPaths()):
                 self.fillLocator(objectCollection, index)
 
     def fillLocator(self, objectCollection, index):

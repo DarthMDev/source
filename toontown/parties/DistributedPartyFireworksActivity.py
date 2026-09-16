@@ -1,35 +1,32 @@
-from pandac.PandaModules import Vec3
-from pandac.PandaModules import OmniBoundingVolume
-from pandac.PandaModules import AlphaTestAttrib
-from pandac.PandaModules import RenderAttrib
+from panda3d.core import AlphaTestAttrib, BoundingVolume, OmniBoundingVolume, RenderAttrib, Vec3
 from direct.actor.Actor import Actor
 from direct.interval.IntervalGlobal import *
 from direct.distributed.ClockDelta import globalClockDelta
 from toontown.effects.FireworkShowMixin import FireworkShowMixin
 from toontown.effects.RocketExplosion import RocketExplosion
 from toontown.toonbase import TTLocalizer
-from PartyGlobals import FireworkShows
-from PartyGlobals import ActivityIds
-from PartyGlobals import ActivityTypes
-from PartyGlobals import FireworksStartedEvent
-from PartyGlobals import FireworksFinishedEvent
-from PartyGlobals import FireworksPostLaunchDelay
-from PartyGlobals import RocketSoundDelay
-from PartyGlobals import RocketDirectionDelay
-from DistributedPartyActivity import DistributedPartyActivity
-from activityFSMs import FireworksActivityFSM
-import PartyGlobals
+from .PartyGlobals import EFireworkShow
+from .PartyGlobals import EActivityId
+from .PartyGlobals import EActivityType
+from .PartyGlobals import FireworksStartedEvent
+from .PartyGlobals import FireworksFinishedEvent
+from .PartyGlobals import FireworksPostLaunchDelay
+from .PartyGlobals import RocketSoundDelay
+from .PartyGlobals import RocketDirectionDelay
+from .DistributedPartyActivity import DistributedPartyActivity
+from .activityFSMs import FireworksActivityFSM
+from . import PartyGlobals
 
 class DistributedPartyFireworksActivity(DistributedPartyActivity, FireworkShowMixin):
     notify = directNotify.newCategory('DistributedPartyFireworksActivity')
 
     def __init__(self, cr):
         DistributedPartyFireworksActivity.notify.debug('__init__')
-        DistributedPartyActivity.__init__(self, cr, ActivityIds.PartyFireworks, ActivityTypes.HostInitiated, wantLever=True)
+        DistributedPartyActivity.__init__(self, cr, EActivityId.PartyFireworks, EActivityType.HOST_INITIATED, wantLever=True)
         FireworkShowMixin.__init__(self, restorePlaygroundMusic=True, startDelay=FireworksPostLaunchDelay)
 
     def setEventId(self, eventId):
-        DistributedPartyFireworksActivity.notify.debug('setEventId( %s )' % FireworkShows.getString(eventId))
+        DistributedPartyFireworksActivity.notify.debug('setEventId( %s )' % EFireworkShow(eventId).name)
         self.eventId = eventId
 
     def setShowStyle(self, showStyle):
@@ -42,13 +39,13 @@ class DistributedPartyFireworksActivity(DistributedPartyActivity, FireworkShowMi
     def load(self):
         DistributedPartyFireworksActivity.notify.debug('load')
         DistributedPartyActivity.load(self)
-        self.eventId = PartyGlobals.FireworkShows.Summer
+        self.eventId = PartyGlobals.EFireworkShow.SUMMER
         self.launchPadModel = loader.loadModel('phase_13/models/parties/launchPad')
         self.launchPadModel.setH(90.0)
         self.launchPadModel.setPos(0.0, -18.0, 0.0)
         self.launchPadModel.reparentTo(self.root)
         railingsCollection = self.launchPadModel.findAllMatches('**/launchPad_mesh/*railing*')
-        for i in xrange(railingsCollection.getNumPaths()):
+        for i in range(railingsCollection.getNumPaths()):
             railingsCollection[i].setAttrib(AlphaTestAttrib.make(RenderAttrib.MGreater, 0.75))
 
         leverLocator = self.launchPadModel.find('**/RocketLever_locator')

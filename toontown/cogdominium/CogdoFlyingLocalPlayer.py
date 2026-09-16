@@ -1,6 +1,7 @@
+import enum
 import math
 import random
-from pandac.PandaModules import Vec3
+from panda3d.core import Vec3
 from direct.showbase import PythonUtil
 from direct.directnotify import DirectNotifyGlobal
 from direct.task.Task import Task
@@ -8,26 +9,31 @@ from direct.interval.FunctionInterval import Wait
 from direct.interval.IntervalGlobal import Func, LerpFunc, LerpPosInterval, LerpHprInterval, LerpFunctionInterval
 from direct.interval.MetaInterval import Sequence, Parallel
 from direct.showbase.PythonUtil import bound as clamp
-from direct.distributed.ClockDelta import globalClockDelta
 from otp.otpbase import OTPGlobals
 from toontown.minigame.OrthoDrive import OrthoDrive
 from toontown.minigame.OrthoWalk import OrthoWalk
 from toontown.toonbase import TTLocalizer
-from CogdoFlyingCollisions import CogdoFlyingCollisions
-from CogdoFlyingPlayer import CogdoFlyingPlayer
-from CogdoFlyingGuiManager import CogdoFlyingGuiManager
-from CogdoFlyingInputManager import CogdoFlyingInputManager
-from CogdoFlyingCameraManager import CogdoFlyingCameraManager
-from CogdoFlyingObjects import CogdoFlyingPlatform, CogdoFlyingGatherable
-from CogdoFlyingLegalEagle import CogdoFlyingLegalEagle
-import CogdoFlyingGameGlobals as Globals
+from .CogdoFlyingCollisions import CogdoFlyingCollisions
+from .CogdoFlyingPlayer import CogdoFlyingPlayer
+from .CogdoFlyingGuiManager import CogdoFlyingGuiManager
+from .CogdoFlyingInputManager import CogdoFlyingInputManager
+from .CogdoFlyingCameraManager import CogdoFlyingCameraManager
+from .CogdoFlyingObjects import CogdoFlyingPlatform
+from .CogdoFlyingLegalEagle import CogdoFlyingLegalEagle
+from . import CogdoFlyingGameGlobals as Globals
+
+
+class EPropState(enum.Enum):
+    NORMAL = 0
+    OVERDRIVE = 1
+    OFF = 3
+
 
 class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
     notify = DirectNotifyGlobal.directNotify.newCategory('CogdoFlyingLocalPlayer')
     BroadcastPosTask = 'CogdoFlyingLocalPlayerBroadcastPos'
     PlayWaitingMusicEventName = 'PlayWaitingMusicEvent'
     RanOutOfTimeEventName = 'RanOutOfTimeEvent'
-    PropStates = PythonUtil.Enum(('Normal', 'Overdrive', 'Off'))
 
     def __init__(self, toon, game, level, guiMgr):
         CogdoFlyingPlayer.__init__(self, toon)
@@ -165,8 +171,8 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.outOfTimeInterval = Sequence(Func(self._loseSfx.play), Func(base.transitions.irisOut), Wait(1.0), Func(self.resetVelocities), Func(self._guiMgr.setMessage, '', transition=None), Func(self.toon.stash), Func(self.toonSpawnFunc), name='%s.outOfTimeInterval' % self.__class__.__name__)
         self.spawnInterval = Sequence(Func(self.resetToonFunc), Func(self._cameraMgr.update, 0.0), Func(self._level.update), Func(self.toon.cnode.broadcastPosHprFull), Func(base.transitions.irisIn), Wait(0.5), Func(self.toon.setAnimState, 'TeleportIn'), Func(self.toon.unstash), Wait(1.5), Func(self.requestPostSpawnState), name='%s.spawnInterval' % self.__class__.__name__)
         self.waitingForWinInterval = Sequence(Func(self._guiMgr.setMessage, TTLocalizer.CogdoFlyingGameWaiting % '.'), Wait(1.5), Func(self._guiMgr.setMessage, TTLocalizer.CogdoFlyingGameWaiting % '..'), Wait(1.5), Func(self._guiMgr.setMessage, TTLocalizer.CogdoFlyingGameWaiting % '...'), Wait(1.5), name='%s.waitingForWinInterval' % self.__class__.__name__)
-        self.waitingForWinSeq = Sequence(Func(self.setWaitingForWinState), Wait(4.0), Func(self.removeAllMemos), Wait(2.0), Func(self.game.distGame.d_sendRequestAction, Globals.AI.GameActions.LandOnWinPlatform, 0), Func(self.playWaitingForWinInterval), name='%s.waitingForWinSeq' % self.__class__.__name__)
-        self.winInterval = Sequence(Func(self._guiMgr.setMessage, ''), Wait(4.0), Func(self.game.distGame.d_sendRequestAction, Globals.AI.GameActions.WinStateFinished, 0), name='%s.winInterval' % self.__class__.__name__)
+        self.waitingForWinSeq = Sequence(Func(self.setWaitingForWinState), Wait(4.0), Func(self.removeAllMemos), Wait(2.0), Func(self.game.distGame.d_sendRequestAction, Globals.EGameAction.LAND_ON_WIN_PLATFORM, 0), Func(self.playWaitingForWinInterval), name='%s.waitingForWinSeq' % self.__class__.__name__)
+        self.winInterval = Sequence(Func(self._guiMgr.setMessage, ''), Wait(4.0), Func(self.game.distGame.d_sendRequestAction, Globals.EGameAction.WIN_STATE_FINISHED, 0), name='%s.winInterval' % self.__class__.__name__)
         self.goSadSequence = Sequence(Wait(2.5), Func(base.transitions.irisOut, 1.5), name='%s.goSadSequence' % self.__class__.__name__)
         self.introGuiSeq = Sequence(Wait(0.5), Parallel(Func(self._guiMgr.setTemporaryMessage, TTLocalizer.CogdoFlyingGameMinimapIntro, duration=5.0), Sequence(Wait(1.0), Func(self._guiMgr.presentProgressGui))), Wait(5.0), Func(self._guiMgr.setMessage, TTLocalizer.CogdoFlyingGamePickUpAPropeller), name='%s.introGuiSeq' % self.__class__.__name__)
 
@@ -241,11 +247,11 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
             return
         CogdoFlyingPlayer.setBackpackState(self, state)
         if state in Globals.Gameplay.BackpackStates:
-            if state == Globals.Gameplay.BackpackStates.Normal:
+            if state == Globals.EBackpackState.NORMAL:
                 messenger.send(CogdoFlyingGuiManager.ClearMessageDisplayEventName)
-            elif state == Globals.Gameplay.BackpackStates.Targeted:
+            elif state == Globals.EBackpackState.TARGETED:
                 messenger.send(CogdoFlyingGuiManager.EagleTargetingLocalPlayerEventName)
-            elif state == Globals.Gameplay.BackpackStates.Attacked:
+            elif state == Globals.EBackpackState.ATTACKED:
                 messenger.send(CogdoFlyingGuiManager.EagleAttackingLocalPlayerEventName)
 
     def requestPostSpawnState(self):
@@ -652,13 +658,13 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.fuel = fuel
         self._guiMgr.setFuel(fuel)
         if self.fuel <= 0.0:
-            fuelState = Globals.Gameplay.FuelStates.FuelEmpty
+            fuelState = Globals.EFuelState.EMPTY
         elif self.fuel < Globals.Gameplay.FuelVeryLowAmt:
-            fuelState = Globals.Gameplay.FuelStates.FuelVeryLow
+            fuelState = Globals.EFuelState.VERY_LOW
         elif self.fuel < Globals.Gameplay.FuelLowAmt:
-            fuelState = Globals.Gameplay.FuelStates.FuelLow
+            fuelState = Globals.EFuelState.LOW
         else:
-            fuelState = Globals.Gameplay.FuelStates.FuelNormal
+            fuelState = Globals.EFuelState.NORMAL
         if fuelState > self.fuelState:
             self.game.distGame.b_toonSetBlades(self.toon.doId, fuelState)
         if fuelState < self.fuelState:
@@ -716,30 +722,30 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
 
     def setPropellerState(self, propState):
         if not self.hasPickedUpFirstPropeller:
-            propState = self.PropStates.Off
+            propState = self.EPropState.OFF
         if self.propState != propState:
             oldState = self.propState
             self.propState = propState
-            if self.propState == self.PropStates.Normal:
+            if self.propState == self.EPropState.NORMAL:
                 if not self.propellerSpinLerp.isPlaying():
                     self.propellerSpinLerp.loop()
                 self.setPropellerSpinRate(Globals.Gameplay.NormalPropSpeed)
                 self._guiMgr.setPropellerSpinRate(Globals.Gameplay.NormalPropSpeed)
                 self._loopPropellerSfx(playRate=0.7, volume=0.8)
-            elif self.propState == self.PropStates.Overdrive:
+            elif self.propState == self.EPropState.OVERDRIVE:
                 if not self.propellerSpinLerp.isPlaying():
                     self.propellerSpinLerp.loop()
                 self.setPropellerSpinRate(Globals.Gameplay.OverdrivePropSpeed)
                 self._guiMgr.setPropellerSpinRate(Globals.Gameplay.OverdrivePropSpeed)
                 self._loopPropellerSfx(playRate=1.1)
-            elif self.propState == self.PropStates.Off:
+            elif self.propState == self.EPropState.OFF:
                 self.propellerSpinLerp.pause()
                 self._propellerSfx.stop()
 
     def enterInactive(self):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
         self._inputMgr.disable()
-        self.setPropellerState(self.PropStates.Off)
+        self.setPropellerState(self.EPropState.OFF)
         self.shutdownFlyingBroadcast()
 
     def filterInactive(self, request, args):
@@ -757,7 +763,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
     def enterSpawn(self):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
         self.toon.b_setAnimState('Happy', 1.0)
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
         self.spawnInterval.start()
 
     def filterSpawn(self, request, args):
@@ -772,7 +778,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
 
     def enterFreeFly(self):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
         if self.oldState in ['Running', 'HitWhileRunning']:
             self.toon.jumpStart()
             self.toon.setHpr(render, 0, 0, 0)
@@ -789,7 +795,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
 
     def enterFlyingUp(self):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
-        self.setPropellerState(self.PropStates.Overdrive)
+        self.setPropellerState(self.EPropState.OVERDRIVE)
         if self.oldState in ['Running']:
             self.toon.jumpStart()
             self.toon.setHpr(render, 0, 0, 0)
@@ -809,7 +815,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.setEnemyHitting(True)
         self._toonHitSfx.play()
         self.startHitFlyingToonInterval()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
 
     def filterHitWhileFlying(self, request, args):
         if request == self.state:
@@ -828,7 +834,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
         self._hitByWhirlwindSfx.play()
         self.startHitByWhirlwindInterval()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
 
     def filterInWhirlwind(self, request, args):
         if request == self.state:
@@ -847,7 +853,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self._toonHitSfx.play()
         self.toon.b_setAnimState('FallDown')
         self.startHitRunningToonInterval()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
 
     def filterHitWhileRunning(self, request, args):
         if request == self.state:
@@ -869,7 +875,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
             self.toon.jumpHardLand()
             self._collideSfx.play()
         self.orthoWalk.start()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
         self.ignore(base.JUMP)
         self.ignore('lcontrol')
         self.acceptOnce(base.JUMP, self.pressedControlWhileRunning)
@@ -894,7 +900,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
             self.spawnInterval.clearToInitial()
         self.ignoreAll()
         self.introGuiSeq.clearToInitial()
-        self.setPropellerState(self.PropStates.Off)
+        self.setPropellerState(self.EPropState.OFF)
         if not Globals.Dev.NoLegalEagleAttacks:
             for eagle in self.legalEaglesTargeting:
                 messenger.send(CogdoFlyingLegalEagle.RequestRemoveTargetEventName, [eagle.index])
@@ -919,7 +925,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.propellerSmoke.stop()
         self.deathInterval.start()
         self.toon.b_setAnimState('jumpAirborne', 1.0)
-        self.setPropellerState(self.PropStates.Off)
+        self.setPropellerState(self.EPropState.OFF)
         if not Globals.Dev.NoLegalEagleAttacks:
             for eagle in self.legalEaglesTargeting:
                 messenger.send(CogdoFlyingLegalEagle.RequestRemoveTargetEventName, [eagle.index])
@@ -940,7 +946,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.resetFuel()
         self._guiMgr.hideRefuelGui()
         self.waitingForWinSeq.start()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
         if not Globals.Dev.NoLegalEagleAttacks:
             self.game.forceClearLegalEagleInterestInToon(self.toon.doId)
 
@@ -960,7 +966,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
         self.notify.info("enter%s: '%s' -> '%s'" % (self.newState, self.oldState, self.newState))
         self._guiMgr.stopTimer()
         self.winInterval.start()
-        self.setPropellerState(self.PropStates.Normal)
+        self.setPropellerState(self.EPropState.NORMAL)
 
     def filterWin(self, request, args):
         if request == self.state:
@@ -1073,13 +1079,13 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
 
     def handleEnterGatherable(self, gatherable, elapsedTime):
         CogdoFlyingPlayer.handleEnterGatherable(self, gatherable, elapsedTime)
-        if gatherable.type == Globals.Level.GatherableTypes.Memo:
+        if gatherable.type == Globals.EGatherableType.MEMO:
             self.handleEnterMemo(gatherable)
-        elif gatherable.type == Globals.Level.GatherableTypes.Propeller:
+        elif gatherable.type == Globals.EGatherableType.PROPELLER:
             self.handleEnterPropeller(gatherable)
-        elif gatherable.type == Globals.Level.GatherableTypes.LaffPowerup:
+        elif gatherable.type == Globals.EGatherableType.LAFF_POWERUP:
             self._getLaffSfx.play()
-        elif gatherable.type == Globals.Level.GatherableTypes.InvulPowerup:
+        elif gatherable.type == Globals.EGatherableType.INVUL_POWERUP:
             self._getRedTapeSfx.play()
             messenger.send(CogdoFlyingGuiManager.InvulnerableEventName)
 
@@ -1097,7 +1103,7 @@ class CogdoFlyingLocalPlayer(CogdoFlyingPlayer):
                 messenger.send(CogdoFlyingGuiManager.PickedUpFirstPropellerEventName)
                 self.introGuiSeq.clearToInitial()
                 self.hasPickedUpFirstPropeller = True
-                self.setPropellerState(self.PropStates.Normal)
+                self.setPropellerState(self.EPropState.NORMAL)
             self.setFuel(1.0)
             self._guiMgr.update()
             self._refuelSfx.play()

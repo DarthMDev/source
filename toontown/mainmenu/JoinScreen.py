@@ -1,3 +1,4 @@
+from panda3d.core import Point3, TextNode, Vec3
 from direct.fsm.FSM import FSM
 from direct.gui import DirectGuiGlobals
 from direct.gui.DirectGui import DirectFrame, DirectEntry, DGG, DirectButton
@@ -5,9 +6,6 @@ from direct.gui.DirectGui import DirectLabel
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.interval.IntervalGlobal import Sequence, Parallel, Func, Wait
 from direct.interval.LerpInterval import LerpFunc
-from panda3d.core import Point3
-from panda3d.core import TextNode
-from pandac.PandaModules import Vec3
 
 from toontown.mainmenu import MainMenuGlobals
 from toontown.makeatoon.MakeAToonGUI import MATShuffleButton
@@ -102,32 +100,34 @@ class JoinScreen(DirectFrame, FSM):
                                    text_font=ToontownGlobals.getToonFont(), text_scale=0.12, text_wordwrap=25)
         self.ipConnectLabel2.hide()
 
-        self.enterPosInterval = camera.posInterval(2, Point3(CAMENDPOS), startPos=Point3(CAMSTARTPOS), blendType = 'easeIn') 
-        self.enterHprInterval = camera.hprInterval(2, Point3(CAMENDHPR), startHpr=Point3(CAMSTARTHPR), blendType = 'easeIn')
+        self.enterPosInterval = camera.posInterval(1.3, Point3(CAMENDPOS), startPos=Point3(CAMSTARTPOS), blendType = 'easeIn')
+        self.enterHprInterval = camera.hprInterval(1.3, Point3(CAMENDHPR), startHpr=Point3(CAMSTARTHPR), blendType = 'easeIn')
 
-        self.enterPosInterval2 = camera.posInterval(2, Point3(CAMPOS2), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
+        self.enterPosInterval2 = camera.posInterval(1.5, Point3(CAMPOS2), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
 
-        self.exitPosInterval = camera.posInterval(2, Point3(CAMSTARTPOS), startPos=Point3(CAMENDPOS), blendType = 'easeInOut') 
-        self.exitHprInterval = camera.hprInterval(2, Point3(CAMSTARTHPR), startHpr=Point3(CAMENDHPR), blendType = 'easeInOut')
+        self.exitPosInterval = camera.posInterval(1.3, Point3(CAMSTARTPOS), startPos=Point3(CAMENDPOS), blendType = 'easeInOut')
+        self.exitHprInterval = camera.hprInterval(1.3, Point3(CAMSTARTHPR), startHpr=Point3(CAMENDHPR), blendType = 'easeInOut')
 
         self.interiorFovZoomIn = LerpFunc(base.camLens.setFov, 1, 50, 35, 'easeOut', [], "zoom")
         self.interiorFovZoomOut = LerpFunc(base.camLens.setFov, 1, 35, 50, 'easeOut', [], "zoom")
 
         self.door = loader.loadModel('phase_3.5/models/modules/doors_practical')
-        self.door.reparentTo(render)
+        self.door.reparentTo(self.mainMenu.environment)
         self.door.setPosHpr(-392.2, -247, 4, -175, 0, 0)
 
         self.leftDoor = self.door.find('**/door_double_square_ur_left')
+        self.leftDoor.setPos(-3.28, -0.10, 3.02)
         self.rightDoor = self.door.find('**/door_double_square_ur_right')
+        self.rightDoor.setPos(2.84, -0.10, 3.39)
 
-        self.leftDoorOpenInterval = self.leftDoor.hprInterval(2, Point3(-90, 0, 0), startHpr=Point3(0, 0, 0))
-        self.rightDoorOpenInterval = self.rightDoor.hprInterval(2, Point3(90, 0, 0), startHpr=Point3(0, 0, 0))
+        self.leftDoorOpenInterval = self.leftDoor.hprInterval(1.3, Point3(-90, 0, 0), startHpr=Point3(0, 0, 0))
+        self.rightDoorOpenInterval = self.rightDoor.hprInterval(1.3, Point3(90, 0, 0), startHpr=Point3(0, 0, 0))
 
-        self.leftDoorCloseInterval = self.leftDoor.hprInterval(2, Point3(0, 0, 0), startHpr=Point3(-90, 0, 0))
-        self.rightDoorCloseInterval = self.rightDoor.hprInterval(2, Point3(0, 0, 0), startHpr=Point3(90, 0, 0))
+        self.leftDoorCloseInterval = self.leftDoor.hprInterval(1.3, Point3(0, 0, 0), startHpr=Point3(-90, 0, 0))
+        self.rightDoorCloseInterval = self.rightDoor.hprInterval(1.3, Point3(0, 0, 0), startHpr=Point3(90, 0, 0))
 
         self.buildingInterior = loader.loadModel('phase_3.5/models/modules/HQ_interior')
-        self.buildingInterior.reparentTo(render)
+        self.buildingInterior.reparentTo(self.mainMenu.environment)
         self.buildingInterior.setPos(-374.5, -293, -25)
 
         # Our Door
@@ -200,7 +200,6 @@ class JoinScreen(DirectFrame, FSM):
                 self.enterPosInterval2,
                 self.leftDoorOpenInterval,
                 self.rightDoorOpenInterval),
-            Wait(0.5),
             Func(base.transitions.fadeOut, 0),
             Parallel(
                 Func(base.camera.setH, 186),
@@ -227,7 +226,6 @@ class JoinScreen(DirectFrame, FSM):
                 Func(self.bookmarksLabel.hide),
                 Func(self.ipConnectButton.hide),
                 Func(self.bookmarksButton.hide)),
-            Wait(0.5),
             Func(base.transitions.fadeOut, 0),
             Func(base.camLens.setFov, 30),
             Parallel(

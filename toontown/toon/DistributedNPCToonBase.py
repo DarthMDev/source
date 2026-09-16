@@ -1,14 +1,14 @@
+from panda3d.core import CollideMask, CollisionNode, CollisionTube, NodePath, Point3, VBase4
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import ClockDelta
 from direct.distributed import DistributedObject
 from direct.fsm import ClassicFSM
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 import random
 
-import DistributedToon
-import NPCToons
+from . import DistributedToon
+from . import NPCToons
 from toontown.nametag import NametagGlobals
 from toontown.quest import QuestChoiceGui
 from toontown.quest import QuestParser
@@ -74,10 +74,29 @@ class DistributedNPCToonBase(DistributedToon.DistributedToon):
 
     def initToonState(self):
         self.setAnimState('neutral', 0.9, None, None)
-        npcOrigin = render.find('**/npc_origin_' + str(self.posIndex))
+        npcOrigin = self.findNpcOrigin()
         if not npcOrigin.isEmpty():
             self.reparentTo(npcOrigin)
             self.initPos()
+
+    def getPlacementRoots(self):
+        roots = [getattr(do, 'interior', None) for do in self.cr.doId2do.values()]
+        hood = getattr(base.cr.playGame, 'hood', None)
+        roots.append(getattr(getattr(hood, 'loader', None), 'geom', None))
+        return [np for np in roots if isinstance(np, NodePath) and not np.isEmpty()]
+
+    def findNpcOrigin(self):
+        name = '**/npc_origin_' + str(self.posIndex)
+        for root in self.getPlacementRoots():
+            npcOrigin = root.find(name)
+            if not npcOrigin.isEmpty():
+                return npcOrigin
+        npcOrigin = render.find(name)
+        if npcOrigin.isEmpty():
+            self.notify.warning('No npc_origin_%s for NPC %s.' % (self.posIndex, self.doId))
+        else:
+            self.notify.warning('npc_origin_%s for NPC %s came from outside the zone geometry.' % (self.posIndex, self.doId))
+        return npcOrigin
 
     def initPos(self):
         self.clearMat()

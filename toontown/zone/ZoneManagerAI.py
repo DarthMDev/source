@@ -1,3 +1,4 @@
+from panda3d.core import Filename, Multifile
 from direct.distributed.DistributedObjectGlobalAI import DistributedObjectGlobalAI
 from toontown.toonbase.ToontownGlobals import HoodHierarchy
 import os
@@ -27,7 +28,7 @@ class ZoneManagerAI(DistributedObjectGlobalAI):
         if os.path.exists(tmpFolder):
             shutil.rmtree(tmpFolder)
 
-        for hoodId in HoodHierarchy.keys():
+        for hoodId in list(HoodHierarchy.keys()):
             self.loadZone(hoodId)
             for branchId in HoodHierarchy[hoodId]:
                 self.loadZone(branchId)
@@ -39,10 +40,9 @@ class ZoneManagerAI(DistributedObjectGlobalAI):
             self.notify.debug('%s does not exist! Skipping...' % location)
             return
         self.extract(location)
-        self.zoneData[zoneId] = 'tmp/' + 'zone_%d/' % zoneId + 'zone_%d.pdna' % zoneId
+        self.zoneData[zoneId] = '%s/tmp/zone_%d/zone_%d.pdna' % (self.mountPoint, zoneId, zoneId)
 
     def extract(self, filename):
-        from panda3d.core import Multifile, Filename
         self.notify.debug('Extracting %s...' % filename)
         mf = Multifile()
         fn = Filename(filename)

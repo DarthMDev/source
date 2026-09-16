@@ -1,7 +1,8 @@
-import random
+from panda3d.core import Mat4, NodePath, Point3, TextNode, Texture
+from otp.util import random
 
-import ToonInterior
-import ToonInteriorColors
+from . import ToonInterior
+from . import ToonInteriorColors
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedObject
 from direct.distributed.ClockDelta import *
@@ -9,7 +10,6 @@ from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
 from otp.speedchat import SpeedChatGlobals
-from pandac.PandaModules import *
 from toontown.dna.DNAParser import DNADoor
 from toontown.hood import ZoneUtil
 from toontown.toon import ToonDNA
@@ -59,7 +59,7 @@ class DistributedToonInterior(DistributedObject.DistributedObject):
     def replaceRandomInModel(self, model):
         baseTag = 'random_'
         npc = model.findAllMatches('**/' + baseTag + '???_*')
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             np = npc.getPath(i)
             name = np.getName()
             b = len(baseTag)

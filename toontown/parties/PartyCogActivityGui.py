@@ -1,15 +1,14 @@
+from panda3d.core import Point3, TextNode, Texture, VBase4
 from direct.gui.DirectGui import DirectWaitBar, DGG
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.interval.LerpInterval import LerpScaleInterval
 from direct.interval.MetaInterval import Sequence
 from direct.interval.FunctionInterval import Wait, Func
-from pandac.PandaModules import Point3, VBase4
-from pandac.PandaModules import TextNode
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import ToontownIntervals
 from toontown.toonbase import TTLocalizer
-import PartyGlobals
+from . import PartyGlobals
 
 class PartyCogTrackerGui:
 
@@ -26,7 +25,7 @@ class PartyCogTrackerGui:
         i = 0
         self.cogTracker.find('**/shadow').setBin('fixed', 0)
         self.cogTracker.find('**/plane').setBin('fixed', 1)
-        for i in xrange(3):
+        for i in range(3):
             layers = [self.cogTracker.find('**/cog%d_blue' % i), self.cogTracker.find('**/cog%d_orange' % i), self.cogTracker.find('**/cog%d_white' % i)]
             self.cogs.append(self.cogTracker.find('**/cog%d' % i))
             self.cogLayers.append(layers)

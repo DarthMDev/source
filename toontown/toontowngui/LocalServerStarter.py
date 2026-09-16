@@ -19,11 +19,15 @@ class LocalServerStarter(FSM):
         self.path = os.path.abspath('.')
         self.threads = []
         self.currentProcess = 0
-        self.lastProcess = len(Processes)
 
-        self.mdPort = 7010
-        self.logPort = 7020
-        self.mongoPort = 7030
+        # The launcher's Hosting screen writes these into server-settings.json:
+        self.districtName = getDistrictName()
+        self.processes = getProcesses(districtName=self.districtName)
+        self.lastProcess = len(self.processes)
+
+        self.mdPort = MessageDirectorPort
+        self.logPort = EventLoggerPort
+        self.mongoPort = MongoPort
         self.mongoPath = os.path.join(ToontownGlobals.CurrentDirectory, 'astron', 'data')
         self.astronConfig = os.path.join(base.tempDir, 'server.yml')
 
@@ -39,6 +43,7 @@ class LocalServerStarter(FSM):
             messenger.send(EventGlobals.LocalServerStarterFailedRunning)
             return
         messenger.send(EventGlobals.LocalServerStarterStart)
+        os.makedirs(self.mongoPath, exist_ok=True)
         self.accept('processStarted', self.__processStarted)
         self.accept('processFailed', self.__processFailed)
         atexit.register(self.killThreads)
@@ -62,15 +67,19 @@ class LocalServerStarter(FSM):
         pass
     
     def __nextProcess(self):
-        self.process = copy.deepcopy(Processes[self.currentProcess])
+        self.process = copy.deepcopy(self.processes[self.currentProcess])
         self.currentProcess += 1
         messenger.send(EventGlobals.LocalServerStarterProcess, [self.process[2]])
 
         thread = ProcessThread(self.path, self.process)
         
-        if thread.processInfo[0].startswith('astrond'):
+        # the astrond entry is a path (`./astrond`)
+        # because POSIX doesn't search the working directory for executables
+        executable = os.path.basename(thread.processInfo[0])
+
+        if executable.startswith('astrond'):
             thread.processInfo.append(self.astronConfig)
-        elif thread.processInfo[0].startswith('mongod'):
+        elif executable.startswith('mongod'):
             thread.processInfo += ['--port', str(self.mongoPort), '--dbpath', self.mongoPath]
         elif UberdogTarget[-1] in thread.processInfo or AITarget[-1] in thread.processInfo:
             thread.processInfo += ['--astron-ip', '127.0.0.1:%d' % self.mdPort, '--eventlogger-ip', '127.0.0.1:%d' % self.logPort, '--mongodb-ip', 'mongodb://127.0.0.1:%d' % self.mongoPort]
@@ -100,7 +109,7 @@ class LocalServerStarter(FSM):
                 WhisperPopup(message, ToontownGlobals.getInterfaceFont(), ChatGlobals.WTSystem).manage(base.marginManager)
 
     def getPort(self):
-        return 7000
+        return getHostPort()
 
     def getPids(self):
         return [thread.getPid() for thread in self.threads if thread.hasPid()]

@@ -1,4 +1,4 @@
-from pandac.PandaModules import NodePath
+from panda3d.core import NodePath
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals
 from toontown.estate import DistributedStatuary
@@ -41,7 +41,7 @@ class DistributedChangingStatuary(DistributedStatuary.DistributedStatuary):
         if stage == -1:
             stage = len(growthThresholds)
         self.notify.debug('growth Stage=%d' % stage)
-        for index in xrange(len(growthThresholds) + 1):
+        for index in range(len(growthThresholds) + 1):
             if index != stage:
                 partName = '**/growthStage_%d' % index
                 self.notify.debug('trying to remove %s' % partName)

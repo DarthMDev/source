@@ -1,5 +1,4 @@
-from pandac.PandaModules import *
-from panda3d.core import Fog
+from panda3d.core import BitMask32, CardMaker, CollideMask, CollisionNode, CollisionSphere, CollisionTube, CompassEffect, Fog, NodePath, Plane, Point3, TextNode, Texture, Vec3, Vec4
 from direct.distributed.ClockDelta import *
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
@@ -9,16 +8,15 @@ from direct.showbase import BulletinBoardWatcher
 from direct.interval.IntervalGlobal import *
 from otp.otpbase import OTPGlobals
 from direct.interval.IntervalGlobal import *
-from RaceGag import RaceGag
+from .RaceGag import RaceGag
 from toontown.toonbase import ToontownGlobals, TTLocalizer
 from toontown.toon import ToonHeadFrame
 from toontown.racing.KartDNA import InvalidEntry, getAccessory, getDefaultColor
-from pandac.PandaModules import CardMaker, OrthographicLens, LineSegs
 from direct.distributed import DistributedSmoothNode
 from math import fmod
 from math import sqrt
-from RaceGUI import RaceGUI
-import RaceGlobals
+from .RaceGUI import RaceGUI
+from . import RaceGlobals
 from direct.task.Task import Task
 from toontown.hood import SkyUtil
 from direct.fsm import ClassicFSM, State
@@ -93,7 +91,6 @@ class DistributedRace(DistributedObject.DistributedObject):
         self.oldT = 0
         self.debugIt = 0
         self.startPos = None
-        return
 
     def generate(self):
         self.notify.debug('generate: %s' % self.doId)
@@ -103,13 +100,12 @@ class DistributedRace(DistributedObject.DistributedObject):
         self.cutoff = 0.01
         self.startBoopSfx = loader.loadSfx(self.SFX_StartBoop)
         self.startBoop2Sfx = loader.loadSfx(self.SFX_StartBoop2)
-        return
 
     def announceGenerate(self):
         self.notify.debug('announceGenerate: %s' % self.doId)
         DistributedObject.DistributedObject.announceGenerate(self)
         musicFile = self.BGM_BaseDir + RaceGlobals.TrackDict[self.trackId][7]
-        self.raceMusic = base.loadMusic(musicFile)
+        self.raceMusic = base.loader.loadMusic(musicFile)
         base.playMusic(self.raceMusic, looping=1, volume=0.8)
         base.camera.reparentTo(render)
         if self.trackId in (RaceGlobals.RT_Urban_1,
@@ -123,7 +119,7 @@ class DistributedRace(DistributedObject.DistributedObject):
         localAvatar.d_broadcastPositionNow()
         DistributedSmoothNode.activateSmoothing(1, 1)
         self.reversed = self.trackId / 2.0 > int(self.trackId / 2.0)
-        for i in xrange(3):
+        for i in range(3):
             base.loader.tick()
 
         self.sky = loader.loadModel('phase_3.5/models/props/TT_sky')
@@ -137,7 +133,7 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.loadFog()
         self.setupGeom()
         self.startSky()
-        for i in xrange(5):
+        for i in range(5):
             base.loader.tick()
 
     def disable(self):
@@ -167,7 +163,6 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.geom.hide()
         base.camLens.setFar(self.oldFarPlane)
         DistributedObject.DistributedObject.disable(self)
-        return
 
     def delete(self):
         self.notify.debug('delete %s' % self.doId)
@@ -200,7 +195,6 @@ class DistributedRace(DistributedObject.DistributedObject):
         bboard.remove('race')
         self.ignoreAll()
         del base.race
-        return
 
     def d_requestThrow(self, x, y, z):
         self.sendUpdate('requestThrow', [x, y, z])
@@ -228,7 +222,6 @@ class DistributedRace(DistributedObject.DistributedObject):
                 toon.reparentTo(hidden)
             if len(self.toonsToLink) == 0:
                 self.doneBarrier('waitingForPrep')
-        return
 
     def setPlace(self, avId, totalTime, place, entryFee, qualify, winnings, bonus, trophies, circuitPoints, circuitTime):
         if self.fsm.getCurrentState().getName() == 'leaving':
@@ -251,10 +244,9 @@ class DistributedRace(DistributedObject.DistributedObject):
             taskName = 'hideKart: %s' % self.localKart.doId
             taskMgr.doMethodLater(6, kart.reparentTo, taskName, extraArgs=[hidden])
             self.miscTaskNames.append(taskName)
-        return
 
     def setCircuitPlace(self, avId, place, entryFee, winnings, bonus, trophies):
-        print 'setting cicruit place'
+        self.notify.debug('setting circuit place')
         if self.fsm.getCurrentState().getName() == 'leaving':
             return
         if avId == localAvatar.doId:
@@ -267,13 +259,11 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.placeFixup.append([oldPlace - 1, place - 1])
         avatar = base.cr.doId2do.get(avId, None)
         if avatar:
-            print 'circuit trophies %s' % trophies
-            print 'winnings %s' % winnings
+            self.notify.debug(f'circuit trophies {trophies}')
+            self.notify.debug(f'winnings {winnings}')
             self.gui.racerFinishedCircuit(avId, oldPlace, entryFee, winnings, bonus, trophies)
-        return
 
     def endCircuitRace(self):
-        print self.placeFixup
         self.gui.circuitFinished(self.placeFixup)
 
     def prepForRace(self):
@@ -300,13 +290,11 @@ class DistributedRace(DistributedObject.DistributedObject):
                     kart.dropOnMe(timeStamp)
                 else:
                     kart.dropOnHim(timeStamp)
-        return
 
     def shootPiejectile(self, sourceId, targetId, type = 0):
         kart = base.cr.doId2do.get(self.kartMap.get(sourceId, None), None)
         if kart:
             self.piejectileManager.addPiejectile(sourceId, targetId, type)
-        return
 
     def goToSpeedway(self, avIds, reason = RaceGlobals.Exit_UserReq):
         self.notify.debug('goToSpeedway %s %s' % (avIds, reason))
@@ -324,7 +312,6 @@ class DistributedRace(DistributedObject.DistributedObject):
              'avId': -1,
              'reason': reason}
             base.cr.playGame.fsm.request('quietZone', [out])
-        return
 
     def kartCleanup(self):
         kart = self.localKart
@@ -342,7 +329,6 @@ class DistributedRace(DistributedObject.DistributedObject):
 
         localAvatar.setPos(0, 14, 0)
         localAvatar.sendCurrentPosition()
-        return
 
     def heresMyT(self, avId, avNumLaps, avTime, timestamp):
         self.gui.updateRacerInfo(avId, curvetime=avNumLaps + avTime)
@@ -423,7 +409,7 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.spin = Vec3(180, 0, 0)
         else:
             self.spin = Vec3(0, 0, 0)
-        for i in xrange(4):
+        for i in range(4):
             base.loader.tick()
 
         self.gui.initRaceMode()
@@ -553,14 +539,12 @@ class DistributedRace(DistributedObject.DistributedObject):
         newLapT = (newT - self.startT) / self.curve.getMaxT() % 1.0
         if newLapT - self.currLapT < -0.5:
             self.laps += 1
-            self.changeMusicTempo(1 + self.laps * 0.5)
             self.notify.debug('crossed the start line: %s, %s, %s, %s' % (self.laps,
              self.startT,
              self.currT,
              newT))
         elif newLapT - self.currLapT > 0.5:
             self.laps -= 1
-            self.changeMusicTempo(1 + self.laps * 0.5)
             self.notify.debug('crossed the start line - wrong way: %s, %s, %s, %s' % (self.laps,
              self.startT,
              self.currT,
@@ -614,7 +598,6 @@ class DistributedRace(DistributedObject.DistributedObject):
         pass
 
     def stopDriving(self):
-        kart = base.cr.doId2do.get(self.kartMap.get(localAvatar.doId, None), None)
         cpos = base.camera.getPos()
         chpr = base.camera.getHpr()
         localAvatar.reparentTo(hidden)
@@ -623,10 +606,8 @@ class DistributedRace(DistributedObject.DistributedObject):
         self.localKart.stopPosHprBroadcast()
         base.camera.setPos(cpos)
         base.camera.setHpr(chpr)
-        return
 
     def enterLeave(self):
-        kart = base.cr.doId2do.get(self.kartMap.get(localAvatar.doId, None), None)
         taskMgr.remove('raceWatcher')
         self.gui.disable()
         if self.localKart:
@@ -640,7 +621,6 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.victory.stop()
         self.bananaSound.stop()
         self.anvilFall.stop()
-        return
 
     def exitLeave(self):
         pass
@@ -660,7 +640,7 @@ class DistributedRace(DistributedObject.DistributedObject):
         countdownInt = int(countdownTime)
         self.clockNode.setTextColor(self.getCountdownColor(countdownInt))
         self.clockNode.setText(str(countdownInt))
-        self.clock = render2d.attachNewNode(self.clockNode)
+        self.clock = base.aspect2d.attachNewNode(self.clockNode)
         rs = TTLocalizer.DRrollScale
         self.clock.setPosHprScale(0, 0, 0, 0, 0, 0, rs, rs, rs)
         self.clock.hide()
@@ -774,7 +754,7 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.buildingGroups[side] = []
             self.currBldgInd[side] = None
             self.currBldgGroups[side] = None
-            for i in xrange(maxNum):
+            for i in range(maxNum):
                 for barricade in ('innerbarricade', 'outerbarricade'):
                     bldgGroup = self.townGeom.find('**/Buildings_' + side + '-' + barricade + '_' + str(i))
                     if bldgGroup.isEmpty():
@@ -910,12 +890,10 @@ class DistributedRace(DistributedObject.DistributedObject):
 
                     self.currBldgInd[side] = segmentInd
 
-        return
-
     def setupGeom(self):
         trackFilepath = RaceGlobals.TrackDict[self.trackId][0]
         self.geom = loader.loadModel(trackFilepath)
-        for i in xrange(10):
+        for i in range(10):
             base.loader.tick()
 
         self.geom.reparentTo(render)
@@ -925,12 +903,12 @@ class DistributedRace(DistributedObject.DistributedObject):
             lapStartPos = self.geom.find('**/lap_start').getPos()
         self.startPos = lapStartPos
         lapMidPos = self.geom.find('**/lap_middle').getPos()
-        for i in xrange(5):
+        for i in range(5):
             base.loader.tick()
 
         self.startingPos = []
         posLocators = self.geom.findAllMatches('**/start_pos*')
-        for i in xrange(posLocators.getNumPaths()):
+        for i in range(posLocators.getNumPaths()):
             base.loader.tick()
             self.startingPos.append([posLocators[i].getPos(), posLocators[i].getHpr()])
 
@@ -944,35 +922,35 @@ class DistributedRace(DistributedObject.DistributedObject):
             self.curve = self.geom.find('**/curve_reverse').node()
         else:
             self.curve = self.geom.find('**/curve_forward').node()
-        for i in xrange(4000):
+        for i in range(4000):
             self.curvePoints.append(Point3(0, 0, 0))
             self.curve.getPoint(i / 4000.0 * (self.curve.getMaxT() - 1e-11), self.curvePoints[-1])
             self.curveTs.append(i / 4000.0 * (self.curve.getMaxT() - 1e-11))
 
         if self.trackId in (RaceGlobals.RT_Urban_2, RaceGlobals.RT_Urban_2_rev):
             self.precomputeSideStreets()
-        for i in xrange(10):
+        for i in range(10):
             base.loader.tick()
 
         self.startT = self.getNearestT(lapStartPos)
         self.midT = self.getNearestT(lapMidPos)
         self.gags = []
         gagList = RaceGlobals.TrackDict[self.trackId][4]
-        for i in xrange(len(gagList)):
+        for i in range(len(gagList)):
             self.notify.debug('generating gag: %s' % i)
             self.gags.append(RaceGag(self, i, Vec3(*gagList[i]) + Vec3(0, 0, 3)))
 
-        for i in xrange(5):
+        for i in range(5):
             base.loader.tick()
 
     def precomputeSideStreets(self):
         farDist = base.camLens.getFar() + 300
         farDistSquared = farDist * farDist
-        for i in xrange(int(self.barricadeSegments)):
+        for i in range(int(self.barricadeSegments)):
             testPoint = Point3(0, 0, 0)
             self.curve.getPoint(i / self.barricadeSegments * (self.curve.getMaxT() - 1e-11), testPoint)
             for side in ('innersidest', 'outersidest'):
-                for bldgGroupIndex in xrange(len(self.buildingGroups[side])):
+                for bldgGroupIndex in range(len(self.buildingGroups[side])):
                     bldgGroup = self.buildingGroups[side][bldgGroupIndex]
                     if not bldgGroup.getNode(0).getBounds().isEmpty():
                         bldgPoint = bldgGroup.getNode(0).getBounds().getCenter()
@@ -1021,7 +999,7 @@ class DistributedRace(DistributedObject.DistributedObject):
         minIndex = -1
         currPoint = Point3(0, 0, 0)
         kartPoint = self.localKart.getPos()
-        for i in xrange(len(self.curvePoints)):
+        for i in range(len(self.curvePoints)):
             currPoint = self.curvePoints[i]
             currLength2 = (kartPoint - currPoint).lengthSquared()
             if currLength2 < minLength2:
@@ -1042,13 +1020,12 @@ class DistributedRace(DistributedObject.DistributedObject):
             return minIndex
         else:
             return prevIndex
-        return
 
     def getNearestT(self, pos):
         minLength2 = 1000000
         minIndex = -1
         currPoint = Point3(0, 0, 0)
-        for i in xrange(len(self.curvePoints)):
+        for i in range(len(self.curvePoints)):
             currPoint = self.curvePoints[i]
             currLength2 = (pos - currPoint).lengthSquared()
             if currLength2 < minLength2:
@@ -1196,29 +1173,19 @@ class DistributedRace(DistributedObject.DistributedObject):
         idStr = into.getTag('boostId')
         arrowVec = self.boostDir.get(idStr)
         if arrowVec == None:
-            print 'Unknown boost arrow %s' % idStr
+            self.notify.info(f'Unknown boost arrow {idStr}')
             return
         fvec = self.localKart.forward.getPos(self.geom) - self.localKart.getPos(self.geom)
         fvec.normalize()
         dotP = arrowVec.dot(fvec)
         if dotP > 0.7:
             self.localKart.startTurbo()
-        return
 
     def fadeOutMusic(self):
         if self.musicTrack:
             self.musicTrack.finish()
         curVol = self.raceMusic.getVolume()
         interval = LerpFunctionInterval(self.raceMusic.setVolume, fromData=curVol, toData=0, duration=3)
-        self.musicTrack = Sequence(interval)
-        self.musicTrack.start()
-
-    def changeMusicTempo(self, newPR):
-        return # TODO: Reenable when we have music change support.
-        if self.musicTrack:
-            self.musicTrack.finish()
-        curPR = self.raceMusic.getPlayRate()
-        interval = LerpFunctionInterval(self.raceMusic.setPlayRate, fromData=curPR, toData=newPR, duration=3)
         self.musicTrack = Sequence(interval)
         self.musicTrack.start()
 
@@ -1236,7 +1203,6 @@ class DistributedRace(DistributedObject.DistributedObject):
          'shardId': None,
          'reason': RaceGlobals.Exit_UserReq}
         base.cr.playGame.hood.loader.fsm.request('quietZone', [out])
-        return
 
 
 # TODO: Move this command to the AI server, and add more features to it.

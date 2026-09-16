@@ -1,5 +1,5 @@
+from panda3d.core import CardMaker, TextNode
 from direct.gui.DirectGui import DirectFrame, DirectButton, OnscreenText, DGG
-from panda3d.core import TextNode, NodePath, CardMaker, TransparencyAttrib
 from toontown.toonbase import ToontownGlobals
 from toontown.guilds import IconGlobals
 from toontown.util import TTCardMaker
@@ -14,7 +14,7 @@ class IconSelectionDialog(DirectFrame):
         self.iconButtonList = []
         self.page = 1
         maxPerPage = 20
-        maxPages = float(len(iconList) / maxPerPage)
+        maxPages = float(len(iconList) // maxPerPage)
         self.maxPages = int(maxPages + 1)
 
         DirectFrame.__init__(self, parent=self._parent, relief=None)

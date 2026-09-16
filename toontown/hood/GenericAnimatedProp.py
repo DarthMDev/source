@@ -1,4 +1,4 @@
-import AnimatedProp
+from . import AnimatedProp
 from direct.actor import Actor
 from direct.interval.IntervalGlobal import *
 from direct.directnotify import DirectNotifyGlobal
@@ -35,7 +35,7 @@ class GenericAnimatedProp(AnimatedProp.AnimatedProp):
 
         self.notify.debug('self.path=%s' % self.path)
         self.calcHoodId(node)
-        self.propType = HoodUtil.calcPropType(node)
+        self.propType = HoodUtil.calcPropType(str(node))
         self.setupActor(node)
         self.code = code
 

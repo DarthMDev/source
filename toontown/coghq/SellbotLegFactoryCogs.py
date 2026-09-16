@@ -1,4 +1,5 @@
-from SpecImports import *
+from panda3d.core import Point3
+from .SpecImports import *
 
 LobbyParent = 10014
 BoilerParent = 10030

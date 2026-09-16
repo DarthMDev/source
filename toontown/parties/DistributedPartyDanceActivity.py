@@ -6,7 +6,7 @@ class DistributedPartyDanceActivity(DistributedPartyDanceActivityBase):
     notify = directNotify.newCategory('DistributedPartyDanceActivity')
 
     def __init__(self, cr):
-        DistributedPartyDanceActivityBase.__init__(self, cr, PartyGlobals.ActivityIds.PartyDance, PartyGlobals.DancePatternToAnims)
+        DistributedPartyDanceActivityBase.__init__(self, cr, PartyGlobals.EActivityId.PartyDance, PartyGlobals.DancePatternToAnims)
 
     def getInstructions(self):
         return TTLocalizer.PartyDanceActivityInstructions
@@ -21,7 +21,7 @@ class DistributedPartyDanceActivity(DistributedPartyDanceActivityBase):
         origBall = self.danceFloor.find('**/discoBall_mesh_orig')
         if not correctBall.isEmpty():
             numChildren = parentGroup.getNumChildren()
-            for i in xrange(numChildren):
+            for i in range(numChildren):
                 child = parentGroup.getChild(i)
                 if child != correctBall:
                     child.hide()

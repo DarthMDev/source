@@ -1,3 +1,4 @@
+from panda3d.core import DecalEffect, NodePath, TextEncoder
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from toontown.building.ElevatorConstants import *
@@ -11,7 +12,7 @@ from direct.gui import DirectGui
 from toontown.hood import ZoneUtil
 from toontown.toonbase import TTLocalizer
 from toontown.toontowngui import TTDialog
-import CogDisguiseGlobals
+from . import CogDisguiseGlobals
 
 class DistributedMintElevatorExt(DistributedElevatorExt.DistributedElevatorExt):
 

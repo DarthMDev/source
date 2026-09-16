@@ -1,10 +1,9 @@
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.effects import FireworkGlobals
 from toontown.effects import Fireworks
-import FireworksGui
+from . import FireworksGui
 
 class FireworkItemPanel(DirectFrame):
 

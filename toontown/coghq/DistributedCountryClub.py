@@ -1,3 +1,4 @@
+from panda3d.core import CompassEffect, ConfigVariable, ConfigVariableBool, NodePath, TextEncoder, Vec4
 from direct.distributed.ClockDelta import *
 
 from direct.distributed import DistributedObject
@@ -16,15 +17,12 @@ from toontown.coghq import DistributedCountryClubRoom
 from toontown.coghq import CountryClubRoom
 from toontown.coghq import CountryClubRoomSpecs
 from toontown.coghq import FactoryCameraViews
-from pandac.PandaModules import CompassEffect, NodePath
-from pandac.PandaModules import TextEncoder
-from pandac.PandaModules import Vec4
 
 class DistributedCountryClub(DistributedObject.DistributedObject):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedCountryClub')
     ReadyPost = 'CountryClubReady'
     WinEvent = 'CountryClubWinEvent'
-    doBlockRooms = base.config.GetBool('block-country-club-rooms', 1)
+    doBlockRooms = ConfigVariableBool('block-country-club-rooms', True).getValue()
 
     def __init__(self, cr):
         DistributedObject.DistributedObject.__init__(self, cr)
@@ -61,7 +59,7 @@ class DistributedCountryClub(DistributedObject.DistributedObject):
         self.sky.reparentTo(camera)
         self.sky.setZ(0.0)
         self.sky.setHpr(0.0, 0.0, 0.0)
-        ce = CompassEffect.make(NodePath(), CompassEffect.PRot | CompassEffect.PZ)
+        ce = CompassEffect.make(NodePath(), CompassEffect.PRot)
         self.sky.node().setEffect(ce)
         self.sky.setBin('background', 0)
 
@@ -247,7 +245,7 @@ class DistributedCountryClub(DistributedObject.DistributedObject):
         return
 
     def warpToRoom(self, roomId):
-        for i in xrange(len(self.rooms)):
+        for i in range(len(self.rooms)):
             room = self.rooms[i]
             if room.roomId == roomId:
                 break
@@ -347,7 +345,6 @@ class DistributedCountryClub(DistributedObject.DistributedObject):
                                                                  colorScale=Vec4(1, 1, 1, 0.0)),
                                           Func(self.hideTitleText))
             self.titleSequence.start()
-        return
 
     def showTitleText(self):
         if self.titleText:

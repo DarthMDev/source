@@ -1,8 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.core import Point3, Vec3
 from direct.interval.IntervalGlobal import *
 from toontown.battle.BattleProps import *
 from direct.directnotify import DirectNotifyGlobal
-import DistributedGoon
+from . import DistributedGoon
 from toontown.toonbase import ToontownGlobals
 from toontown.coghq import MovingPlatform
 

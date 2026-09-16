@@ -1,12 +1,12 @@
-from pandac.PandaModules import *
-import DistributedCCharBase
+from . import DistributedCCharBase
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
-import CharStateDatas
+from . import CharStateDatas
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.hood import DLHood
+
 
 class DistributedGoofySpeedway(DistributedCCharBase.DistributedCCharBase):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedGoofySpeedway')
@@ -17,7 +17,11 @@ class DistributedGoofySpeedway(DistributedCCharBase.DistributedCCharBase):
         except:
             self.DistributedGoofySpeedway_initialized = 1
             DistributedCCharBase.DistributedCCharBase.__init__(self, cr, TTLocalizer.Goofy, 'g')
-            self.fsm = ClassicFSM.ClassicFSM(self.getName(), [State.State('Off', self.enterOff, self.exitOff, ['Neutral']), State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']), State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off', 'Off')
+            self.fsm = ClassicFSM.ClassicFSM(self.getName(),
+                                             [State.State('Off', self.enterOff, self.exitOff, ['Neutral']),
+                                              State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']),
+                                              State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off',
+                                             'Off')
             self.fsm.enterInitialState()
 
         self.handleHolidays()
@@ -89,7 +93,7 @@ class DistributedGoofySpeedway(DistributedCCharBase.DistributedCCharBase):
         DistributedCCharBase.DistributedCCharBase.handleHolidays(self)
         if hasattr(base.cr, 'newsManager') and base.cr.newsManager:
             holidayIds = base.cr.newsManager.getHolidayIdList()
-            if ToontownGlobals.APRIL_FOOLS_DAY in holidayIds and isinstance(self.cr.playGame.hood, DLHood.DLHood):
+            if ToontownGlobals.APRIL_FOOLS_COSTUMES in holidayIds and isinstance(self.cr.playGame.hood, DLHood.DLHood):
                 self.diffPath = TTLocalizer.Donald
 
     def getCCLocation(self):

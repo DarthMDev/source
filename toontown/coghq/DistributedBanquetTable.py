@@ -1,6 +1,7 @@
+from panda3d.direct import SmoothMover
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionSegment, ConfigVariable, ConfigVariableDouble, NodePath, Point3, TextNode, VBase4, Vec3, deg2Rad
 import math
 import random
-from pandac.PandaModules import NodePath, Point3, VBase4, TextNode, Vec3, deg2Rad, CollisionSegment, CollisionHandlerQueue, CollisionNode, BitMask32, SmoothMover
 from direct.fsm import FSM
 from direct.distributed import DistributedObject
 from direct.distributed.ClockDelta import globalClockDelta
@@ -22,8 +23,8 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
     pitcherMinH = -360
     pitcherMaxH = 360
     rotateSpeed = 30
-    waterPowerSpeed = base.config.GetDouble('water-power-speed', 15)
-    waterPowerExponent = base.config.GetDouble('water-power-exponent', 0.75)
+    waterPowerSpeed = ConfigVariableDouble('water-power-speed', 15).getValue()
+    waterPowerExponent = ConfigVariableDouble('water-power-exponent', 0.75).getValue()
     useNewAnimations = True
     TugOfWarControls = False
     OnlyUpArrow = True
@@ -96,11 +97,11 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         DistributedObject.DistributedObject.delete(self)
         self.boss = None
         self.ignoreAll()
-        for indicator in self.dinerStatusIndicators.values():
+        for indicator in list(self.dinerStatusIndicators.values()):
             indicator.delete()
 
         self.dinerStatusIndicators = {}
-        for diner in self.diners.values():
+        for diner in list(self.diners.values()):
             diner.delete()
 
         self.diners = {}
@@ -149,7 +150,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
 
     def setDinerInfo(self, hungryDurations, eatingDurations, dinerLevels):
         self.dinerInfo = {}
-        for i in xrange(len(hungryDurations)):
+        for i in range(len(hungryDurations)):
             hungryDur = hungryDurations[i]
             eatingDur = eatingDurations[i]
             dinerLevel = dinerLevels[i]
@@ -174,7 +175,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         self.pitcherMoveSfx = loader.loadSfx('phase_4/audio/sfx/MG_cannon_adjust.ogg')
 
     def setupDiners(self):
-        for i in xrange(self.numDiners):
+        for i in range(self.numDiners):
             newDiner = self.createDiner(i)
             self.diners[i] = newDiner
             self.dinerStatus[i] = self.HUNGRY
@@ -223,7 +224,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         return diner
 
     def setupChairCols(self):
-        for i in xrange(self.numDiners):
+        for i in range(self.numDiners):
             chairCol = self.tableGroup.find('**/collision_chair_%d' % (i + 1))
             colName = 'ChairCol-%d-%d' % (self.index, i)
             chairCol.setTag('chairIndex', str(i))
@@ -275,7 +276,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
     def removeFoodModel(self, chairIndex):
         serviceLoc = self.serviceLocs.get(chairIndex)
         if serviceLoc:
-            for i in xrange(serviceLoc.getNumChildren()):
+            for i in range(serviceLoc.getNumChildren()):
                 serviceLoc.getChild(0).removeNode()
 
     def changeDinerToEating(self, chairIndex):
@@ -386,37 +387,37 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
 
     def setAllDinersToSitNeutral(self):
         startFrame = 0
-        for diner in self.diners.values():
+        for diner in list(self.diners.values()):
             if not diner.isHidden():
                 diner.loop('sit', fromFrame=startFrame)
                 startFrame += 1
 
     def cleanupIntervals(self):
-        for interval in self.activeIntervals.values():
+        for interval in list(self.activeIntervals.values()):
             interval.finish()
 
         self.activeIntervals = {}
 
     def clearInterval(self, name, finish = 1):
-        if self.activeIntervals.has_key(name):
+        if name in self.activeIntervals:
             ival = self.activeIntervals[name]
             if finish:
                 ival.finish()
             else:
                 ival.pause()
-            if self.activeIntervals.has_key(name):
+            if name in self.activeIntervals:
                 del self.activeIntervals[name]
         else:
             self.notify.debug('interval: %s already cleared' % name)
 
     def finishInterval(self, name):
-        if self.activeIntervals.has_key(name):
+        if name in self.activeIntervals:
             interval = self.activeIntervals[name]
             interval.finish()
 
     def getNotDeadInfo(self):
         notDeadList = []
-        for i in xrange(self.numDiners):
+        for i in range(self.numDiners):
             if self.dinerStatus[i] != self.DEAD:
                 notDeadList.append((self.index, i, 12))
 
@@ -429,7 +430,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         pass
 
     def enterInactive(self):
-        for chairIndex in xrange(self.numDiners):
+        for chairIndex in range(self.numDiners):
             indicator = self.dinerStatusIndicators.get(chairIndex)
             if indicator:
                 indicator.request('Inactive')
@@ -466,17 +467,17 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
 
     def prepareForPhaseFour(self):
         if not self.preparedForPhaseFour:
-            for i in xrange(8):
+            for i in range(8):
                 chair = self.tableGroup.find('**/chair_%d' % (i + 1))
                 if not chair.isEmpty():
                     chair.hide()
                 colChairs = self.tableGroup.findAllMatches('**/ChairCol*')
-                for i in xrange(colChairs.getNumPaths()):
+                for i in range(colChairs.getNumPaths()):
                     col = colChairs.getPath(i)
                     col.stash()
 
                 colChairs = self.tableGroup.findAllMatches('**/collision_chair*')
-                for i in xrange(colChairs.getNumPaths()):
+                for i in range(colChairs.getNumPaths()):
                     col = colChairs.getPath(i)
                     col.stash()
 
@@ -641,7 +642,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
          gui.find('**/CloseBtn_UP')), relief=None, scale=2, text=TTLocalizer.BossbotPitcherLeave, text_scale=0.04, text_pos=(0, -0.07), text_fg=VBase4(1, 1, 1, 1), pos=(1.05, 0, -0.82), command=self.__exitPitcher)
         self.accept('escape', self.__exitPitcher)
         self.accept(base.JUMP, self.__controlPressed)
-        self.accept('control-up', self.__controlReleased)
+        self.accept(base.JUMP + '-up', self.__controlReleased)
         self.accept('InputState-forward', self.__upArrow)
         self.accept('InputState-reverse', self.__downArrow)
         self.accept('InputState-turnLeft', self.__leftArrow)
@@ -662,7 +663,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         self.__cleanupPitcherAdvice()
         self.ignore('escape')
         self.ignore(base.JUMP)
-        self.ignore('control-up')
+        self.ignore(base.JUMP + '-up')
         self.ignore('InputState-forward')
         self.ignore('InputState-reverse')
         self.ignore('InputState-turnLeft')
@@ -986,7 +987,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
 
     def __updateWaterPower(self, task):
         if not self.powerBar:
-            print '### no power bar!!!'
+            print('### no power bar!!!')
             return task.done
         newPower = self.__getWaterPower(globalClock.getFrameTime())
         self.power = newPower
@@ -1103,10 +1104,10 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
     def __updateKeyPressRateTask(self, task):
         if self.state not in 'Controlled':
             return Task.done
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             self.keyTTL[i] -= 0.1
 
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             if self.keyTTL[i] <= 0:
                 a = self.keyTTL[0:i]
                 del self.keyTTL

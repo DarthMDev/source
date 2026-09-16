@@ -1,11 +1,11 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, ConfigVariableDouble, ConfigVariableString, ModelPool, Texture, TexturePool
 from toontown.toonbase.ToonBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import StateData
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.task.Task import Task
-from ToontownMsgTypes import *
+from .ToontownMsgTypes import *
 from toontown.toonbase import ToontownGlobals
 from toontown.hood import TTHood
 from toontown.hood import DDHood
@@ -26,7 +26,7 @@ from toontown.hood import PartyHood
 from toontown.hood import StrikeZone
 from toontown.hood import SZBossHood
 from toontown.toonbase import TTLocalizer
-from toontown.parties.PartyGlobals import GoToPartyStatus
+from toontown.parties.PartyGlobals import EGoToPartyStatus
 from toontown.dna.DNAParser import *
 
 class PlayGame(StateData.StateData):
@@ -137,7 +137,6 @@ class PlayGame(StateData.StateData):
           'zoneId': zoneId,
           'shardId': None,
           'avId': avId}])
-        return
 
     def exit(self):
         if base.placeBeforeObjects and self.quietZoneStateData:
@@ -245,7 +244,7 @@ class PlayGame(StateData.StateData):
         loaderName = requestStatus['loader']
         avId = requestStatus.get('avId', -1)
         ownerId = requestStatus.get('ownerId', avId)
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: NEIGHBORHOODS: Visit %s' % hoodName)
         count = ToontownGlobals.hoodCountMap[canonicalHoodId]
         if loaderName == 'safeZoneLoader':
@@ -408,8 +407,8 @@ class PlayGame(StateData.StateData):
         base.localAvatar.chatMgr.obscure(1, 1)
         base.localAvatar.obscureFriendsListButton(1)
         requestStatus['how'] = 'tutorial'
-        if base.config.GetString('language', 'english') == 'japanese':
-            musicVolume = base.config.GetFloat('tutorial-music-volume', 0.5)
+        if ConfigVariableString('language', 'english').getValue() == 'japanese':
+            musicVolume = ConfigVariableDouble('tutorial-music-volume', 0.5).getValue()
             requestStatus['musicVolume'] = musicVolume
         self.hood.enter(requestStatus)
 
@@ -447,9 +446,8 @@ class PlayGame(StateData.StateData):
             base.cr.estateManager.getLocalEstateZone(avId)
         else:
             base.cr.estateManager.getLocalEstateZone(base.localAvatar.getDoId())
-        return
 
-    def goHome(self, ownerId, zoneId, shardId):
+    def goHome(self, ownerId, zoneId):
         self.notify.debug('goHome ownerId = %s' % ownerId)
         if ownerId > 0 and ownerId != base.localAvatar.doId and not base.cr.isFriend(ownerId):
             self.doneStatus['failed'] = 1
@@ -466,13 +464,7 @@ class PlayGame(StateData.StateData):
             self.doneStatus['where'] = 'estate'
         self.doneStatus['ownerId'] = ownerId
 
-        if shardId != 0:
-            self.doneStatus['shardId'] = shardId
-        else:
-            self.doneStatus['shardId'] = None
-
         self.fsm.request('quietZone', [self.doneStatus])
-        return
 
     def goHomeFailed(self, task):
         self.notify.debug('goHomeFailed')
@@ -566,7 +558,7 @@ class PlayGame(StateData.StateData):
     def getCatalogCodes(self, category):
         numCodes = self.dnaStore.getNumCatalogCodes(category)
         codes = []
-        for i in xrange(numCodes):
+        for i in range(numCodes):
             codes.append(self.dnaStore.getCatalogCode(category, i))
 
         return codes

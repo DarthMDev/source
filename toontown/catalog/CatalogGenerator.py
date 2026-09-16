@@ -1,9 +1,9 @@
-from Catalog import MetaItem
-from CatalogSchedule import AllWeeklyCatalogs, AllSeasonalCatalogs, PermenantCatalog, NO_YEAR
-import CatalogItem
-import CatalogItemList
-from CatalogFurnitureItem import nextAvailableCloset, get50ItemTrunk
-from CatalogPoleItem import nextAvailablePole
+from .Catalog import MetaItem
+from .CatalogSchedule import AllWeeklyCatalogs, AllSeasonalCatalogs, PermenantCatalog, NO_YEAR
+from . import CatalogItem
+from . import CatalogItemList
+from .CatalogFurnitureItem import nextAvailableCloset, get50ItemTrunk
+from .CatalogPoleItem import nextAvailablePole
 from datetime import datetime
 
 
@@ -15,12 +15,12 @@ class CatalogGenerator:
         self.__releasedItemLists = {}
 
     def getReleasedCatalogList(self, weekStart):
-        dayNumber = int(weekStart / (24 * 60))
+        dayNumber = weekStart // (24 * 60)
         itemLists = self.__getReleasedItemLists(dayNumber, weekStart)
         return itemLists
 
     def generateMonthlyCatalog(self, avatar, weekStart):
-        dayNumber = int(weekStart / (24 * 60))
+        dayNumber = weekStart // (24 * 60)
         itemLists = self.__getMonthlyItemLists(dayNumber)
         monthlyCatalog = CatalogItemList.CatalogItemList()
 
@@ -63,7 +63,7 @@ class CatalogGenerator:
         thisWeek = min(len(AllWeeklyCatalogs), week - 1)
         lastWeek = min(len(AllWeeklyCatalogs), previousWeek)
 
-        for week in xrange(thisWeek, lastWeek, -1):
+        for week in range(thisWeek, lastWeek, -1):
             catalog = AllWeeklyCatalogs[week - 1]
             if not catalog.isSale:
                 for item in catalog.items:

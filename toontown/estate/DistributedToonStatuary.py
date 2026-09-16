@@ -1,15 +1,13 @@
+from panda3d.core import RenderState, Texture, TextureStage, VBase4, Vec4
 from toontown.estate import DistributedStatuary
 from toontown.estate import DistributedLawnDecor
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.ShowBase import *
-from pandac.PandaModules import *
 from toontown.toon import Toon
 from toontown.toon import ToonDNA
-import GardenGlobals
+from . import GardenGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownGlobals
-from pandac.PandaModules import NodePath
-from pandac.PandaModules import Point3
 
 def dnaCodeFromToonDNA(dna):
 
@@ -114,7 +112,7 @@ class DistributedToonStatuary(DistributedStatuary.DistributedStatuary):
                 if sleeves:
                     sleeves.setTexture(desatSleeveTex, 1)
                 bottoms = torso.findAllMatches('**/torso-bot*')
-                for bottomNum in xrange(0, bottoms.getNumPaths()):
+                for bottomNum in range(0, bottoms.getNumPaths()):
                     bottom = bottoms.getPath(bottomNum)
                     if bottom:
                         if self.toon.style.torso[1] == 's':

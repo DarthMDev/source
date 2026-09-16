@@ -1,6 +1,6 @@
 from otp.uberdog.GlobalOtpObjectUD import GlobalOtpObjectUD
 from direct.directnotify import DirectNotifyGlobal
-from GroupTrackerGlobals import *
+from .GroupTrackerGlobals import *
 
 
 class GlobalGroupTrackerUD(GlobalOtpObjectUD):
@@ -55,7 +55,7 @@ class GlobalGroupTrackerUD(GlobalOtpObjectUD):
         self.requestGroupsResponse(avId)
 
     def requestGroupsResponse(self, avId):
-        self.sendUpdateToAvatarId(avId, 'requestGroupsResponse', [self.leader2Group.keys(), self.leader2Group.values()])
+        self.sendUpdateToAvatarId(avId, 'requestGroupsResponse', [list(self.leader2Group.keys()), list(self.leader2Group.values())])
 
     def cleanupAvatar(self, avId):
         self.notify.debug('Cleaning up avatar no longer with us %s' % avId)
@@ -75,7 +75,7 @@ class GlobalGroupTrackerUD(GlobalOtpObjectUD):
     
     def showGroup(self, leaderId, show):
         if leaderId not in self.leader2Group:
-            self.notify.warning('Av %s tried to show group not in leader2Group' % avId)
+            self.notify.warning('Av %s tried to show group not in leader2Group' % leaderId)
             return
         self.leader2Group[leaderId][SHOW] = show
         self.d_updateListeners(leaderId)

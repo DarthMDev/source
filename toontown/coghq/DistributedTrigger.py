@@ -1,7 +1,7 @@
-from pandac.PandaModules import *
+from panda3d.core import CollideMask, CollisionNode, CollisionSphere, NodePath
 from direct.distributed.ClockDelta import *
 from toontown.toonbase import ToontownGlobals
-import DistributedSwitch
+from . import DistributedSwitch
 
 class DistributedTrigger(DistributedSwitch.DistributedSwitch):
 

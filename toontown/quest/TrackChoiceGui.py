@@ -1,5 +1,5 @@
+from panda3d.core import TextNode, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import ToontownTimer
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import ToontownBattleGlobals
@@ -12,7 +12,7 @@ class TrackPoster(DirectFrame):
         DirectFrame.__init__(self, relief=None)
         self.initialiseoptions(TrackPoster)
         bookModel = loader.loadModel('phase_3.5/models/gui/stickerbook_gui')
-        trackName = ToontownBattleGlobals.Tracks[trackId].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[trackId]
         self.poster = DirectFrame(parent=self, relief=None, image=bookModel.find('**/questCard'), image_scale=(0.8, 0.58, 0.58))
         invModel = loader.loadModel('phase_3.5/models/gui/inventory_icons')
         iconGeom = invModel.find('**/' + ToontownBattleGlobals.AvPropsNew[trackId][1])

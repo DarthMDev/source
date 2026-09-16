@@ -1,4 +1,5 @@
-import CatalogItem
+from panda3d.core import Datagram
+from . import CatalogItem
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from otp.otpbase import OTPLocalizer
@@ -104,7 +105,7 @@ class CatalogEmoteItem(CatalogItem.CatalogItem):
         return 'CatalogEmoteItem(%s%s)' % (self.emoteIndex, self.formatOptionalData(store))
 
     def compareTo(self, other):
-        return self.emoteIndex - other.emoteIndex
+        return self.emoteIndex == other.emoteIndex
 
     def getHashContents(self):
         return self.emoteIndex

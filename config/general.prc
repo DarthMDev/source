@@ -1,6 +1,6 @@
 # Window settings:
 window-title Toontown Infinite
-win-origin -1 -1
+win-origin -2 -2
 icon-filename phase_3/etc/icon.ico
 cursor-filename phase_3/etc/toonmono.cur
 
@@ -11,6 +11,7 @@ audio-library-name null
 # aux-display pandagl
 load-display pandagl
 aux-display p3tinydisplay
+text-pixels-per-unit 128
 
 # Models:
 model-cache-models #f
@@ -31,18 +32,10 @@ backups-filepath backups/
 backups-extension .json
 
 # Server:
-server-timezone EST/EDT/-5
-server-port 7000
-account-server-endpoint https://toontowninfinite.com/api/
-
-# RPC:
-want-rpc-server #f
-rpc-server-endpoint http://localhost:8080/
-rpc-server-secret eWd54mrNYuREmTA6
+server-timezone PST/PDT/-8
 
 # Performance:
 sync-video #f
-texture-power-2 none
 gl-check-errors #f
 garbage-collect-states #t
 support-threads #t
@@ -63,19 +56,14 @@ egg-object-type-model <Model> { 1 }
 egg-object-type-dcs <DCS> { 1 }
 
 # Core features:
-want-kaldron-network #f
 want-multiplayer #f
-want-guilds #f
-want-guild-quests #f
-want-emblems #f
-want-gardening #t
-want-pets #f
+want-guilds #t
+want-guild-quests #t
+want-emblems #t
+want-pets #t
 
 # Safe zones:
 want-safe-zones #t
-want-toontown-central #t
-want-donalds-dock #t
-want-daisys-garden #t
 want-minnies-melodyland #t
 want-the-burrrgh #t
 want-donalds-dreamland #t
@@ -85,23 +73,7 @@ want-golf-zone #t
 want-resistance-grounds #t
 want-strike-zone #t
 
-# Safe zone settings:
-want-treasure-planners #t
-want-suit-planners #t
-
-# Classic characters:
-want-classic-chars #f
-want-mickey #f
-want-donald-dock #f
-want-daisy #f
-want-minnie #f
-want-pluto #f
-want-donald-dreamland #f
-want-chip-and-dale #f
-want-goofy #f
-
 # Trolley minigames:
-want-minigames #t
 want-photo-game #f
 want-travel-game #f
 want-ttc-trolley #t
@@ -129,14 +101,9 @@ zero-pause-mult 1.0
 
 # Interactive Props
 randomize-interactive-idles #t
-interactive-prop-random-idles #t
-interactive-prop-info #f
 props-buff-battles #t
 prop-and-organic-bonus-stack #f
 prop-idle-pause-time 0.0
-
-# Holidays
-active-holidays 63, 64, 65, 66, 116
 
 # Optional:
 show-total-population #t
@@ -144,7 +111,6 @@ want-mat-all-tailors #t
 want-long-pattern-game #f
 want-talkative-tyler #f
 want-yin-yang #f
-want-butterflies #f
 want-estate-fisherman #t
 want-fireworks #t
 want-code-redemption #f
@@ -153,6 +119,9 @@ want-code-redemption #f
 want-dev #f
 want-pstats 0
 want-threaded-ai-start #f
+
+# Writes every chat message the client sees into the log:
+want-chat-log #f
 
 # Temporary:
 smooth-lag 0.4
@@ -163,6 +132,9 @@ want-live-updates #t
 
 # Heartbeat
 want-heartbeat #t
+
+# Connect while the intro cinematic plays
+want-connection-warmup #t
 
 # Toon patches:
 toon-patch-version 0

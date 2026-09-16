@@ -1,3 +1,4 @@
+from panda3d.core import Point3, TransparencyAttrib, VBase4, Vec3
 from direct.fsm.FSM import FSM
 from direct.gui.DirectGui import *
 from direct.interval.FunctionInterval import Func
@@ -5,7 +6,6 @@ from direct.interval.FunctionInterval import Wait
 from direct.interval.IntervalGlobal import LerpScaleInterval
 from direct.interval.IntervalGlobal import Sequence
 from direct.interval.LerpInterval import LerpPosInterval
-from pandac.PandaModules import *
 
 from toontown.mainmenu import MainMenuGlobals
 from toontown.makeatoon.MakeAToonGUI import MATShuffleButton
@@ -76,21 +76,43 @@ class PlayScreen(DirectFrame, FSM):
         )
         self.buttons.append(self.quitButton)
 
-        self.ttiServerButton = MATShuffleButton(
-            parent=self,
-            text="Join the\nOfficial Server",
-            pos=TTI_SERVER_START_POS,
-            text_pos=(0, 0.02, 0),
-            command=lambda: base.connectToServer('127.0.0.1'),
-            wantArrows=False,
-            image_scale=(-1.4, 1.4, 1.4),
-            image2_scale=(-1.5, 1.5, 1.5),
-            image1_scale=(-1.5, 1.5, 1.5),
-            text_scale=0.10,
-            text2_scale=0.105,
-            text1_scale=0.105
-        )
-        self.buttons.append(self.ttiServerButton)
+        if __debug__:
+            self.serverButton = MATShuffleButton(
+                parent=self,
+                text="Connect to\nlocal host",
+                pos=TTI_SERVER_START_POS,
+                text_pos=(0, 0.02, 0),
+                command=lambda: base.connectToServer('127.0.0.1'),
+                wantArrows=False,
+                image_scale=(-1.4, 1.4, 1.4),
+                image2_scale=(-1.5, 1.5, 1.5),
+                image1_scale=(-1.5, 1.5, 1.5),
+                image3_color=VBase4(0.6, 0.6, 0.6, 1.0),
+                text3_fg=VBase4(0.7, 0.7, 0.7, 1.0),
+                text_scale=0.10,
+                text2_scale=0.105,
+                text1_scale=0.105
+            )
+        else:
+            self.serverButton = MATShuffleButton(
+                parent=self,
+                text="Join the\nOfficial Server",
+                pos=TTI_SERVER_START_POS,
+                text_pos=(0, 0.02, 0),
+                command=lambda: base.connectToServer('toontowninfinite.com'),
+                wantArrows=False,
+                image_scale=(-1.4, 1.4, 1.4),
+                image2_scale=(-1.5, 1.5, 1.5),
+                image1_scale=(-1.5, 1.5, 1.5),
+                image3_color=VBase4(0.6, 0.6, 0.6, 1.0),
+                text3_fg=VBase4(0.7, 0.7, 0.7, 1.0),
+                text_scale=0.10,
+                text2_scale=0.105,
+                text1_scale=0.105
+            )
+            # Disable the button for now
+            self.serverButton['state'] = DGG.DISABLED
+        self.buttons.append(self.serverButton)
 
         self.icon = OnscreenImage(
             parent=self,
@@ -114,7 +136,7 @@ class PlayScreen(DirectFrame, FSM):
                                                  blendType='easeOut')
         self.buttonPosInterval4 = LerpPosInterval(self.quitButton, 0.5, QUIT_END_POS, QUIT_START_POS,
                                                   blendType='easeOut')
-        self.buttonPosInterval5 = LerpPosInterval(self.ttiServerButton, 0.5, TTI_SERVER_END_POS, TTI_SERVER_START_POS,
+        self.buttonPosInterval5 = LerpPosInterval(self.serverButton, 0.5, TTI_SERVER_END_POS, TTI_SERVER_START_POS,
                                                   blendType='easeOut')
 
         self.buttonPosInterval6 = LerpPosInterval(self.joinButton, 0.5, JOIN_START_POS, JOIN_END_POS,
@@ -125,7 +147,7 @@ class PlayScreen(DirectFrame, FSM):
                                                   blendType='easeOut')
         self.buttonPosInterval9 = LerpPosInterval(self.quitButton, 0.5, QUIT_START_POS, QUIT_END_POS,
                                                   blendType='easeOut')
-        self.buttonPosInterval10 = LerpPosInterval(self.ttiServerButton, 0.5, TTI_SERVER_START_POS, TTI_SERVER_END_POS,
+        self.buttonPosInterval10 = LerpPosInterval(self.serverButton, 0.5, TTI_SERVER_START_POS, TTI_SERVER_END_POS,
                                                   blendType='easeOut')
 
         self.ttiIconPosInterval = LerpPosInterval(self.icon, 0.5, TTI_ICON_END_POS, TTI_ICON_START_POS,
@@ -159,9 +181,9 @@ class PlayScreen(DirectFrame, FSM):
 
         if (base.cr.music is None) and base.musicManagerIsValid:
             if not base.wantClassicMusic:
-                base.cr.music = base.musicManager.getSound('phase_3.5/audio/bgm/TC_SZ.ogg')
+                base.cr.music = base.musicManager.getSound('phase_3/audio/bgm/tti_theme.ogg')
             else:
-                base.cr.music = base.musicManager.getSound('phase_3.5/audio/bgm/TC_SZ_og.ogg')
+                base.cr.music = base.musicManager.getSound('phase_3/audio/bgm/tti_theme_og.ogg')
             if base.cr.music is not None:
                 base.cr.music.setLoop(1)
                 base.cr.music.setVolume(0.9)
@@ -218,7 +240,7 @@ class PlayScreen(DirectFrame, FSM):
         self.hostButton.setPos(HOST_START_POS)
         self.optionsButton.setPos(OPTIONS_START_POS)
         self.quitButton.setPos(QUIT_START_POS)
-        self.ttiServerButton.setPos(TTI_SERVER_START_POS)
+        self.serverButton.setPos(TTI_SERVER_START_POS)
         self.icon.setPos(TTI_ICON_START_POS)
 
     def hideOptions(self):

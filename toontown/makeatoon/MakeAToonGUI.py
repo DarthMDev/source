@@ -1,9 +1,8 @@
-from pandac.PandaModules import WindowProperties
-from panda3d.core import *
+from panda3d.core import TransparencyAttrib, VBase4, WindowProperties
 from direct.gui.DirectGui import *
 from toontown.toonbase.TTLocalizer import SBshuffleBtn
 from toontown.toon.ColorDNA import convertToRgb, convertToHsv
-from MakeAToonGlobals import *
+from .MakeAToonGlobals import *
 import math
 
 
@@ -390,7 +389,7 @@ class MATAdvancedColorPicker(DirectFrame):
         green = "0x" + text[3:5]
         blue = "0x" + text[5:7]
 
-        print (red, green, blue)
+        print((red, green, blue))
         
         try:
             self.setRgb(

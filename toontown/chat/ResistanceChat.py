@@ -1,6 +1,6 @@
-from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, GeomNode, NodePath, VBase4
 import random
+from direct.interval.IntervalGlobal import *
 
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownBattleGlobals
@@ -16,13 +16,13 @@ RESISTANCE_RESTOCK = 1
 RESISTANCE_MONEY = 2
 RESISTANCE_DANCE = 3
 allowedResistanceMessages = []
-if config.GetBool('want-resistance-toonup', True):
+if ConfigVariableBool('want-resistance-toonup', True).getValue():
     allowedResistanceMessages.append(RESISTANCE_TOONUP)
-if config.GetBool('want-resistance-restock', True):
+if ConfigVariableBool('want-resistance-restock', True).getValue():
     allowedResistanceMessages.append(RESISTANCE_RESTOCK)
-if config.GetBool('want-resistance-money', True):
+if ConfigVariableBool('want-resistance-money', True).getValue():
     allowedResistanceMessages.append(RESISTANCE_MONEY)
-if config.GetBool('want-resistance-dance', True):
+if ConfigVariableBool('want-resistance-dance', True).getValue():
     allowedResistanceMessages.append(RESISTANCE_DANCE)
 resistanceMenu = [
     RESISTANCE_TOONUP, RESISTANCE_RESTOCK, RESISTANCE_MONEY,
@@ -34,7 +34,6 @@ resistanceDict = {
         'itemText': TTLocalizer.ResistanceToonupItem,
         'chatText': TTLocalizer.ResistanceToonupChat,
         'values': [10, 15, 20, 30, 40, 50, 80],
-        'npcs': [2122, 9232, 9212, 9209, 9201, 3210, 9203, 11237],
         'items': [0, 1, 2, 3, 4, 5, 6]
     },
     RESISTANCE_MONEY: {
@@ -42,7 +41,6 @@ resistanceDict = {
         'itemText': TTLocalizer.ResistanceMoneyItem,
         'chatText': TTLocalizer.ResistanceMoneyChat,
         'values': [100, 200, 350, 600, 1200, 1800, 2400],
-        'npcs': [4223, 2127, 1102, 3318, 9226, 4325, 2002],
         'items': [0, 1, 2, 3, 4, 5]
     },
     RESISTANCE_RESTOCK: {
@@ -58,7 +56,6 @@ resistanceDict = {
             ToontownBattleGlobals.SQUIRT_TRACK,
             ToontownBattleGlobals.DROP_TRACK,
         ],
-        'npcs': [2133, 2006, 1216, 4114, 9225, 2215, 9128, 9105],
         'extra': [
             TTLocalizer.MovieNPCSOSHeal,
             TTLocalizer.MovieNPCSOSTrap,
@@ -75,7 +72,6 @@ resistanceDict = {
         'itemText': TTLocalizer.ResistanceDanceItem,
         'chatText': TTLocalizer.ResistanceDanceChat,
         'values': ['Dance'],
-        'npcs': [9116],
         'items': [0]
     }
 }
@@ -118,7 +114,7 @@ def getItemText(textId):
     value = resistanceDict[menuIndex]['values'][itemIndex]
     text = resistanceDict[menuIndex]['itemText']
     if menuIndex is RESISTANCE_TOONUP:
-        if value is -1:
+        if value == -1:
             value = TTLocalizer.ResistanceToonupItemMax
     elif menuIndex is RESISTANCE_RESTOCK:
         value = resistanceDict[menuIndex]['extra'][itemIndex]
@@ -158,7 +154,7 @@ def doEffect(textId, speakingToon, nearbyToons):
             'particles-4': (0, 0, 1, 1),
             'particles-5': (1, 0, 1, 1)
         }
-        for name, color in colors.items():
+        for name, color in list(colors.items()):
             node = bean.copyTo(NodePath())
             node.setColorScale(*color)
             p = effect.getParticlesNamed(name)
@@ -171,13 +167,13 @@ def doEffect(textId, speakingToon, nearbyToons):
         invModel.flattenLight()
         icons = []
         if itemValue != -1:
-            for item in xrange(6):
+            for item in range(6):
                 iconName = ToontownBattleGlobals.AvPropsNew[itemValue][item]
                 icons.append(invModel.find('**/%s' % iconName))
         else:
-            tracks = range(7)
+            tracks = list(range(7))
             random.shuffle(tracks)
-            for i in xrange(6):
+            for i in range(6):
                 track = tracks[i]
                 item = random.randint(0, 5)
                 iconName = ToontownBattleGlobals.AvPropsNew[track][item]
@@ -190,7 +186,7 @@ def doEffect(textId, speakingToon, nearbyToons):
             'particles-5': icons[4],
             'particles-6': icons[5]
         }
-        for name, icon in iconDict.items():
+        for name, icon in list(iconDict.items()):
             p = effect.getParticlesNamed(name)
             p.renderer.setFromNode(icon)
         fadeColor = VBase4(0, 0, 1, 1)

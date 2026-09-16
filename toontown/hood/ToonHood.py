@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import CompassEffect, Fog, NodePath, TransparencyAttrib, Vec4
 from toontown.toonbase.ToonBaseGlobal import *
 from toontown.toonbase.ToontownGlobals import *
 from toontown.distributed.ToontownMsgTypes import *
@@ -64,7 +64,7 @@ class ToonHood(Hood):
         if color is not None:
             try:
                 self.underwaterColor = Vec4(color['r'], color['g'], color['b'], color['a'])
-            except Exception, e:
+            except Exception as e:
                 raise ContentPackError(e)
         else:
             self.underwaterColor = None

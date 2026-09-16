@@ -1,3 +1,4 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionHandlerFloor, CollisionNode, CollisionPolygon, CollisionRay, CollisionSphere, Geom, GeomNode, GeomTriangles, GeomVertexData, GeomVertexFormat, GeomVertexWriter, NodePath, PandaNode, Point3, Vec3, Vec4
 from direct.controls.ControlManager import CollisionHandlerRayStart
 from direct.distributed import DistributedObject
 from direct.distributed.ClockDelta import *
@@ -7,10 +8,8 @@ from direct.gui.DirectGui import *
 from direct.interval.IntervalGlobal import *
 from direct.task.Task import Task
 import math
-from pandac.PandaModules import *
-from pandac.PandaModules import *
 
-import CannonGlobals
+from . import CannonGlobals
 from toontown.effects import DustCloud
 from toontown.effects import Splash
 from toontown.effects import Wake
@@ -62,13 +61,12 @@ class DistributedCannon(DistributedObject.DistributedObject):
     HIT_GROUND = 0
     HIT_TOWER = 1
     HIT_WATER = 2
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
-    BUMPER_KEY = 'delete'
-    BUMPER_KEY2 = 'insert'
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
+    BUMPER_KEY = property(lambda self: base.ACTION_BUTTON)
     INTRO_TASK_NAME = 'CannonGameIntro'
     INTRO_TASK_NAME_CAMERA_LERP = 'CannonGameIntroCamera'
 
@@ -545,7 +543,6 @@ class DistributedCannon(DistributedObject.DistributedObject):
         self.accept(self.LEFT_KEY, self.__leftKeyPressed)
         self.accept(self.RIGHT_KEY, self.__rightKeyPressed)
         self.accept(self.BUMPER_KEY, self.__bumperKeyPressed)
-        self.accept(self.BUMPER_KEY2, self.__bumperKeyPressed)
         self.__spawnLocalCannonMoveTask()
 
     def __disableAimInterface(self):
@@ -722,7 +719,7 @@ class DistributedCannon(DistributedObject.DistributedObject):
             self.cannonMoving = 0
             self.sndCannonMove.stop()
             self.__broadcastLocalCannonPosition()
-            print 'Cannon Rot:%s Angle:%s' % (pos[0], pos[1])
+            print('Cannon Rot:%s Angle:%s' % (pos[0], pos[1]))
         return Task.cont
 
     def __broadcastLocalCannonPosition(self):
@@ -803,7 +800,7 @@ class DistributedCannon(DistributedObject.DistributedObject):
         head.reparentTo(hidden)
         av = self.toonModel
         av.reparentTo(render)
-        print 'start Pos%s Hpr%s' % (startPos, startHpr)
+        print('start Pos%s Hpr%s' % (startPos, startHpr))
         av.setPos(startPos)
         barrelHpr = self.barrel.getHpr(render)
         place = base.cr.playGame.getPlace()
@@ -870,7 +867,7 @@ class DistributedCannon(DistributedObject.DistributedObject):
             if not hasattr(place, 'fsm'):
                 return
             placeState = place.fsm.getCurrentState().getName()
-            print placeState
+            print(placeState)
             if (self.inWater or place.toonSubmerged) and placeState != 'fishing':
                 if self.av != None:
                     self.av.startSmooth()
@@ -1131,7 +1128,7 @@ class DistributedCannon(DistributedObject.DistributedObject):
         dot = normal.dot(vel)
         self.notify.debug('--------------dot product = %s---------------' % dot)
         temp = render.attachNewNode('temp')
-        temp.iPosHpr()
+        temp.setPosHpr(0, 0, 0, 0, 0, 0)
         temp.lookAt(Point3(normal))
         temp.reparentTo(roof)
         self.notify.debug('avatar pos = %s, landingPos = %s' % (avatar.getPos(), self.landingPos))
@@ -1508,7 +1505,7 @@ class DistributedCannon(DistributedObject.DistributedObject):
          (0, 1, 5, 4),
          (0, 4, 7, 3),
          (1, 2, 6, 5)]
-        for i in xrange(len(vertices)):
+        for i in range(len(vertices)):
             vertex = vertices[i]
             vertexWriter.addData3f(vertex[0], vertex[1], vertex[2])
             colorWriter.addData4f(*colors[i])
@@ -1559,7 +1556,6 @@ class DistributedCannon(DistributedObject.DistributedObject):
             if not self.localToonShooting:
                 return
             self.ignore(self.BUMPER_KEY)
-            self.ignore(self.BUMPER_KEY2)
             self.notify.debug('renderPos %s' % renderPos)
             cannonPos = base.localAvatar.getPos(self.nodePath)
             self.notify.debug('cannonPos %s' % cannonPos)

@@ -1,25 +1,23 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableBool, ConfigVariableDouble, ConfigVariableInt, ConfigVariableString, NodePath, Notify, Point3, TextNode, VBase4, Vec2, Vec3, Vec4
+import math
+import random
+import time
+
+
+
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import *
-from direct.gui import DirectGuiGlobals
 from direct.gui.DirectGui import *
 from direct.interval.IntervalGlobal import *
-from direct.showbase import PythonUtil
 from direct.showbase.PythonUtil import *
 from direct.task import Task
-import math
-from pandac.PandaModules import *
-import random
-import re
-import time
-import zlib
 
-import DistributedToon
-import LaffMeter
-import Toon
+from . import DistributedToon
+from . import LaffMeter
+from . import Toon
 from otp.avatar import DistributedPlayer
 from otp.avatar import LocalAvatar
 from otp.avatar import PositionExaminer
-from otp.login import LeaveToPayDialog
 from otp.otpbase import OTPGlobals
 from toontown.achievements import AchievementGui
 from toontown.battle import Fanfare
@@ -41,7 +39,6 @@ from toontown.shtiker import EventsPage
 from toontown.shtiker import FishPage
 from toontown.shtiker import GardenPage
 from toontown.shtiker import GolfPage
-from toontown.shtiker import GroupTrackerPage
 from toontown.shtiker import InventoryPage
 from toontown.shtiker import KartPage
 from toontown.shtiker import MapPage
@@ -56,16 +53,16 @@ from toontown.shtiker import TIPPage
 from toontown.shtiker import TrackPage
 from toontown.shtiker import CollectiblePage
 from toontown.toon import ElevatorNotifier
-from toontown.toon import ToonDNA
-from toontown.toon.DistributedNPCToonBase import DistributedNPCToonBase
 from toontown.toon.ToonAvatarDetailPanel import preloadGagGui
-from toontown.toonbase import ToontownGlobals, TTLocalizer, SettingsGlobals
+from toontown.toonbase import ToontownGlobals, SettingsGlobals
 from toontown.toonbase.ToontownGlobals import *
 from toontown.toontowngui import NewsPageButtonManager
 from toontown.friends.FriendHandle import FriendHandle
 import sys
+from toontown.hood import ZoneUtil
+from toontown.suit import SuitGlobals
 
-WantNewsPage = base.config.GetBool('want-news-page', ToontownGlobals.DefaultWantNewsPageSetting)
+WantNewsPage = ConfigVariableBool('want-news-page', ToontownGlobals.DefaultWantNewsPageSetting).getValue()
 if WantNewsPage:
     from toontown.shtiker import NewsPage
 AdjustmentForNewsButton = -0.275
@@ -76,8 +73,8 @@ if (__debug__):
 
 class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
     neverDisable = 1
-    piePowerSpeed = base.config.GetDouble('pie-power-speed', 0.2)
-    piePowerExponent = base.config.GetDouble('pie-power-exponent', 0.75)
+    piePowerSpeed = ConfigVariableDouble('pie-power-speed', 0.2).getValue()
+    piePowerExponent = ConfigVariableDouble('pie-power-exponent', 0.75).getValue()
 
     def __init__(self, cr):
         try:
@@ -121,6 +118,10 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             Toon.loadDialog()
             self.soundRun = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
             self.soundWalk = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
+            self.oldRunSfx = self.soundRun
+            self.oldWalkSfx = self.soundWalk
+            self.footstepSurfaceFrame = -1
+            self.footstepSurfaceZ = 0.0
             self.isIt = 0
             self.cantLeaveGame = 0
             self.tunnelX = 0.0
@@ -135,8 +136,8 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             self.tossPieStart = None
             self.__presentingPie = 0
             self.__pieSequence = 0
-            self.wantBattles = base.config.GetBool('want-battles', 1)
-            wantNameTagAvIds = base.config.GetBool('want-nametag-avids', 0)
+            self.wantBattles = ConfigVariableBool('want-battles', True).getValue()
+            wantNameTagAvIds = ConfigVariableBool('want-nametag-avids', False).getValue()
             if wantNameTagAvIds:
                 messenger.send('nameTagShowAvId', [])
                 base.idTags = 1
@@ -147,7 +148,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             self.ticker = 0
             self.glitchOkay = 1
             self.tempGreySpacing = 0
-            self.wantStatePrint = base.config.GetBool('want-statePrint', 0)
+            self.wantStatePrint = ConfigVariableBool('want-statePrint', False).getValue()
             self.__gardeningGui = None
             self.__gardeningGuiFake = None
             self.__shovelButton = None
@@ -180,6 +181,8 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             self.wantNonFriendWhispers = True
             self.wantFriendsWhispers = True
             self.physControls.event.addAgainPattern('again%in')
+            self.avatarFloorCollisionBroadcaster.addAgainPattern('onFloorAgain')
+            self.accept('onFloorAgain', self.handleOnFloorAgain)
             self.oldPos = None
             self.questMap = None
             self.prevToonIdx = 0
@@ -192,7 +195,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
     def setDefaultShard(self, shard):
         if shard not in self.cr.activeDistrictMap:
-            shard = random.choice(self.cr.activeDistrictMap.keys())
+            shard = random.choice(list(self.cr.activeDistrictMap.keys()))
 
         timeZone = self.cr.activeDistrictMap[shard].timeZone
         self.cr.shardTimeManager.setTimeZone(timeZone)
@@ -265,7 +268,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             if self.ticker >= 10:
                 self.ticker = 0
         if self.glitchCount >= 7:
-            print 'GLITCH MAXED!!! resetting pos'
+            print('GLITCH MAXED!!! resetting pos')
             self.setX(self.glitchX - 1 * (self.getX() - self.glitchX))
             self.setY(self.glitchY - 1 * (self.getY() - self.glitchY))
             self.glitchCount = 0
@@ -312,7 +315,8 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         self.newsButtonMgr.request('Off')
         self.book.unload()
         del self.optionsPage
-        # del self.shardPage
+        if hasattr(self, 'shardPage'):
+            del self.shardPage
         del self.mapPage
         del self.invPage
         del self.questPage
@@ -376,6 +380,14 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             del self.__catalogNotifyDialog
             self.cleanupTouchInterface()
 
+    def __acceptTossPieKey(self):
+        if hasattr(self, 'tossPieKey'):
+            self.ignore('time-' + self.tossPieKey)
+            self.ignore('time-' + self.tossPieKey + '-up')
+        self.tossPieKey = base.ACTION_BUTTON
+        self.accept('time-' + self.tossPieKey, self.__beginTossPie)
+        self.accept('time-' + self.tossPieKey + '-up', self.__endTossPie)
+
     def initInterface(self):
         self.newsButtonMgr = NewsPageButtonManager.NewsPageButtonManager()
         self.newsButtonMgr.request('Hidden')
@@ -385,9 +397,11 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         self.optionsPage = OptionsPage.OptionsPage()
         self.optionsPage.load()
         self.book.addPage(self.optionsPage, pageName=TTLocalizer.OptionsPageTitle)
-        # self.shardPage = ShardPage.ShardPage()
-        # self.shardPage.load()
-        # self.book.addPage(self.shardPage, pageName=TTLocalizer.ShardPageTitle)
+        if base.cr.isProductionServer() and base.cr.serverFlags.get('districtPage'):
+            # Only live runs more than one district, so only live gets the page.
+            self.shardPage = ShardPage.ShardPage()
+            self.shardPage.load()
+            self.book.addPage(self.shardPage, pageName=TTLocalizer.ShardPageTitle)
         self.mapPage = MapPage.MapPage()
         self.mapPage.load()
         self.book.addPage(self.mapPage, pageName=TTLocalizer.MapPageTitle)
@@ -444,10 +458,8 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         self.laffMeter.stop()
         self.questMap = QuestMap.QuestMap(self)
         self.questMap.stop()
-        self.accept('time-insert', self.__beginTossPie)
-        self.accept('time-insert-up', self.__endTossPie)
-        self.accept('time-delete', self.__beginTossPie)
-        self.accept('time-delete-up', self.__endTossPie)
+        self.__acceptTossPieKey()
+        self.accept('controlsRemapped', self.__acceptTossPieKey)
         self.accept('pieHit', self.__pieHit)
         self.accept('interrupt-pie', self.interruptPie)
         self.accept('InputState-jump', self.__toonMoved)
@@ -565,7 +577,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             self.addTouch(base.JUMP)
             messenger.send('touchDoubleTap')
         
-        for controls in self.controlManager.controls.values():
+        for controls in list(self.controlManager.controls.values()):
             controls.avatarControlRotateSpeed = 50 * 1.25
         
         self.lastTouch = time.time()
@@ -573,7 +585,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         taskMgr.add(self.__touchInterfaceTask, self.uniqueName('touchInterface'))
     
     def __stopTouch(self, *args):
-        for controls in self.controlManager.controls.values():
+        for controls in list(self.controlManager.controls.values()):
             controls.avatarControlRotateSpeed = ToontownGlobals.ToonRotateSpeed
 
         self.stopTouchPresses()
@@ -627,11 +639,11 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         self.notify.debug('Setting GM State: %s in LocalToon' % state)
         DistributedToon.DistributedToon.setAsGM(self, state)
         if self.gmState:
-            if base.config.GetString('gm-nametag-string', '') != '':
-                self.gmNameTagString = base.config.GetString('gm-nametag-string')
-            if base.config.GetString('gm-nametag-color', '') != '':
-                self.gmNameTagColor = base.config.GetString('gm-nametag-color')
-            if base.config.GetInt('gm-nametag-enabled', 0):
+            if ConfigVariableString('gm-nametag-string', '').getValue() != '':
+                self.gmNameTagString = ConfigVariableString('gm-nametag-string').getValue()
+            if ConfigVariableString('gm-nametag-color', '').getValue() != '':
+                self.gmNameTagColor = ConfigVariableString('gm-nametag-color').getValue()
+            if ConfigVariableInt('gm-nametag-enabled', 0).getValue():
                 self.gmNameTagEnabled = 1
             self.d_updateGMNameTag()
 
@@ -812,7 +824,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         return
 
     def localPresentPie(self, time):
-        import TTEmote
+        from . import TTEmote
         from otp.avatar import Emote
         self.__stopPresentPie()
         if self.tossTrack:
@@ -846,7 +858,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
     def __stopPresentPie(self):
         if self.__presentingPie:
-            import TTEmote
+            from . import TTEmote
             from otp.avatar import Emote
             Emote.globalEmote.releaseBody(self)
             messenger.send('end-pie')
@@ -898,11 +910,11 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             tossTrack = self.tossTrack
             self.tossTrack = None
             tossTrack.finish()
-        if self.pieTracks.has_key(sequence):
+        if sequence in self.pieTracks:
             pieTrack = self.pieTracks[sequence]
             del self.pieTracks[sequence]
             pieTrack.finish()
-        if self.splatTracks.has_key(sequence):
+        if sequence in self.splatTracks:
             splatTrack = self.splatTracks[sequence]
             del self.splatTracks[sequence]
             splatTrack.finish()
@@ -942,7 +954,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             self.__piePowerMeter.hide()
 
     def __finishPieTrack(self, sequence):
-        if self.pieTracks.has_key(sequence):
+        if sequence in self.pieTracks:
             pieTrack = self.pieTracks[sequence]
             del self.pieTracks[sequence]
             pieTrack.finish()
@@ -954,7 +966,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             return
         sequence = int(entry.getFromNodePath().getNetTag('pieSequence'))
         self.__finishPieTrack(sequence)
-        if self.splatTracks.has_key(sequence):
+        if sequence in self.splatTracks:
             splatTrack = self.splatTracks[sequence]
             del self.splatTracks[sequence]
             splatTrack.finish()
@@ -1088,7 +1100,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         else:
             foundCanStart = False
             for partyInfo in self.hostedParties:
-                if partyInfo.status == PartyGlobals.PartyStatus.CanStart:
+                if partyInfo.status == PartyGlobals.EPartyStatus.CAN_START:
                     foundCanStart = True
                     break
 
@@ -1204,14 +1216,14 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         if self.__catalogNotifyDialog:
             self.__catalogNotifyDialog.cleanup()
             self.__catalogNotifyDialog = None
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: VISITESTATE: Visit estate')
         place.goHomeNow(self.lastHood)
         return
 
     def __startMoveFurniture(self):
         self.oldPos = self.getPos()
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableDouble('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: ESTATE:  Furniture Placement')
         if self.cr.furnitureManager != None:
             self.cr.furnitureManager.d_suggestDirector(self.doId)
@@ -1271,7 +1283,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         else:
             zoneId = '?'
         strPos = '(%.3f' % pos[0] + '\n %.3f' % pos[1] + '\n %.3f)' % pos[2] + '\nH: %.3f' % hpr[0] + '\nZone: %s' % str(zoneId) + ',\nVer: %s, ' % serverVersion + '\nDistrict: %s' % districtName
-        print 'Current position=', strPos.replace('\n', ', ')
+        print('Current position=', strPos.replace('\n', ', '))
         self.setChatAbsolute(strPos, CFThought | CFTimeout)
         return
 
@@ -1603,7 +1615,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         if place:
             state = place.fsm.getCurrentState()
             if state.getName() != self.lastPlaceState:
-                print 'Place State Change From %s to %s' % (self.lastPlaceState, state.getName())
+                print('Place State Change From %s to %s' % (self.lastPlaceState, state.getName()))
                 self.lastPlaceState = state.getName()
         return Task.cont
 
@@ -1923,28 +1935,20 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
     def b_setAnimState(self, animName, animMultiplier = 1.0, callback = None, extraArgs = []):
         if self.wantStatePrint:
-            print 'Local Toon Anim State %s' % animName
+            print('Local Toon Anim State %s' % animName)
         DistributedToon.DistributedToon.b_setAnimState(self, animName, animMultiplier, callback, extraArgs)
 
     def swimTimeoutAction(self):
-        self.ignore('wakeup')
-        self.takeOffSuit()
-        base.cr.playGame.getPlace().fsm.request('final')
-        self.b_setAnimState('TeleportOut', 1, self.__handleSwimExitTeleport, [0])
-        return Task.done
-
-    def __handleSwimExitTeleport(self, requestStatus):
-        self.notify.info('closing shard...')
-        base.cr.gameFSM.request('closeShard', ['afkTimeout'])
+        return self.handleAfkTimeout()
 
     def sbFriendAdd(self, id, info):
-        print 'sbFriendAdd'
+        print('sbFriendAdd')
 
     def sbFriendUpdate(self, id, info):
-        print 'sbFriendUpdate'
+        print('sbFriendUpdate')
 
     def sbFriendRemove(self, id):
-        print 'sbFriendRemove'
+        print('sbFriendRemove')
 
     def addGolfPage(self):
         if self.hasPlayedGolf():
@@ -1986,7 +1990,7 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
     def getAccountDays(self):
         days = 0
-        defaultDays = base.cr.config.GetInt('account-days', -1)
+        defaultDays = ConfigVariableInt('account-days', -1).getValue()
         if defaultDays >= 0:
             days = defaultDays
         elif hasattr(base.cr, 'accountDays'):
@@ -2040,11 +2044,11 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         return self.lastTimeReadNews
 
     def cheatCogdoMazeGame(self, kindOfCheat = 0):
-        if base.config.GetBool('allow-cogdo-maze-suit-hit-cheat'):
+        if ConfigVariableBool('allow-cogdo-maze-suit-hit-cheat', False).getValue():
             maze = base.cr.doFind('DistCogdoMazeGame')
             if maze:
                 if kindOfCheat == 0:
-                    for suitNum in maze.game.suitsById.keys():
+                    for suitNum in list(maze.game.suitsById.keys()):
                         suit = maze.game.suitsById[suitNum]
                         maze.sendUpdate('requestSuitHitByGag', [suit.type, suitNum])
 
@@ -2088,9 +2092,38 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
 
         DistributedToon.DistributedToon.setAchievements(self, achievements)
 
+    def putOnSuit(self, suitType, setDisplayName=True, rental=False):
+        DistributedToon.DistributedToon.putOnSuit(self, suitType, setDisplayName, rental)
+
+        # Update Footstep noise. Cogs have no runloop variant, so the walk
+        # loop covers both gaits.
+        filePrefix = 'phase_3.5/audio/sfx/AV_footstep_'
+        if self.suit.style.name in SuitGlobals.FatSuits:
+            cogLoopSfx = preloader.getSfx(filePrefix + 'walkloop_fatcog.ogg')
+        else:
+            cogLoopSfx = preloader.getSfx(filePrefix + 'walkloop_broadcog.ogg')
+
+        self.__applyFootstepSfx(*self.__resolveFootstepSfx(cogLoopSfx, cogLoopSfx))
+
+    def __resolveFootstepSfx(self, runLoopSfx, walkLoopSfx):
+        # Surfaces with no dedicated loop fall back to the default footsteps.
+        if runLoopSfx is None:
+            runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
+        if walkLoopSfx is None:
+            walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
+        return runLoopSfx, walkLoopSfx
+
+    def __applyFootstepSfx(self, runLoopSfx, walkLoopSfx):
+        # The Options toggle forces the default footsteps whatever the surface.
+        if not settings.get(SettingsGlobals.NewFootsteps, True):
+            runLoopSfx, walkLoopSfx = self.__resolveFootstepSfx(None, None)
+        self.updateRunSound(runLoopSfx)
+        self.updateWalkSound(walkLoopSfx)
+
     def updateRunSound(self, sfx):
         if self.soundRun == sfx:
             return
+        
         status = self.soundRun.status()
         if status == self.soundRun.PLAYING:
             self.soundRun.stop()
@@ -2112,20 +2145,117 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         if status == self.soundWalk.PLAYING:
             base.playSfx(self.soundWalk, looping=1)
 
-    def handleOnFloor(self, collEntry):
-        intoNode = collEntry.getIntoNode()
-        # print 'DEBUG: onFloor:', intoNode.getName()
-        footstepCode = intoNode.getTag('footstepCode')
+    def __surfaceFootstepSfx(self, collEntry):
+        # Resolve the footstep loops for the floor described by collEntry.
         filePrefix = 'phase_3.5/audio/sfx/AV_footstep_'
-        runloopSfx = preloader.getSfx(
-            filePrefix + 'runloop_' + footstepCode + '.ogg')
-        if runloopSfx is None:
-            runloopSfx = preloader.getSfx(
-                'phase_3.5/audio/sfx/AV_footstep_runloop.ogg')
-        walkloopSfx = preloader.getSfx(
-            filePrefix + 'walkloop_' + footstepCode + '.ogg')
-        if walkloopSfx is None:
-            walkloopSfx = preloader.getSfx(
-                'phase_3.5/audio/sfx/AV_footstep_walkloop.ogg')
-        self.updateRunSound(runloopSfx)
-        self.updateWalkSound(walkloopSfx)
+
+        if collEntry is not None:
+            intoNode = collEntry.getIntoNode()
+            # print 'DEBUG: onFloor:', intoNode.getName()
+            if intoNode.getName() == 'donalds_dock_floor_collisions' and self.getZ(render) > 5.0:
+                footstepCode = 'wood'
+            else:
+                footstepCode = intoNode.getTag('footstepCode')
+
+            runLoopSfx = preloader.getSfx(filePrefix + 'runloop_' + footstepCode + '.ogg')
+            walkLoopSfx = preloader.getSfx(filePrefix + 'walkloop_' + footstepCode + '.ogg')
+        else:
+            runLoopSfx = walkLoopSfx = None
+
+        return self.__resolveFootstepSfx(runLoopSfx, walkLoopSfx)
+
+    def __trackFootstepSurface(self, collEntry):
+        # Several floor nodes can be in contact at once -- the DD piers all sit
+        # over the dock floor -- and we get one event per node per frame in no
+        # particular order. Keep the highest surface, which is the one we are
+        # actually standing on, and start the comparison over each frame.
+        if collEntry is not None and collEntry.hasSurfacePoint():
+            surfaceZ = collEntry.getSurfacePoint(render).getZ()
+            if (self.footstepSurfaceFrame == globalClock.getFrameCount()
+                    and surfaceZ < self.footstepSurfaceZ):
+                return False
+            self.footstepSurfaceFrame = globalClock.getFrameCount()
+            self.footstepSurfaceZ = surfaceZ
+
+        self.oldRunSfx, self.oldWalkSfx = self.__surfaceFootstepSfx(collEntry)
+        return True
+
+    def handleOnFloor(self, collEntry):
+        # Track the surface even while disguised, so taking the suit off restores
+        # the floor we are actually standing on instead of a stale one.
+        if self.__trackFootstepSurface(collEntry) and not self.isDisguised:
+            self.__applyFootstepSfx(self.oldRunSfx, self.oldWalkSfx)
+
+    def handleOnFloorAgain(self, collEntry):
+        # 'onFloor' is an enter event: it only fires when we first touch a floor
+        # node. Roaming one large collision node, or crossing between overlapping
+        # nodes that are both already in contact, would otherwise leave the
+        # remembered surface stale until something broke contact -- which is why
+        # a dip in the water used to be what "fixed" it. Refresh it every frame
+        # instead. setSpeed does the playing and owns the water override, so
+        # deliberately do not apply anything here.
+        self.__trackFootstepSurface(collEntry)
+
+    def setSpeed(self, forwardSpeed, rotateSpeed):
+        showWake, wakeWaterHeight = ZoneUtil.getWakeInfo()
+        if wakeWaterHeight > self.getZ(render):
+            runLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_runloop_water.ogg')
+            walkLoopSfx = preloader.getSfx('phase_3.5/audio/sfx/AV_footstep_walkloop_water.ogg')
+            runLoopSfx, walkLoopSfx = self.__resolveFootstepSfx(runLoopSfx, walkLoopSfx)
+        else:
+            runLoopSfx = self.oldRunSfx
+            walkLoopSfx = self.oldWalkSfx
+        if not self.isDisguised:
+            self.__applyFootstepSfx(runLoopSfx, walkLoopSfx)
+
+        self.forwardSpeed = forwardSpeed
+        self.rotateSpeed = rotateSpeed
+
+        action = None
+        if self.standWalkRunReverse is not None:
+            if forwardSpeed >= ToontownGlobals.RunCutOff:
+                action = OTPGlobals.RUN_INDEX
+            elif forwardSpeed > ToontownGlobals.WalkCutOff:
+                action = OTPGlobals.WALK_INDEX
+            elif forwardSpeed < -ToontownGlobals.WalkCutOff:
+                action = OTPGlobals.REVERSE_INDEX
+            elif rotateSpeed != 0.0:
+                action = OTPGlobals.WALK_INDEX
+            else:
+                action = OTPGlobals.STAND_INDEX
+            anim, rate = self.standWalkRunReverse[action]
+            self.motion.enter()
+            self.motion.setState(anim, rate)
+            if anim != self.playingAnim:
+                self.playingAnim = anim
+                self.playingRate = rate
+                self.stop()
+                self.loop(anim)
+                self.setPlayRate(rate, anim)
+                if self.isDisguised:
+                    rightHand = self.suit.rightHand
+                    numChildren = rightHand.getNumChildren()
+                    if numChildren > 0:
+                        anim = 'tray-' + anim
+                        if anim == 'tray-run':
+                            anim = 'tray-walk'
+                    self.suit.stop()
+                    self.suit.loop(anim)
+                    self.suit.setPlayRate(rate, anim)
+                elif self.isGoofy:
+                    self.goofy.stop()
+                    self.goofy.loop(anim)
+                    self.goofy.setPlayRate(rate, anim)
+            elif rate != self.playingRate:
+                self.playingRate = rate
+                if not self.isDisguised:
+                    self.setPlayRate(rate, anim)
+                else:
+                    self.suit.setPlayRate(rate, anim)
+            if showWake and self.getZ(render) < wakeWaterHeight and abs(forwardSpeed) > ToontownGlobals.WalkCutOff:
+                currT = globalClock.getFrameTime()
+                deltaT = currT - self.lastWakeTime
+                if action == OTPGlobals.RUN_INDEX and deltaT > ToontownGlobals.WakeRunDelta or deltaT > ToontownGlobals.WakeWalkDelta:
+                    self.getWake().createRipple(wakeWaterHeight, rate=1, startFrame=4)
+                    self.lastWakeTime = currT
+        return action

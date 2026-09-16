@@ -2,7 +2,6 @@ from direct.directnotify import DirectNotifyGlobal
 from toontown.battle import BattlePlace
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
-from pandac.PandaModules import *
 from otp.distributed.TelemetryLimiter import RotationLimitToH, TLGatherAllAvs
 from toontown.toon import Toon
 from toontown.toonbase import ToontownGlobals
@@ -68,7 +67,7 @@ class FactoryInterior(BattlePlace.BattlePlace):
          State.State('final', self.enterFinal, self.exitFinal, ['start'])], 'start', 'final')
         self.parentFSM.getStateNamed('factoryInterior').addChild(self.fsm)
         BattlePlace.BattlePlace.load(self)
-        self.music = base.loadMusic('phase_9/audio/bgm/CHQ_FACT_bg.ogg')
+        self.music = base.loader.loadMusic('phase_9/audio/bgm/CHQ_FACT_bg.ogg')
 
     def unload(self):
         self.parentFSM.getStateNamed('factoryInterior').removeChild(self.fsm)
@@ -94,8 +93,6 @@ class FactoryInterior(BattlePlace.BattlePlace):
             self.acceptOnce('FactoryReady', commence)
         self.factoryDefeated = 0
         self.acceptOnce('FactoryWinEvent', self.handleFactoryWinEvent)
-        if __debug__ and 0:
-            self.accept('f10', lambda : messenger.send('FactoryWinEvent'))
         self.confrontedForeman = 0
 
         def handleConfrontedForeman(self = self):

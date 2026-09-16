@@ -1,4 +1,5 @@
-from pandac.PandaModules import *
+from panda3d.direct import WaitInterval
+from panda3d.core import CollideMask
 from direct.showbase.DirectObject import DirectObject
 from direct.interval.IntervalGlobal import *
 from direct.distributed.ClockDelta import globalClockDelta
@@ -97,7 +98,7 @@ class Train(DirectObject):
     def __getCars(self):
         self.__cleanupCars()
         numCarsThisRun = random.randrange(1, 10)
-        for nCar in xrange(numCarsThisRun):
+        for nCar in range(numCarsThisRun):
             carType = random.randrange(0, self.numCars)
             car = loader.loadModel(self.CarFiles[carType])
             car.flattenStrong()
@@ -112,9 +113,9 @@ class Train(DirectObject):
         self.__getCars()
         trainShouldStop = random.randrange(0, 4)
         nextRun = Sequence(Func(self.__showStart))
-        if trainShouldStop is 0:
+        if trainShouldStop == 0:
             waitTime = 3
-            totalTime = random.randrange(4, (self.MarkDelta - waitTime) / 2)
+            totalTime = random.randrange(4, (self.MarkDelta - waitTime) // 2)
             sfxStopTime = 4.3
             halfway = (self.trackStartPos + self.trackEndPos) / 2
             halfway.setX(150)

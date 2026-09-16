@@ -1,10 +1,8 @@
-from pandac.PandaModules import *
 from toontown.toontowngui import TTDialog
 from toontown.toonbase import TTLocalizer
 from direct.showbase import Transitions
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
-import LaffMeter
+from . import LaffMeter
 from direct.gui.DirectGuiGlobals import FADE_SORT_INDEX
 
 class DeathForceAcknowledge:
@@ -22,7 +20,7 @@ class DeathForceAcknowledge:
             self.fade.reparentTo(aspect2d, FADE_SORT_INDEX)
             fadeModel.removeNode()
         else:
-            print 'Problem loading fadeModel.'
+            print('Problem loading fadeModel.')
             self.fade = None
         self.dialog = TTDialog.TTGlobalDialog(
             message=TTLocalizer.PlaygroundDeathAckMessage,

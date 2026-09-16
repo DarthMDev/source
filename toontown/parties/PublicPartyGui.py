@@ -1,4 +1,4 @@
-from pandac.PandaModules import Vec3, Vec4, Point3, TextNode, VBase4
+from panda3d.core import Point3, TextNode, Vec3, Vec4
 from direct.gui.DirectGui import DGG, DirectFrame, DirectButton, DirectLabel, DirectScrolledList, DirectCheckButton
 from direct.gui import DirectGuiGlobals
 from direct.showbase import DirectObject
@@ -66,21 +66,7 @@ class PublicPartyGui(DirectFrame):
         self.activityList.removeAndDestroyAllItems()
         self.partyStartButton['state'] = DirectGuiGlobals.DISABLED
         sortedList = partyInfoTupleList[:]
-
-        def cmp(left, right):
-            if left[2] < right[2]:
-                return -1
-            elif left[2] == right[2]:
-                if len(left[4]) < len(right[4]):
-                    return -1
-                elif len(left[4]) == len(right[4]):
-                    return 0
-                else:
-                    return 1
-            else:
-                return 1
-
-        sortedList.sort(cmp, reverse=True)
+        sortedList.sort(key=lambda party: (party[2], len(party[4])), reverse=True)
         indexToCut = -1
         for index, partyTuple in enumerate(sortedList):
             numberOfGuests = partyTuple[2]
@@ -176,7 +162,15 @@ class PublicPartyGui(DirectFrame):
             text = TTLocalizer.PartyActivityNameDict[activityId]['generic']
             if number > 1:
                 text += ' X %d' % number
-            item = DirectLabel(relief=None, text=text, text_align=TextNode.ACenter, text_scale=0.05, text_pos=(0.0, -0.15), geom_scale=0.3, geom_pos=Vec3(0.0, 0.0, 0.07), geom=PartyUtils.getPartyActivityIcon(self.activityIconsModel, PartyGlobals.ActivityIds.getString(activityId)))
+            item = DirectLabel(
+                relief=None,
+                text=text,
+                text_align=TextNode.ACenter,
+                text_scale=0.05,
+                text_pos=(0.0, -0.15),
+                geom_scale=0.3,
+                geom_pos=Vec3(0.0, 0.0, 0.07),
+                geom=PartyUtils.getPartyActivityIcon(self.activityIconsModel, PartyGlobals.EActivityId(activityId).name))
             self.activityList.addItem(item)
 
         return

@@ -1,7 +1,7 @@
 from panda3d.core import LVector4f
-import DNANode
-import DNAUtil
-import DNAError
+from . import DNANode
+from . import DNAUtil
+from . import DNAError
 
 class DNALandmarkBuilding(DNANode.DNANode):
     COMPONENT_CODE = 13
@@ -72,6 +72,8 @@ class DNALandmarkBuilding(DNANode.DNANode):
         node.setPosHprScale(self.pos, self.hpr, self.scale)
         self.setupSuitBuildingOrigin(nodePath, node)
 
+        if self.code == 'toon_landmark_hqDD' or self.code == 'toon_landmark_hqDD_SZ':
+            node.find('**/floor_collisions').setTag('footstepCode', 'wood')
         for child in self.children:
             child.traverse(node, dnaStorage)
 

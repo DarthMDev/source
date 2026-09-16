@@ -1,11 +1,11 @@
-from direct.showbase.ShowBaseGlobal import *
-import DistributedCCharBase
+from . import DistributedCCharBase
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM
 from direct.fsm import State
-import CharStateDatas
+from . import CharStateDatas
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
+
 
 class DistributedDale(DistributedCCharBase.DistributedCCharBase):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedDale')
@@ -16,7 +16,11 @@ class DistributedDale(DistributedCCharBase.DistributedCCharBase):
         except:
             self.DistributedDale_initialized = 1
             DistributedCCharBase.DistributedCCharBase.__init__(self, cr, TTLocalizer.Dale, 'da')
-            self.fsm = ClassicFSM.ClassicFSM(self.getName(), [State.State('Off', self.enterOff, self.exitOff, ['Neutral']), State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']), State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off', 'Off')
+            self.fsm = ClassicFSM.ClassicFSM(self.getName(),
+                                             [State.State('Off', self.enterOff, self.exitOff, ['Neutral']),
+                                              State.State('Neutral', self.enterNeutral, self.exitNeutral, ['Walk']),
+                                              State.State('Walk', self.enterWalk, self.exitWalk, ['Neutral'])], 'Off',
+                                             'Off')
             self.fsm.enterInitialState()
             self.handleHolidays()
 
@@ -77,7 +81,7 @@ class DistributedDale(DistributedCCharBase.DistributedCCharBase):
     def __decideNextState(self, doneStatus):
         self.fsm.request('Neutral')
 
-    def setWalk(self, srcNode, destNode, timestamp, offsetX = 0, offsetY = 0):
+    def setWalk(self, srcNode, destNode, timestamp, offsetX=0, offsetY=0):
         if destNode and not destNode == srcNode:
             self.walk.setWalk(srcNode, destNode, timestamp, offsetX, offsetY)
             self.fsm.request('Walk')

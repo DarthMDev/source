@@ -1,8 +1,8 @@
+from panda3d.core import NodePath, Vec4
 import math
 from direct.directutil import Mopath
-from pandac.PandaModules import NodePath, Point3, Vec4
-from CogdoFlyingObjects import CogdoFlyingPlatform
-import CogdoFlyingGameGlobals as Globals
+from .CogdoFlyingObjects import CogdoFlyingPlatform
+from . import CogdoFlyingGameGlobals as Globals
 
 class CogdoFlyingLevelQuadrant:
     notify = directNotify.newCategory('CogdoFlyingLevelQuadrant')
@@ -11,7 +11,7 @@ class CogdoFlyingLevelQuadrant:
         self.serialNum = serialNum
         self._model = model
         self._level = level
-        self._root = NodePath('Quadrant' + `serialNum`)
+        self._root = NodePath('Quadrant' + repr(serialNum))
         self._model.reparentTo(self._root)
         self._root.reparentTo(parent)
         self._visible = True
@@ -64,7 +64,7 @@ class CogdoFlyingLevelQuadrant:
             self.platforms[platform.getName()] = platform
 
     def _destroyPlatforms(self):
-        for platform in self.platforms.values():
+        for platform in list(self.platforms.values()):
             platform.destroy()
 
         del self.platforms
@@ -78,7 +78,7 @@ class CogdoFlyingLevelQuadrant:
         nests = gatherableModel.findAllMatches('**/%s;+s' % Globals.Level.LegalEagleNestName)
         for nest in nests:
             offset = Globals.Level.LaffPowerupNestOffset
-            pickup = self._level.gatherableFactory.createPowerup(Globals.Level.GatherableTypes.LaffPowerup)
+            pickup = self._level.gatherableFactory.createPowerup(Globals.EGatherableType.LAFF_POWERUP)
             pickup.reparentTo(parent)
             pickup.setPos(parent, nest.getPos(parent) + offset)
             if Globals.Level.AddSparkleToPowerups:
@@ -137,8 +137,8 @@ class CogdoFlyingLevelQuadrant:
                 gatherable.removeNode()
 
         def generatePowerUps():
-            for powerupType, locName in Globals.Level.PowerupType2Loc.iteritems():
-                if powerupType == Globals.Level.GatherableTypes.LaffPowerup and Globals.Level.IgnoreLaffPowerups:
+            for powerupType, locName in Globals.Level.PowerupType2Loc.items():
+                if powerupType == Globals.EGatherableType.LAFF_POWERUP and Globals.Level.IgnoreLaffPowerups:
                     continue
                 gatherables = gatherableModel.findAllMatches('**/%s' % locName)
                 for gatherable in gatherables:

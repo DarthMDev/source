@@ -1,8 +1,5 @@
+from panda3d.core import CardMaker, ConfigVariable, ConfigVariableBool, ConfigVariableString, Filename, NodePath, PNMImage, Point2, Texture, TextureStage
 import os
-from pandac.PandaModules import VirtualFileSystem, Filename, DSearchPath
-from pandac.PandaModules import Texture, CardMaker, PNMImage, TextureStage
-from pandac.PandaModules import NodePath
-from pandac.PandaModules import Point2
 from direct.showbase import DirectObject
 from direct.gui.DirectGui import DirectFrame, DirectButton, DGG, DirectLabel
 from direct.directnotify import DirectNotifyGlobal
@@ -17,7 +14,7 @@ WIN_WIDTH = 800
 WIN_HEIGHT = 600
 
 class IssueFrame(DirectFrame):
-    NewsBaseDir = config.GetString('news-base-dir', '/httpNews')
+    NewsBaseDir = ConfigVariableString('news-base-dir', '/httpNews').getValue()
     FrameDimensions = (-1.30666637421,
      1.30666637421,
      -0.751666665077,
@@ -186,7 +183,7 @@ class IssueFrame(DirectFrame):
         image_scale = float(desiredXSize) / xSize
         image_scale *= float(69) / 70
         self.sectionBtns = []
-        for section in xrange(1, len(self.SectionIdents)):
+        for section in range(1, len(self.SectionIdents)):
             image = self.gui.find('**/%s' % buttonNames[section])
             rolloverImage = self.gui.find('**/%s' % rolloverButtonNames[section])
             if image.isEmpty():
@@ -310,7 +307,7 @@ class IssueFrame(DirectFrame):
          frameSize2,
          frameSize2)
         self.sectionBtns = []
-        for section in xrange(0, len(self.SectionIdents)):
+        for section in range(0, len(self.SectionIdents)):
             image = self.guiNav.find('**/%s' % buttonNames[section])
             rolloverImage = self.guiNav.find('**/%s' % rolloverButtonNames[section])
             if image.isEmpty():
@@ -323,7 +320,7 @@ class IssueFrame(DirectFrame):
         return
 
     def gotoPage(self, section, subsection):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: INGAMENEWS: Goto Page')
         self.sectionFrames[self.curSection][self.curSubsection].hide()
         self.sectionFrames[section][subsection].show()
@@ -385,6 +382,6 @@ class IssueFrame(DirectFrame):
         pass
 
     def changeWeek(self, newIssueWeek):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: INGAMENEWS: Change Week')
         messenger.send('newsChangeWeek', [newIssueWeek])

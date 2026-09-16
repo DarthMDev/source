@@ -1,10 +1,11 @@
+from panda3d.core import Fog, TextNode
 from toontown.toonbase.TTLocalizerEnglishProperty import *
 from toontown.catalog import CatalogAccessoryItemGlobals
 from otp.otpbase import OTPLocalizer as OL
 import sys, os
 
 OL.SpeedChatStaticText = OL.SpeedChatStaticTextToontown.copy()
-for key in OL.SpeedChatStaticTextCommon.iterkeys():
+for key in OL.SpeedChatStaticTextCommon.keys():
     OL.SpeedChatStaticText[key] = OL.SpeedChatStaticTextCommon[key]
 
 if sys.platform == 'android':
@@ -17,26 +18,26 @@ ToonFont = 'phase_3/models/fonts/ImpressBT.ttf'
 SuitFont = 'phase_3/models/fonts/vtRemingtonPortable.ttf'
 FontAwesome = 'phase_3/models/fonts/FontAwesome.otf'
 SignFont = 'phase_3/models/fonts/MickeyFont'
-MinnieFont = 'phase_3/models/fonts/MinnieFont'
-FancyFont = 'phase_3/models/fonts/Comedy'
+MinnieFont = 'phase_3/models/fonts/MinnieFont.ttf'
+FancyFont = 'phase_3/models/fonts/Comedy.ttf'
 BuildingNametagFont = 'phase_3/models/fonts/MickeyFont'
 BuildingNametagShadow = None
 NametagFonts = (
     'phase_3/models/fonts/ImpressBT.ttf',
-    'phase_3/models/fonts/AnimGothic.bam',
-    'phase_3/models/fonts/Aftershock.bam',
-    'phase_3/models/fonts/JiggeryPokery.bam',
-    'phase_3/models/fonts/Ironwork.bam',
-    'phase_3/models/fonts/HastyPudding.bam',
-    'phase_3/models/fonts/Comedy.bam',
-    'phase_3/models/fonts/Humanist.bam',
-    'phase_3/models/fonts/Portago.bam',
-    'phase_3/models/fonts/Musicals.bam',
-    'phase_3/models/fonts/Scurlock.bam',
-    'phase_3/models/fonts/Danger.bam',
-    'phase_3/models/fonts/Alie.bam',
-    'phase_3/models/fonts/OysterBar.bam',
-    'phase_3/models/fonts/RedDogSaloon.bam'
+    'phase_3/models/fonts/AnimGothic.ttf',
+    'phase_3/models/fonts/Aftershock.ttf',
+    'phase_3/models/fonts/JiggeryPokery.ttf',
+    'phase_3/models/fonts/Ironwork.ttf',
+    'phase_3/models/fonts/HastyPudding.ttf',
+    'phase_3/models/fonts/Comedy.ttf',
+    'phase_3/models/fonts/Humanist.ttf',
+    'phase_3/models/fonts/Portago.ttf',
+    'phase_3/models/fonts/Musicals.ttf',
+    'phase_3/models/fonts/Scurlock.ttf',
+    'phase_3/models/fonts/Danger.ttf',
+    'phase_3/models/fonts/Alie.ttf',
+    'phase_3/models/fonts/OysterBar.ttf',
+    'phase_3/models/fonts/RedDogSaloon.ttf'
 )
 NametagFontNames = (
     'Default',
@@ -95,7 +96,6 @@ lGoofySpeedway = 'Goofy Speedway'
 lOutdoorZone = "Chip 'n Dale's Acorn Acres"
 lGolfZone = "Chip 'n Dale's MiniGolf"
 lPartyHood = 'Party Grounds'
-lFunnyFarm = 'Unpainted Playground'
 lStrikeZone = 'Governaught Strike Zone'
 GlobalStreetNames = {20000: ('to', 'on', 'Tutorial Terrace'),
  1000: ('to the', 'in the', 'Playground'),
@@ -151,10 +151,10 @@ TheBrrrgh = ('to', 'in', lTheBrrrgh)
 MinniesMelodyland = ('to', 'in', lMinniesMelodyland)
 DaisyGardens = ('to', 'in', lDaisyGardens)
 OutdoorZone = ('to', 'in', lOutdoorZone)
+FunnyFarm = ('to', 'in', 'The Unpainted Playground')
 GoofySpeedway = ('to', 'in', lGoofySpeedway)
 DonaldsDreamland = ('to', 'in', lDonaldsDreamland)
-FunnyFarm = ('to the', 'in the', lFunnyFarm)
-StrikeZone = ('to', 'in the', lStrikeZone)
+ResistanceGrounds = ('to the', 'in the', lResistanceGrounds)
 BossbotHQ = ('to', 'in', 'Bossbot HQ')
 SellbotHQ = ('to', 'in', 'Sellbot HQ')
 CashbotHQ = ('to', 'in', 'Cashbot HQ')
@@ -165,7 +165,7 @@ WelcomeValley = ('to', 'in', 'Welcome Valley')
 GolfZone = ('to', 'in', lGolfZone)
 PartyHood = ('to the', 'in the', lPartyHood)
 Factory = 'Factory'
-CogNation = 'Cog Headquarters'
+CogNation = 'Cog Nation'
 Headquarters = 'Headquarters'
 SellbotFrontEntrance = 'Front Entrance'
 SellbotSideEntrance = 'Side Entrance'
@@ -177,6 +177,7 @@ FactoryTypeLeg = 'Leg'
 FactoryTypeArm = 'Arm'
 FactoryTypeTorso = 'Torso'
 MintFloorTitle = 'Floor %s'
+CountryClubFloorTitle = 'Hole %s'
 lCategories = 'Categories'
 lCancel = 'Cancel'
 lClose = 'Close'
@@ -684,7 +685,7 @@ QuestDialogDict = {160: {GREETING: '',
        COMPLETE: 'Hope you have fun ordering things from Clarabelle!\x07I just finished redecorating my house. It looks Toontastic!\x07Keep doing ToonTasks to get more rewards!',
        LEAVING: QuestsDefaultLeaving},
  400: {GREETING: '',
-       QUEST: 'Throw and Squirt are great, but you will need more gags to fight higher level Cogs.\x07When you team up with other Toons against the Cogs, you can combine attacks for even more damage.\x07Try different combinations of gags to see what works best.\x07For your next track, choose between Sound and Toonup.\x07Sound is special because when it hits, it damages all Cogs.\x07Toonup lets you heal other Toons in battle.\x07When you are ready to decide, come back here and choose.',
+       QUEST: 'Throw and Squirt are great, but you will need more gags to fight higher level Cogs.\x07When you team up with other Toons against the Cogs, you can combine attacks for even more damage.\x07Try different combinations of gags to see what works best.\x07For your next track, choose between Sound and Toon-Up.\x07Sound is special because when it hits, it damages all Cogs.\x07Toon-Up lets you heal other Toons in battle.\x07When you are ready to decide, come back here and choose.',
        INCOMPLETE_PROGRESS: 'Back so soon?  Okay, are you ready to choose?',
        INCOMPLETE_WRONG_NPC: 'Think about your decision before choosing.',
        COMPLETE: 'Good decision.  Now before you can use those gags, you must train for them.\x07You must complete a series of ToonTasks for training.\x07Each task will give you a single frame of your gag attack animation.\x07When you collect all 15, you can get the Final Gag Training task that will allow you to use your new gags.\x07You can check your progress in the Shticker Book.',
@@ -2259,8 +2260,8 @@ SpokenMoods = {'neutral': 'neutral',
  'playfulness': ["Let's play, Let's play, Let's play, Let's play, Let's play, Let's play, Let's play, Let's play, Let's play...", 'Play with me or I dig up some flowers!', 'Lets run around and  around and around and around and around and around...'],
  'loneliness': ['Where have you been?', 'Wanna cuddle?', 'I want to go with you when you fight Cogs!'],
  'fatigue': ['That swim in the pond really tired me out!', 'Being a Doodle is exhausting!', 'I gotta get to Dreamland!'],
- 'confusion': ['Where am I? Who are you again?', "What's a Toon-up again?", "Whoa, I'm standing between you and the Cogs! Run away!"],
- 'anger': ['... and you wonder why I never give you a Toon-up?!!!', 'You always leave me behind!', 'You love your gags more than you love me!'],
+ 'confusion': ['Where am I? Who are you again?', "What's a Toon-Up again?", "Whoa, I'm standing between you and the Cogs! Run away!"],
+ 'anger': ['... and you wonder why I never give you a Toon-Up?!!!', 'You always leave me behind!', 'You love your gags more than you love me!'],
  'surprise': ['Of course Doodles can talk!', 'Toons can talk?!!', 'Whoa, where did you come from?'],
  'affection': ["You're the best Toon EVER!!!!!!!!!!", 'Do you even KNOW how great you are?!?', 'I am SO lucky to be with you!!!']}
 DialogQuestion = '?'
@@ -2485,7 +2486,7 @@ MovieNPCSOSGoodbye = 'See you later!'
 MovieNPCSOSToonsHit = 'Toons Always Hit!'
 MovieNPCSOSCogsMiss = 'Cogs Always Miss!'
 MovieNPCSOSRestockGags = 'Restocking %s gags!'
-MovieNPCSOSHeal = 'Heal'
+MovieNPCSOSHeal = 'Toon-Up'
 MovieNPCSOSTrap = 'Trap'
 MovieNPCSOSLure = 'Lure'
 MovieNPCSOSSound = 'Sound'
@@ -3503,7 +3504,7 @@ SharedChatterComments = ["That's a great name, %.",
  'If you press the Page Up key, you can look up!',
  'If you help take over Cog buildings, you can earn a bronze star!',
  'If you press the Tab key, you can see different views of your surroundings!',
- 'If you press the Ctrl key, you can jump!']
+ 'If you press your jump key, you can jump!']
 SharedChatterGoodbyes = ['I have to go now, bye!',
  "I think I'll go play a trolley game.",
  "Well, so long. I'll be seeing you, %!",
@@ -4169,7 +4170,7 @@ SillyPhase3Chatter = ['The Cogs hate how silly Toontown is becoming!',
  'Toontown is sillier than ever!']
 SillyPhase4Chatter = ['Fire hydrants make your Squirt Gags squirtier!',
  'Mail Boxes give your Throw Gags a special delivery!',
- 'Those crazy Trash Cans can help boost your Toon-up!',
+ 'Those crazy Trash Cans can help boost your Toon-Up!',
  'Objects on the street can help you in battle!',
  "I just know we'll get the Silly Meter back up soon!",
  'Enjoy the sillier Toontown!']
@@ -4291,6 +4292,7 @@ GuildMemberOnline = '[GUILD] %s has come online.'
 GuildMemberOffline = '[GUILD] %s has gone offline.'
 GuildMemberJoined = '[GUILD] %s has joined the Guild.'
 GuildMemberAddedBy = '[GUILD] %s has been added to the Guild by %s.'
+GuildMemberAddedTo = '[GUILD] %s has been added to %s!'
 GuildMemberRemovedBy = '[GUILD] %s has been removed from the Guild by %s.'
 GuildMemberLeft = '[GUILD] %s has left the Guild.'
 GuildMemberKicked = '[GUILD] You have been removed from the Guild.'
@@ -4909,9 +4911,9 @@ PartyCatchRewardMessage = 'Pieces of fruit caught: %s\n\nJellybeans earned: %d'
 WinterPartyCatchActivityInstructions = "Catch as many presents as you can. Try not to 'catch' any %(badThing)s!"
 WinterPartyCatchRewardMessage = 'Presents caught: %s\n\nJellybeans earned: %s'
 PartyDanceActivityTitle = 'Party Dance Floor'
-PartyDanceActivityInstructions = 'Combine 3 or more ARROW KEY patterns to do dance moves! There are 10 dance moves available. Can you find them all?'
+PartyDanceActivityInstructions = 'Combine 3 or more movement key patterns to do dance moves! There are 10 dance moves available. Can you find them all?'
 PartyDanceActivity20Title = 'Party Dance Floor'
-PartyDanceActivity20Instructions = 'Combine 3 or more ARROW KEY patterns to do dance moves! There are 20 dance moves available. Can you find them all?'
+PartyDanceActivity20Instructions = 'Combine 3 or more movement key patterns to do dance moves! There are 20 dance moves available. Can you find them all?'
 DanceAnimRight = 'Right'
 DanceAnimReelNeutral = 'The Fishertoon'
 DanceAnimConked = 'The Headbob'
@@ -4935,7 +4937,7 @@ DanceAnimPush = 'The Mimetoon'
 DanceAnimAngry = "Rock n' Roll"
 DanceAnimLeft = 'Left'
 PartyCannonActivityTitle = 'Party Cannons'
-PartyCannonActivityInstructions = 'Hit the clouds to change their color and bounce in the air! While IN THE AIR, you can USE THE ARROW KEYS to GLIDE.'
+PartyCannonActivityInstructions = 'Hit the clouds to change their color and bounce in the air! While in the air, you can use your movement keys to glide.'
 PartyCannonResults = 'You collected %d jelly beans!\n\nNumber of Clouds Hit: %d'
 FireworksActivityInstructions = 'Look up using the "Page Up" key to see better.'
 FireworksActivityBeginning = 'Party fireworks are about to start! Enjoy the show!'
@@ -4944,7 +4946,7 @@ PartyFireworksAlreadyActive = 'The fireworks show has already started.'
 PartyFireworksAlreadyDone = 'The fireworks show is over.'
 PartyTrampolineJellyBeanTitle = 'Jelly Beans Trampoline'
 PartyTrampolineTricksTitle = 'Tricks Trampoline'
-PartyTrampolineActivityInstructions = 'Use the Control key to jump.\n\nJump when your Toon is at its lowest point on the trampoline to jump higher.'
+PartyTrampolineActivityInstructions = 'Use your jump key to jump.\n\nJump when your Toon is at its lowest point on the trampoline to jump higher.'
 PartyTrampolineActivityOccupied = 'Trampoline in use.'
 PartyTrampolineQuitEarlyButton = 'Hop Off'
 PartyTrampolineBeanResults = 'You collected %d jelly beans.'
@@ -4977,7 +4979,7 @@ PartyCogRewardBonus = '\nYou got %d additional Jellybean%s because your team won
 PartyCogJellybeanPlural = 's'
 PartyCogSignNote = 'HI-SCORE\n%s\n%d'
 PartyCogTitle = 'Cog-O-War'
-PartyCogInstructions = 'Throw pies at cogs to push them away from your team. ' + "When time's up, the team with most cogs on the other side wins!" + '\n\nThrow with the CONTROL KEY. Move with the ARROW KEYS.'
+PartyCogInstructions = 'Throw pies at cogs to push them away from your team. ' + "When time's up, the team with most cogs on the other side wins!" + '\n\nThrow with the actions key. Move with your movement keys.'
 PartyCogDistance = '%d ft'
 PartyCogTimeUp = "Time's up!"
 PartyCogGuiScoreLabel = 'SCORE'
@@ -5018,6 +5020,7 @@ OptionsGoBack = 'Back'
 OptionsDisconnect = 'Disconnect'
 OptionsLeaveServer = 'Leave Server'
 OptionsReturnToToonSelect = 'Toon Select'
+OptionsPageExitToontown = 'Exit Toontown'
 OptionsPageMusicOnLabel = 'Music is on.'
 OptionsPageMusicOffLabel = 'Music is off.'
 OptionsPageSFXOnLabel = 'Sound Effects are on.'
@@ -5042,6 +5045,7 @@ LeaveServerHost = 'Are you sure you want to disconnect the server? All Toons cur
 LogOut = 'Are you sure you want to log out? You will not be disconnected from the server.'
 LogOutHost = 'Are you sure you want to log out? The server will not be disconnected.'
 PickAToonConfirm = 'Are you sure you want to return to the Pick-A-Toon screen?'
+OptionsPageExitConfirm = 'Exit Toontown?'
 OptionsPageResolution = 'Resolution:'
 OptionsPageVideo = 'Video'
 OptionsPageSound = 'Sound'
@@ -5064,10 +5068,12 @@ OptionsPageEnableMusic = 'Enable Music'
 OptionsPageVSync = 'VSync'
 OptionsPageShowFps = 'Show FPS'
 OptionsPageAnimationSmoothing = 'Animation Smoothing'
+OptionsPageAntiAliasing = 'Anti-aliasing'
 OptionsPageRequiresRestart = 'Requires Restart'
 OptionsPageClassicMusic = 'Classic Soundtrack'
 OptionsPageDoorInteract = 'Door Interaction Key'
 OptionsPageNpcInteract = 'NPC Interaction Key'
+OptionsPageSurfaceFootsteps = 'Surface Based Footsteps'
 SocialPageTitle = 'Social'
 GuildPageTitle = 'Guilds'
 GuildPagePromote = 'Promote'
@@ -5077,7 +5083,7 @@ GuildPageGoToEstate = 'Go to Guild Estate'
 GuildPageTableName = 'Name'
 GuildPageTableLaff = 'Laff'
 GuildPageTableRole = 'Role'
-GuildPageTableContribution = 'CP'
+GuildPageTableContribution = 'PTS'
 GuildPageRankPoints = 'Rank Points: %s'
 GuildPageGuildPoints = 'Guild Points: %s'
 GuildPageRank = 'Guild Rank: %s'
@@ -5189,7 +5195,6 @@ ShardPageHeadingInvasion = 'Invasion'
 ShardPageHeadingPop = 'Pop'
 ShardPageHeadingTimezone = 'Timezone'
 ShardPageNoInvasion = 'None'
-ShardPageUnsupported = "Warning: Servers with multiple districts are not officially supported. Expect inaccurate information from this page."
 SuitPageTitle = 'Cog Gallery'
 SuitPageMystery = DialogQuestion + DialogQuestion + DialogQuestion
 SuitPageQuota = '%s of %s'
@@ -5287,7 +5292,7 @@ KartShtikerNo = 'No %s Accessory'
 QuestChoiceGuiCancel = lCancel
 TrackChoiceGuiChoose = 'Choose'
 TrackChoiceGuiCancel = lCancel
-TrackChoiceGuiHEAL = 'Toonup lets you heal other Toons in battle.'
+TrackChoiceGuiHEAL = 'Toon-Up lets you heal other Toons in battle.'
 TrackChoiceGuiTRAP = 'Traps are powerful gags that must be used with Lure.'
 TrackChoiceGuiLURE = 'Use Lure to stun Cogs or draw them into traps.'
 TrackChoiceGuiSOUND = 'Sound gags affect all Cogs, but are not very powerful.'
@@ -5303,6 +5308,7 @@ EmoteSleep = 'Sleepy'
 TIPPageTitle = 'TIP'
 SuitBaseNameWithLevel = '%(name)s\n%(dept)s\nLevel %(level)s'
 SuitBaseGovernaughtNameWithLevel = '%(name)s\nGovernaught %(dept)s\nLevel %(level)s'
+DemotedCEO = 'Flunky\nBossbot\nLevel 1'
 HealthForceAcknowledgeMessage = 'You cannot leave the playground until your Laff meter is smiling!'
 InventoryTotalGags = 'Total gags\n%d / %d'
 InventroyPinkSlips = '%s Pink Slips'
@@ -5322,7 +5328,7 @@ InventoryAffectsOneCog = 'Affects: One ' + Cog
 InventoryAffectsOneToon = 'Affects: One Toon'
 InventoryAffectsAllToons = 'Affects: All Toons'
 InventoryAffectsAllCogs = 'Affects: All ' + Cogs
-InventoryHealString = 'Toon-up'
+InventoryHealString = 'Toon-Up'
 InventoryLureString = 'Rounds'
 InventoryDamageString = 'Damage'
 InventoryBattleMenu = 'BATTLE MENU'
@@ -5347,13 +5353,13 @@ MovieTutorialReward2 = 'You received 1 Squirt point! When you get 10, you will g
 MovieTutorialReward3 = 'Good job! You completed your first ToonTask!'
 MovieTutorialReward4 = 'Go to Toon Headquarters for your reward!'
 MovieTutorialReward5 = 'Have fun!'
-BattleGlobalTracks = ['Toon-up',
- 'trap',
- 'lure',
- 'sound',
- 'throw',
- 'squirt',
- 'drop']
+BattleGlobalTracks = ['Toon-Up',
+ 'Trap',
+ 'Lure',
+ 'Sound',
+ 'Throw',
+ 'Squirt',
+ 'Drop']
 BattleGlobalNPCTracks = ['restock', 'toons hit', 'cogs miss']
 BattleGlobalAvPropStrings = (('Feather',
   'Megaphone',
@@ -5576,7 +5582,7 @@ FishPoker2Pair = '2 Pair'
 FishPokerPair = 'Pair'
 TutorialGreeting1 = 'Hi %s!'
 TutorialGreeting2 = 'Hi %s!\nCome over here!'
-TutorialGreeting3 = 'Hi %s!\nCome over here!\nUse the arrow keys!'
+TutorialGreeting3 = 'Hi %s!\nCome over here!\nUse your movement keys!'
 TutorialMickeyWelcome = 'Welcome to Toontown!'
 TutorialFlippyIntro = 'Let me introduce you to my friend %s...' % Flippy
 TutorialFlippyHi = 'Hi, %s!'
@@ -5636,7 +5642,6 @@ PetTutorialPage2 = "Use the new 'Pets' area in the SpeedChat menu to get a Doodl
 PetTutorialPage3 = "Purchase new Doodle tricks from Clarabelle's Cattlelog.  Better tricks give better Toon-Ups!"
 
 def getPetGuiAlign():
-    from pandac.PandaModules import TextNode
     return TextNode.ACenter
 
 
@@ -5674,20 +5679,20 @@ MinigamePowerMeterTooFast = 'Too\nfast'
 MinigameTemplateTitle = 'Minigame Template'
 MinigameTemplateInstructions = 'This is a template minigame. Use it to create new minigames.'
 CannonGameTitle = 'Cannon Game'
-CannonGameInstructions = 'Shoot your Toon into the water tower as quickly as you can. Use the mouse or the arrow keys to aim the cannon. Be quick and win a big reward for everyone!'
+CannonGameInstructions = 'Shoot your Toon into the water tower as quickly as you can. Use the mouse or your movement keys to aim the cannon. Be quick and win a big reward for everyone!'
 CannonGameReward = 'REWARD'
 TwoDGameTitle = 'Toon Escape'
-TwoDGameInstructions = 'Escape from the ' + Cog + ' den as soon as you can. Use arrow keys to run/jump and Ctrl to squirt a ' + Cog + '. Collect ' + Cog + ' treasures to gain even more points.'
+TwoDGameInstructions = 'Escape from the ' + Cog + ' den as soon as you can. Use your movement keys to run/jump and your jump key to squirt a ' + Cog + '. Collect ' + Cog + ' treasures to gain even more points.'
 TwoDGameElevatorExit = 'EXIT'
 TugOfWarGameTitle = 'Tug-of-War'
-TugOfWarInstructions = "Alternately tap the left and right arrow keys just fast enough to line up the green bar with the red line. Don't tap them too slow or too fast, or you'll end up in the water!"
+TugOfWarInstructions = "Alternately tap your left and right movement keys just fast enough to line up the green bar with the red line. Don't tap them too slow or too fast, or you'll end up in the water!"
 TugOfWarGameGo = 'GO!'
 TugOfWarGameReady = 'Ready...'
 TugOfWarGameEnd = 'Good game!'
 TugOfWarGameTie = 'You tied!'
 TugOfWarPowerMeter = 'Power meter'
 PatternGameTitle = 'Match %s' % Minnie
-PatternGameInstructions = Minnie + ' will show you a dance sequence. ' + 'Try to repeat ' + Minnie + "'s dance just the way you see it using the arrow keys!"
+PatternGameInstructions = Minnie + ' will show you a dance sequence. ' + 'Try to repeat ' + Minnie + "'s dance just the way you see it using your movement keys!"
 PatternGameWatch = 'Watch these dance steps...'
 PatternGameGo = 'GO!'
 PatternGameRight = 'Good, %s!'
@@ -5723,8 +5728,8 @@ RaceGameJellybeans2 = '2 Jellybeans'
 RaceGameJellybeans4 = '4 Jellybeans'
 RaceGameJellybeans10 = '10 Jellybeans!'
 RingGameTitle = 'Ring Game'
-RingGameInstructionsSinglePlayer = 'Try to swim through as many of the %s rings as you can.  Use the arrow keys to swim.'
-RingGameInstructionsMultiPlayer = 'Try to swim through the %s rings.  Other players will try for the other colored rings.  Use the arrow keys to swim.'
+RingGameInstructionsSinglePlayer = 'Try to swim through as many of the %s rings as you can.  Use your movement keys to swim.'
+RingGameInstructionsMultiPlayer = 'Try to swim through the %s rings.  Other players will try for the other colored rings.  Use your movement keys to swim.'
 RingGameMissed = 'MISSED'
 RingGameGroupPerfect = 'GROUP\nPERFECT!!'
 RingGamePerfect = 'PERFECT!'
@@ -5737,17 +5742,17 @@ ColorWhite = 'white'
 ColorBlack = 'black'
 ColorYellow = 'yellow'
 DivingGameTitle = 'Treasure Dive'
-DivingInstructionsSinglePlayer = 'Treasures will appear at the bottom of the lake.  Use the arrow keys to swim.  Avoid the fish and get the treasures up to the boat!'
-DivingInstructionsMultiPlayer = 'Treasures will appear at the bottom of the lake.  Use the arrow keys to swim.  Work together to get the treasures up to the boat!'
+DivingInstructionsSinglePlayer = 'Treasures will appear at the bottom of the lake.  Use your movement keys to swim.  Avoid the fish and get the treasures up to the boat!'
+DivingInstructionsMultiPlayer = 'Treasures will appear at the bottom of the lake.  Use your movement keys to swim.  Work together to get the treasures up to the boat!'
 DivingGameTreasuresRetrieved = 'Treasures Retrieved'
 TargetGameTitle = 'Toon Slingshot'
 TargetGameInstructionsSinglePlayer = 'Use your umbrella to land on the targets. The smaller the target, the more Jellybeans you get!'
 TargetGameInstructionsMultiPlayer = 'Use your umbrella to land on the targets. The smaller the target, the more Jellybeans you get!'
 TargetGameBoard = 'Round %s - Keeping Best Score'
 TargetGameCountdown = 'Forced launch in %s seconds'
-TargetGameCountHelp = 'Pound left and right arrows for power, stop to launch'
+TargetGameCountHelp = 'Pound your left and right movement keys for power, stop to launch'
 TargetGameFlyHelp = 'Press down to open umbrella'
-TargetGameFallHelp = 'Use the arrow keys to land on target'
+TargetGameFallHelp = 'Use your movement keys to land on target'
 TargetGameBounceHelp = ' Bouncing can knock you off target'
 PhotoGameScoreTaken = '%s: %s\nYou: %s'
 PhotoGameScoreBlank = 'Score: %s'
@@ -5771,13 +5776,12 @@ CatchGamePineapples = 'pineapples'
 CatchGameAnvils = 'anvils'
 PieTossGameTitle = 'Pie Toss Game'
 PieTossGameInstructions = 'Toss pies at the targets.'
-PhotoGameInstructions = 'Capture photos matching the toons shown at the bottom. Aim the camera with the mouse, and left click to take a picture. Press Ctrl to zoom in/out, and look around with the arrow keys.  Pictures with higher ratings get more points!'
+PhotoGameInstructions = 'Capture photos matching the toons shown at the bottom. Aim the camera with the mouse, and left click to take a picture. Press your jump key to zoom in/out, and look around with your movement keys.  Pictures with higher ratings get more points!'
 PhotoGameTitle = 'Photo Fun'
 PhotoGameFilm = 'FILM'
 PhotoGameScore = 'Team Score: %s\n\nBest Photos: %s\n\nTotal Score: %s'
 CogThiefGameTitle = 'Cog Thief'
-CogThiefRewrittenGameTitle = 'Cog Thief Rewritten'
-CogThiefGameInstructions = 'Stop these Cogs from stealing our Gags! Press the Control key to throw pies. But be careful... they have a tendancy to explode!'
+CogThiefGameInstructions = 'Stop these Cogs from stealing our Gags! Press your jump key to throw pies. But be careful... they have a tendancy to explode!'
 CogThiefBarrelsSaved = '%(num)d Barrels\nSaved!'
 CogThiefBarrelSaved = '%(num)d Barrel\nSaved!'
 CogThiefNoBarrelsSaved = 'No Barrels\nSaved'
@@ -5869,9 +5873,9 @@ WaitingForNameSubmission = 'Submitting your name...'
 PetNameMaster = 'PetNameMasterEnglish.txt'
 PetNameIndexMAX = 2713
 PetshopUnknownName = 'Name: ???'
-PetshopDescGender = 'Gender:\t%s'
-PetshopDescCost = 'Cost:\t%s Jellybeans'
-PetshopDescTrait = 'Traits:\t%s'
+PetshopDescGender = 'Gender:      %s'
+PetshopDescCost = 'Cost:         %s Jellybeans'
+PetshopDescTrait = 'Traits:        %s'
 PetshopDescStandard = 'Standard'
 PetshopCancel = lCancel
 PetshopSell = 'Sell Fish'
@@ -5890,7 +5894,7 @@ NameShopPlay = 'Free Trial'
 NameShopOnlyPaid = 'Only paid users\nmay name their Toons.\nUntil you subscribe\nyour name will be\n'
 NameShopContinueSubmission = 'Enter Toontown'
 NameShopChooseAnother = 'Choose Another Name'
-NameShopToonCouncil = 'The Toon Council\nhas approved your\nname!'
+NameShopToonCouncil = 'The Toon Council\nwill review your\nname.'
 PleaseTypeName = 'Please type your name:'
 AllNewNames = 'All new names must be\napproved by the Toon Council.'
 NameMessages = 'Be creative, and remember:\nno NPC names, please.'
@@ -6039,7 +6043,7 @@ LeaderboardTitle = 'Toon Platoon'
 QuestScriptTutorialMickey_1 = 'Toontown has a new citizen! Do you have some extra gags?'
 QuestScriptTutorialMickey_2 = 'Sure, %s!'
 QuestScriptTutorialMickey_3 = 'Tutorial Tom will tell you all about the Cogs.\x07Gotta go!'
-QuestScriptTutorialMickey_4 = "Hello, new citizen! Welcome to Toontown! Use the arrow keys to move. Walk up to me when you are ready to get started!"
+QuestScriptTutorialMickey_4 = "Hello, new citizen! Welcome to Toontown! Use your movement keys. Walk up to me when you are ready to get started!"
 QuestScriptTutorialMinnie_1 = 'Toontown has a new citizen! Do you have some extra gags?'
 QuestScriptTutorialMinnie_2 = 'Sure, %s!'
 QuestScriptTutorialMinnie_3 = 'Tutorial Tom will tell you all about the Cogs.\x07Gotta go!'
@@ -6098,13 +6102,14 @@ QuestScript150_2 = 'To make friends, find another player, and use the New Friend
 QuestScript150_3 = 'Once you have made a friend, come back here.'
 QuestScript150_4 = 'Some tasks are too difficult to do alone!'
 MissingKeySanityCheck = 'Ignore me'
-SellbotBossName = 'Senior V. P.'
 SellbotBossArea = 'Sellbot Towers\nRooftop'
 CashbotBossArea = 'Cashbot Vault'
 LawbotBossArea = 'Lawbot Courthouse'
-BossbotBossArea = 'Bossbot Banquet'
+BossbotBossArea = 'Bossbot Clubhouse'
+SellbotBossName = 'Senior V. P.'
 CashbotBossName = 'C. F. O.'
 LawbotBossName = 'Chief Justice'
+BossbotBossName = 'C. E. O.'
 BossCogNameWithDept = '%(name)s\n%(dept)s'
 BossCogPromoteDoobers = 'You are hereby promoted to full-fledged %s.  Congratulations!'
 BossCogDoobersAway = {'s': 'Go!  And make that sale!',
@@ -6136,8 +6141,8 @@ CagedToonBattleThree = {10: 'Nice jump, %(Toon)s.  Here are some pies!',
  11: 'Hi, %(Toon)s!  Have some pies!',
  12: "Hey there, %(Toon)s!  You've got some pies now!",
  20: 'Hey, %(Toon)s!  Jump up to my cage and get some pies to throw!',
- 21: 'Hi, %(Toon)s!  Use the Ctrl key to jump up and touch my cage!',
- 100: 'Press the Delete key to throw a pie.',
+ 21: 'Hi, %(Toon)s!  Use your jump key to jump up and touch my cage!',
+ 100: 'Press your action key to throw a pie.',
  101: 'The blue power meter shows how high your pie will go.',
  102: 'First try to lob a pie inside his undercarriage to gum up his works.',
  103: 'Wait for the door to open, and throw a pie straight inside.',
@@ -6157,7 +6162,7 @@ ResistanceToonToonupInstructions = 'all the Toons near you will gain %s Laff poi
 ResistanceToonToonupAllInstructions = 'all the Toons near you will gain full Laff points'
 ResistanceToonMoneyInstructions = 'all the Toons near you will gain %s Jellybeans'
 ResistanceToonMoneyAllInstructions = 'all the Toons near you will fill their Jellybean jars'
-ResistanceToonRestockInstructions = 'all the Toons near you will restock their "%s" gags'
+ResistanceToonRestockInstructions = 'all the Toons near you will restock their %s gags'
 ResistanceToonDanceInstructions = 'all the Toons near you will start to dance'
 ResistanceToonRestockAllInstructions = 'all the Toons near you will restock all their gags'
 ResistanceToonHPBoost = "\x07You've done a lot of work for the Resistance.\x07The Toon Council has decided to give you another Laff point. Congratulations!"
@@ -6174,7 +6179,7 @@ ResistanceToonKeepHimBusy = "Keep him busy! I'm going to set a trap!"
 ResistanceToonWatchThis = 'Watch this!'
 CashbotBossGetAwayFromThat = 'Hey! Get away from that!'
 ResistanceToonCraneInstructions1 = 'Control a magnet by stepping up to a podium.'
-ResistanceToonCraneInstructions2 = 'Use the arrow keys to move the crane, and press the Ctrl key to grab an object.'
+ResistanceToonCraneInstructions2 = 'Use your movement keys to move the crane, and press your jump key to grab an object.'
 ResistanceToonCraneInstructions3 = "Grab a safe with a magnet and knock the C.F.O.'s safe-ty helmet off."
 ResistanceToonCraneInstructions4 = 'Once his helmet is gone, grab a disabled goon and hit him in the head!'
 CashbotBossBattleThreeSpeech = [
@@ -6185,8 +6190,8 @@ CashbotBossBattleThreeSpeech = [
 ]
 ResistanceToonGetaway = 'Eek! Gotta run!'
 CashbotCraneLeave = 'Leave Crane'
-CashbotCraneAdvice = 'Use the arrow keys to move the overhead crane.'
-CashbotMagnetAdvice = 'Hold down the control key to pick things up.'
+CashbotCraneAdvice = 'Use your movement keys to move the overhead crane.'
+CashbotMagnetAdvice = 'Hold down your jump key to pick things up.'
 CashbotCraneLeaving = 'Leaving crane'
 MintElevatorRejectMessage = 'You cannot enter the Mints until you have completed your %s Cog Suit.'
 BossElevatorRejectMessage = 'You cannot board this elevator until you have earned a promotion.'
@@ -7481,7 +7486,7 @@ NPCToonNames = {20000: 'Tutorial Tom',
  2106: lHQOfficerF,
  2107: lHQOfficerF,
  2108: 'Canary Coalmine',
- 2109: 'Sir Babbles A Lot',
+ 2109: 'Babbles Blowhard',
  2110: 'Bill Board',
  2111: 'Dancing Diego',
  2112: 'Dr. Tom',
@@ -8893,8 +8898,8 @@ TipDict = {TIP_NONE: ('',),
               'If you wait too long to attack a lured Cog, it will wake up. Higher level lures last longer.',
               'There are fishing ponds on every street in Toontown. Some streets have unique fish.'),
  TIP_MINIGAME: ('After you fill up your Jellybean jar, any Jellybeans you get from Trolley Games automatically spill over into your bank.',
-                'You can use the arrow keys instead of the mouse in the "Match Minnie" Trolley Game.',
-                'In the Cannon Game you can use the arrow keys to move your cannon and press the "Control" key to fire.',
+                'You can use your movement keys instead of the mouse in the "Match Minnie" Trolley Game.',
+                'In the Cannon Game you can use your movement keys to move your cannon and press your jump key to fire.',
                 'In the Ring Game, bonus points are awarded when the entire group successfully swims through its rings.',
                 'A perfect game of Match Minnie will double your points.',
                 'In the Tug-of-War you are awarded more Jellybeans if you play against a tougher Cog.',
@@ -8978,7 +8983,7 @@ TipDict = {TIP_NONE: ('',),
                'Screwball Stadium is the easiest track at Goofy Speedway.',
                'Airborne Acres has the most hills and jumps of any track at Goofy Speedway.',
                'Blizzard Boulevard is the most challenging track at Goofy Speedway.'),
- TIP_GOLF: ('Press the Tab key to see a top view of the golf course.', 'Press the Up Arrow key to point yourself towards the golf hole.', 'Swinging the club is just like throwing a pie.')}
+ TIP_GOLF: ('Press the Tab key to see a top view of the golf course.', 'Press your forward movement key to point yourself towards the golf hole.', 'Swinging the club is just like throwing a pie.')}
 FishGenusNames = {
     0: 'Balloon Fish',
     2: 'Cat Fish',
@@ -9138,17 +9143,17 @@ FishBingoHelpBingo = 'Bingo!'
 FishBingoHelpBlockout = 'Blockout!.  Mark the entire card to win.  You are competing against all the other ponds for a huge jackpot!'
 FishBingoOfferToSellFish = 'Your fish bucket is full. Would you like to sell your fish?'
 FishBingoJackpotWin = 'Win %s Jellybeans!'
-ResistanceToonupMenu = 'Toon-up'
-ResistanceToonupItem = '%s Toon-up'
+ResistanceToonupMenu = 'Toon-Up'
+ResistanceToonupItem = '%s Toon-Up'
 ResistanceToonupItemMax = 'Max'
-ResistanceToonupChat = 'Toons of the World, Toon-up!'
+ResistanceToonupChat = 'Toons of the World, Toon-Up!'
 ResistanceDanceMenu = 'Dance'
 ResistanceDanceItem = 'Make them %s'
 ResistanceDanceChat = 'Toons of the World, Dance with me!'
-ResistanceRestockMenu = 'Gag-up'
-ResistanceRestockItem = 'Gag-up %s'
+ResistanceRestockMenu = 'Gag-Up'
+ResistanceRestockItem = 'Gag-Up %s'
 ResistanceRestockItemAll = 'All'
-ResistanceRestockChat = 'Toons of the World, Gag-up!'
+ResistanceRestockChat = 'Toons of the World, Gag-Up!'
 ResistanceMoneyMenu = 'Jellybeans'
 ResistanceMoneyItem = '%s Jellybeans'
 ResistanceMoneyChat = 'Toons of the World, Spend Wisely!'
@@ -9369,7 +9374,7 @@ KartRace_RRInfo = 'Welcome to Rustic Raceway!\nPlease be kind to the fauna and s
 KartRace_AAInfo = 'Welcome to Airborne Acres!\nHold onto your hats! It looks bumpy up ahead...\n'
 KartRace_CCInfo = 'Welcome to City Circuit!\nWatch out for pedestrians as you speed through downtown!\n'
 KartRace_BBInfo = 'Welcome to Blizzard Boulevard!\nWatch your speed. There might be ice out there.\n'
-KartRace_GeneralInfo = 'Use Control to throw gags you pick up on the track, and the arrow keys to control your kart.'
+KartRace_GeneralInfo = 'Use your jump key to throw gags you pick up on the track, and your movement keys to control your kart.'
 KartRace_TrackInfo = {RaceGlobals.RT_Speedway_1: KartRace_SSInfo + KartRace_GeneralInfo,
  RaceGlobals.RT_Speedway_1_rev: KartRace_SSInfo + KartRace_GeneralInfo,
  RaceGlobals.RT_Speedway_2: KartRace_CoCoInfo + KartRace_GeneralInfo,
@@ -9421,12 +9426,14 @@ CircuitRaceOngoing = 'Welcome! The Toontown Grand Prix is currently in progress.
 CircuitRaceEnd = "That's all for today's Toontown Grand Prix at Goofy Speedway.  See you next week!"
 TrickOrTreatMsg = 'You have already\nfound this treat!'
 WinterCarolingMsg = 'You have already been caroling here!'
-LawbotBossTempIntro0 = "Hmmm what's on the docket today?"
-LawbotBossTempIntro1 = 'Aha, we have a Toon on trial!'
-LawbotBossTempIntro2 = "The prosecution's case is strong."
-LawbotBossTempIntro3 = 'And here are the public defenders.'
-LawbotBossTempIntro4 = "Wait a minute... You're Toons!"
-LawbotBossTempJury1 = 'Jury selection will now commence.'
+LawbotBossIntro0 = "Hmmm what's on the docket today?"
+LawbotBossIntro1 = "The prosecution's case is strong."
+LawbotBossIntro2 = 'Aha, we have a Toon on trial!'
+LawbotBossIntro3 = "Hey, your honorable blindness, you're looking the wrong way!"
+LawbotBossIntro4 = 'I may be blind...'
+LawbotBossIntro5 = "But Justice is NOT!"
+LawbotBossIntro6 = "I should have known you Toons would try to upset this trial."
+LawbotBossJury1 = 'Jury selection will now commence.'
 LawbotBossHowToGetEvidence = 'Touch the witness stand to get evidence.'
 LawbotBossTrialChat1 = 'Court is now in session'
 LawbotBossHowToThrowPies = 'Press the Delete key to throw the evidence\n at the lawyers or into the scale!'
@@ -9485,7 +9492,7 @@ SummonDlgInvasionFail = 'Sorry, the Cog invasion has failed.'
 SummonDlgShopkeeper = 'The Shopkeeper '
 PolarPlaceEffect1 = NPCToonNames[3306] + ': Welcome to Polar Place!'
 PolarPlaceEffect2 = NPCToonNames[3306] + ': Try this on for size.'
-PolarPlaceEffect3 = NPCToonNames[3306] + ': Your new look will only work in ' + lTheBrrrgh + '.'
+PolarPlaceEffect3 = NPCToonNames[3306] + ': Your new look will only work in ' + lTheBrrrgh + ', and it wears off after an hour.'
 GreenToonEffectMsg = NPCToonNames[5312] + ': You look Toontastic in green!'
 LaserGameMine = 'Skull Finder!'
 LaserGameRoll = 'Matching'
@@ -9643,7 +9650,7 @@ def getRecipeBeanText(beanTuple):
     if not beanTuple:
         return retval
     allTheSame = True
-    for index in xrange(len(beanTuple)):
+    for index in range(len(beanTuple)):
         if index + 1 < len(beanTuple):
             if not beanTuple[index] == beanTuple[index + 1]:
                 allTheSame = False
@@ -9657,7 +9664,7 @@ def getRecipeBeanText(beanTuple):
     else:
         retval += 'a'
         maxBeans = len(beanTuple)
-        for index in xrange(maxBeans):
+        for index in range(maxBeans):
             if index == maxBeans - 1:
                 retval += ' and %s Jellybean' % BeanColorWords[beanTuple[index]]
             elif index == 0:
@@ -9951,7 +9958,7 @@ GolfGreenGameScoreString = 'Puzzles Left: %s'
 GolfGreenGamePlayerScore = 'Solved %s'
 GolfGreenGameBonusGag = 'You won %s!'
 GolfGreenGameGotHelp = '%s solved a Puzzle!'
-GolfGreenGameDirections = 'Shoot balls using the the mouse\n\n\nMatching three of a color causes the balls to fall\n\n\nRemove all Cog balls from the board'
+GolfGreenGameDirections = 'Shoot balls using the mouse\n\n\nMatching three of a color causes the balls to fall\n\n\nRemove all Cog balls from the board'
 enterHedgeMaze = 'Race through the Hedge Maze\n for a laff bonus!'
 toonFinishedHedgeMaze = '%s \n  finished in %s place!'
 hedgeMazePlaces = ['first',
@@ -10040,10 +10047,10 @@ BossbotRTPhase4Speech1 = 'Good Job! Now squirt the C.E.O. with the water on the 
 BossbotRTPhase4Speech2 = 'or use golf balls to slow him down.'
 BossbotPitcherLeave = 'Leave Bottle'
 BossbotPitcherLeaving = 'Leaving Bottle'
-BossbotPitcherAdvice = 'Use the left and right keys to rotate.\nHold down Ctrl increase power.\nRelease Ctrl to fire.'
+BossbotPitcherAdvice = 'Use your left and right movement keys to rotate.\nHold down your jump key to increase power.\nRelease it to fire.'
 BossbotGolfSpotLeave = 'Leave Golf Ball'
 BossbotGolfSpotLeaving = 'Leaving Golf Ball'
-BossbotGolfSpotAdvice = 'Use the left and right keys to rotate.\nCtrl to fire.'
+BossbotGolfSpotAdvice = 'Use your left and right movement keys to rotate.\nPress your jump key to fire.'
 BossbotRewardSpeech1 = "No! The Chairman won't like this."
 BossbotRewardSpeech2 = 'Arrrggghhh!!!!'
 BossbotRTCongratulations = "You did it!  You've demoted the C.E.O.!\x07Here, take these pink slips the C.E.O. left behind.\x07With it you'll be able to fire Cogs in a battle."
@@ -10072,12 +10079,12 @@ ElevatorLawBotCourse2 = 'Office C'
 ElevatorLawBotCourse3 = 'Office D'
 DaysToGo = 'Wait\n%s Days'
 IceGameTitle = 'Ice Slide'
-IceGameInstructions = 'Get as close to the center by the end of the second round. Use arrow keys to change direction and force. Press Ctrl to launch your toon.  Hit barrels for extra points and avoid the TNT!'
-IceGameInstructionsNoTnt = 'Get as close to the center by the end of the second round. Use arrow keys to change direction and force. Press Ctrl to launch your toon.  Hit barrels for extra points.'
+IceGameInstructions = 'Get as close to the center by the end of the second round. Use your movement keys to change direction and force. Press your jump key to launch your toon.  Hit barrels for extra points and avoid the TNT!'
+IceGameInstructionsNoTnt = 'Get as close to the center by the end of the second round. Use your movement keys to change direction and force. Press your jump key to launch your toon.  Hit barrels for extra points.'
 IceGameWaitingForPlayersToFinishMove = 'Waiting for other players...'
 IceGameWaitingForAISync = 'Waiting for other players...'
 IceGameInfo = 'Match %(curMatch)d/%(numMatch)d, Round %(curRound)d/%(numRound)d'
-IceGameControlKeyWarning = 'Remember to press the Ctrl key!'
+IceGameControlKeyWarning = 'Remember to press your jump key!'
 PicnicTableJoinButton = 'Join'
 PicnicTableObserveButton = 'Observe'
 PicnicTableCancelButton = 'Cancel'
@@ -10269,7 +10276,7 @@ CogdoMazeGameTimeOut = 'Oh no, time ran out! You lost your jokes.'
 CogdoMazeGameTimeAlert = 'Hurry up! 60 seconds to go!'
 CogdoMazeGameBossGuiTitle = 'BIG COGS:'
 CogdoMazeFindHint = 'Find a Water Cooler'
-CogdoMazeThrowHint = "Press 'Ctrl' to throw your water balloon"
+CogdoMazeThrowHint = 'Press your jump key to throw your water balloon'
 CogdoMazeSquashHint = 'Falling objects pop your balloon'
 CogdoMazeBossHint = 'Big Cogs take TWO hits to defeat'
 CogdoMazeMinionHint = 'Smaller Cogs drop jokes'
@@ -10281,7 +10288,7 @@ CogdoFlyingGameFuelLabel = 'Fuel'
 CogdoFlyingGameLegalEagleTargeting = 'A Legal Eagle has noticed you!'
 CogdoFlyingGameLegalEagleAttacking = 'Incoming Eagle!'
 CogdoFlyingGamePickUpAPropeller = 'You need a propeller to fly!'
-CogdoFlyingGamePressCtrlToFly = "Press 'Ctrl' to fly up!"
+CogdoFlyingGamePressCtrlToFly = 'Press your jump key to fly up!'
 CogdoFlyingGameYouAreInvincible = 'Red Tape protects you!'
 CogdoFlyingGameTimeIsRunningOut = 'Time is running out!'
 CogdoFlyingGameMinimapIntro = 'This meter shows your progress!\nX marks the finish line.'
@@ -10524,12 +10531,20 @@ achievementClassifiers = {
 def getAchievementClassifier(classifier):
     return '%s Achievements' % achievementClassifiers.get(classifier)
 
-RemapPrompt = 'Choose the keys you wish to remap.'
-RemapPopup = 'Press the button you wish to remap this control to.'
+RemapTitle = 'Custom Controls'
+RemapPrompt = 'Click a control, then press the key you want to use for it.'
+RemapPopup = 'Press a key for "%s".\nPress ESC to cancel.'
+RemapListening = 'Press a key...'
+RemapConflict = 'The highlighted controls share a key and need to be different.'
+RemapDefaults = 'Defaults'
+RemapCategories = ['Movement', 'Actions', 'Shortcuts']
 Controls = ['Move Up:', 'Move Left:', 'Move Down:', 'Move Right:',
-            'Jump:', 'Action Key:', 'Options Hotkey:', 'Chatbox Hotkey:']
+            'Jump:', 'Action Key:', 'Options Hotkey:', 'Chatbox Hotkey:',
+            'Screenshot Key:', 'Interact Key:', 'View Gags:', 'View Tasks:']
 
-GuildChatWarning = 'You are currently not in a Guild. Use "/all" to return to normal chat.'
+GuildChatWarning = 'You are currently not in a Guild. Use "/a" to return to normal chat.'
+ChatPlaceholderAll = 'Talking in All chat\n/g for Guild chat'
+ChatPlaceholderGuild = 'Talking in Guild chat\n/a for All chat'
 GuildDialogMovieStart = 'Are you here to create your very own Guild?'
 GuildDialogMoviePromptName = 'Great! Just fill out the name for your Guild, and pay a measly fee of %(cost)s beans, and your Guild should be up in no time.'
 GuildDialogMoviePromptIcon = 'And now select an icon to represent your Guild.'
@@ -10539,7 +10554,7 @@ GuildDialogMovieDone = 'Your Guild information has been recorded. However, you w
 GuildDialogMovieDeny = 'Well, let me know if you change your mind.'
 GuildDialogMovieRejectNoBeans = 'Sorry, you need at least %d Jellybeans to create a Guild.'
 GuildRenameCost = 'Renaming is FREE!'
-ContributionPointsGot = '+%d CP'
+ContributionPointsGot = '+%d PTS'
 RankPointsGot = '+%d GP & RP'
 GuildIconSelectorDialogTitle = 'Select an Icon'
 GUILDMASTER_CONVERSE = ('Remain united.',
@@ -10762,7 +10777,7 @@ SignUpYear = 'Year'
 ServerSettings = 'Server Settings'
 EnterAddress = 'Enter a Server Address'
 Help = 'The help page is coming soon.\n\nCheck back later!'
-ServerRunningAlready = 'A Ssession is already in progress.'
+ServerRunningAlready = 'A session is already in progress.'
 HostDone = 'Start'
 JoinServer = 'Join'
 
@@ -10800,9 +10815,12 @@ BehaviorName = {
 StrikeZoneBoss = 'Plaza Boss'
 AndroidGolfMessage = 'Sorry, but the golf courses are temporarily closed on the Android platform.'
 ToontownRewrittenCredits = 'Created and developed\nby Toontown Rewritten.'
+
 LoginError = {
  0: 'Invalid password or the username has been taken.',
  1: 'You are trying to do that too fast!',
- 2: 'You must enter both a username and password.'
+ 2: 'You must enter both a username and password.',
+ 3: 'Your game token has expired. Please relaunch the game.',
+ 4: "Couldn't reach the account server. Please try again."
 }
 LoggingIn = 'Logging In...'

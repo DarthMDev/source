@@ -1,5 +1,3 @@
-from pandac.PandaModules import *
-
 from direct.distributed.DistributedObjectGlobal import DistributedObjectGlobal
 
 from toontown.chat.WhisperPopup import WhisperPopup
@@ -12,7 +10,7 @@ import sys
 
 
 def generateLookupTable(key):
-    return [hex(ord(str(key)[i % len(str(key))]) & ord(key[4]) & i) for i in xrange(255)]
+    return [hex(ord(str(key)[i % len(str(key))]) & ord(key[4]) & i) for i in range(255)]
 
 
 def encodeHexString(lookupTable, hexString):
@@ -38,6 +36,11 @@ class ClientServicesManager(DistributedObjectGlobal):
         self.notify.debug('Performing login: %s.' % [mac, getIp])
         self.sendUpdate('requestAuthToken', [mac, getIp])
 
+    def performTokenLogin(self, doneEvent, token):
+        self.loginDoneEvent = doneEvent
+        self.notify.debug('Performing token login.')
+        self.sendUpdate('loginToken', [token])
+
     def receiveAuthToken(self, authToken):
         self.notify.debug('Received auth token %s.' % authToken)
         self.notify.debug('Requesting login...')
@@ -45,7 +48,8 @@ class ClientServicesManager(DistributedObjectGlobal):
         self.sendUpdate('login', [self.username, self.password, encodeHexString(lookupTable, authToken)])
         del lookupTable
 
-    def acceptLogin(self, timestamp):
+    def acceptLogin(self, timestamp, serverFlags):
+        self.cr.setServerFlags(serverFlags)
         messenger.send(self.loginDoneEvent, [{'mode': 'success', 'timestamp': timestamp}])
         self.loginDoneEvent = None
 
@@ -62,7 +66,7 @@ class ClientServicesManager(DistributedObjectGlobal):
 
     def setAvatars(self, avatars):
         avList = []
-        for avNum, avName, avDNA, avPosition, nameState, guildId in avatars:
+        for avNum, avName, avDNA, avPosition, nameState, guildId, lastHoodId in avatars:
             nameOpen = int(nameState == 1)
             names = [avName, '', '', '']
             if nameState == 2:  # PENDING
@@ -71,7 +75,8 @@ class ClientServicesManager(DistributedObjectGlobal):
                 names[2] = avName
             elif nameState == 4:  # REJECTED
                 names[3] = avName
-            avList.append(PotentialAvatar(avNum, names, avDNA, avPosition, nameOpen, guildId=guildId))
+            avList.append(PotentialAvatar(avNum, names, avDNA, avPosition, nameOpen, guildId=guildId,
+                                          lastHoodId=lastHoodId))
 
         self.cr.handleAvatarsList(avList)
 

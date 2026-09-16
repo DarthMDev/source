@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import CollideMask, CollisionNode, CollisionSphere, NodePath, Point3, Vec3, deg2Rad
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from toontown.building import ElevatorConstants
@@ -307,7 +307,7 @@ class DistributedClubElevator(DistributedElevatorFSM.DistributedElevatorFSM):
 
     def kickEveryoneOut(self):
         bailFlag = 0
-        for avId, slot in self.boardedAvIds.items():
+        for avId, slot in list(self.boardedAvIds.items()):
             self.emptySlot(slot, avId, bailFlag, globalClockDelta.getRealNetworkTime())
             if avId == base.localAvatar.doId:
                 pass

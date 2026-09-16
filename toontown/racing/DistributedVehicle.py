@@ -1,8 +1,8 @@
-from pandac.PandaModules import *
+from panda3d.physics import ForceNode, LinearEulerIntegrator, LinearForce, LinearFrictionForce, LinearIntegrator, LinearVectorForce, PhysicalNode, PhysicsCollisionHandler, PhysicsManager, PhysicsObject
+from panda3d.core import BitMask32, CardMaker, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionHandlerGravity, CollisionHandlerQueue, CollisionNode, CollisionRay, CollisionSphere, CollisionTraverser, ConfigVariable, ConfigVariableBool, Mat3, NodePath, Point3, Vec3, Vec4
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.fsm import FSM
 from direct.distributed import DistributedSmoothNode
 from direct.interval.IntervalGlobal import *
@@ -82,7 +82,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         DistributedSmoothNode.DistributedSmoothNode.__init__(self, cr)
         FSM.FSM.__init__(self, 'DistributedVehicle')
         Kart.Kart.__init__(self)
-        if base.config.GetBool('want-racer', 0) == 1:
+        if ConfigVariableBool('want-racer', False).getValue():
             DistributedVehicle.proRacer = 1
             DistributedVehicle.accelerationMult = 35
             DistributedVehicle.accelerationBase = 30
@@ -129,11 +129,11 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         self.pieCount = 0
         self.numPieChunks = 6
         self.pieSlideSpeed = []
-        for piece in xrange(self.numPieChunks):
+        for piece in range(self.numPieChunks):
             self.pieSlideSpeed.append(randFloat(0.0, 0.2))
 
-        self.wantSmoke = ConfigVariableBool('want-kart-smoke', 1).getValue()
-        self.wantSparks = ConfigVariableBool('want-kart-sparks', 1).getValue()
+        self.wantSmoke = ConfigVariableBool('want-kart-smoke', True).getValue()
+        self.wantSparks = ConfigVariableBool('want-kart-sparks', True).getValue()
         self.__loadTextures()
         return
 
@@ -399,7 +399,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         del self.smokeMount
 
     def setupSparkParticles(self):
-        bodyType = self.kartDNA[KartDNA.bodyType]
+        bodyType = self.kartDNA[EKartDNA.BODY_TYPE]
         endPts = KartDict[bodyType][7]
         self.sparkMount = self.geom[0].attachNewNode('Spark Effect')
         left = self.sparkMount.attachNewNode('Left Sparkmount')
@@ -428,7 +428,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         sides = {0: 'right',
          1: 'left'}
         if side == None:
-            for x in sides.keys():
+            for x in list(sides.keys()):
                 self.sparks[x].effect.getParticlesNamed('particles-1').setBirthRate(1000)
                 taskMgr.doMethodLater(0.75, self.sparks[x].stop, 'stopSparks-' + sides[x], extraArgs=[])
 
@@ -545,7 +545,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         if scale == None:
             scale = ToontownGlobals.toonHeadScales[model.style.getAnimal()]
             base.localAvatar.clearCheesyEffect()
-        for hi in xrange(model.headParts.getNumPaths()):
+        for hi in range(model.headParts.getNumPaths()):
             head = model.headParts[hi]
             head.setScale(scale)
 
@@ -553,7 +553,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
 
     def __createPieWindshield(self):
         self.piePieces = []
-        for piece in xrange(self.numPieChunks):
+        for piece in range(self.numPieChunks):
             self.piePieces.append(DirectLabel(relief=None, pos=(0.0, 0.0, 0.0), image=self.pieSplatter, image_scale=(0.5, 0.5, 0.5), text=' ', text_scale=0.18, text_fg=(1, 0, 1, 1), text_pos=(-0.0, 0.0, 0), text_font=ToontownGlobals.getSignFont(), textMayChange=1))
             self.piePieces[piece].hide()
 
@@ -567,7 +567,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
             piece.show()
             xRange += 2.5 / self.numPieChunks
 
-        for piece in xrange(self.numPieChunks):
+        for piece in range(self.numPieChunks):
             self.pieSlideSpeed[piece] = randFloat(0.0, 0.2)
 
     def splatPie(self):
@@ -589,7 +589,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
 
     def __slidePies(self, optional = None):
         dt = globalClock.getDt()
-        for piece in xrange(self.numPieChunks):
+        for piece in range(self.numPieChunks):
             self.pieSlideSpeed[piece] += randFloat(0.0, 0.25 * dt)
             pieSpeed = self.pieSlideSpeed[piece] * dt
             self.piePieces[piece].setPos(self.piePieces[piece].getPos()[0], self.piePieces[piece].getPos()[1] - pieSpeed, self.piePieces[piece].getPos()[2] - pieSpeed)
@@ -893,8 +893,9 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         curHeading = rotMat.xform(Vec3.forward())
         push = (3 - self.getP()) * 0.02
         curHeading.setZ(curHeading.getZ() - min(0.2, max(-.2, push)))
-        onScreenDebug.append('vehicle curHeading = %s\n' % curHeading.pPrintValues())
-        onScreenDebug.append('vehicle H = %s  newHForTurning=%f\n' % (self.getH(), newHForTurning))
+        if __debug__:
+            onScreenDebug.append('vehicle curHeading = %s\n' % curHeading.pPrintValues())
+            onScreenDebug.append('vehicle H = %s  newHForTurning=%f\n' % (self.getH(), newHForTurning))
         windResistance = self.surfaceModifiers[self.groundType]['windResistance']
         self.windResistance.setCoef(windResistance)
         physicsFrame = int((globalClock.getFrameTime() - self.physicsEpoch) * self.physicsCalculationsPerSecond)
@@ -908,7 +909,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
             driftMin = self.surfaceModifiers[self.groundType]['driftMin'] * 0.2
             if self.skidding:
                 driftMin = self.surfaceModifiers[self.groundType]['driftMin']
-        for i in xrange(int(numFrames)):
+        for i in range(int(numFrames)):
             self.physicsMgr.doPhysics(self.physicsDt)
             curVelocity = self.actorNode.getPhysicsObject().getVelocity()
             idealVelocity = curHeading * curSpeed
@@ -991,7 +992,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
     def enableControls(self):
         self.canRace = True
         self.accept(base.JUMP, self.__controlPressed)
-        self.accept('control-up', self.__controlReleased)
+        self.accept(base.JUMP + '-up', self.__controlReleased)
         self.accept('InputState-forward', self.__upArrow)
         self.accept('InputState-reverse', self.__downArrow)
         self.accept('InputState-turnLeft', self.__leftArrow)
@@ -1001,7 +1002,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         self.arrowVert = 0
         self.arrowHorz = 0
         self.ignore(base.JUMP)
-        self.ignore('control-up')
+        self.ignore(base.JUMP + '-up')
         self.ignore('tab')
         self.ignore('InputState-forward')
         self.ignore('InputState-reverse')
@@ -1026,7 +1027,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
     def stickCarToGround(self):
         posList = []
         nWheels = len(self.wheelData)
-        for nWheel in xrange(nWheels):
+        for nWheel in range(nWheels):
             cQueue = self.cQueue[nWheel]
             cQueue.sortEntries()
             if cQueue.getNumEntries() == 0:
@@ -1066,31 +1067,31 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
             self.cameraNode.setP(-newPitch)
 
     def setBodyType(self, bodyType):
-        self.kartDNA[KartDNA.bodyType] = bodyType
+        self.kartDNA[EKartDNA.BODY_TYPE] = bodyType
 
     def setBodyColor(self, bodyColor):
-        self.kartDNA[KartDNA.bodyColor] = bodyColor
+        self.kartDNA[EKartDNA.BODY_COLOR] = bodyColor
 
     def setAccessoryColor(self, accColor):
-        self.kartDNA[KartDNA.accColor] = accColor
+        self.kartDNA[EKartDNA.ACC_COLOR] = accColor
 
     def setEngineBlockType(self, ebType):
-        self.kartDNA[KartDNA.ebType] = ebType
+        self.kartDNA[EKartDNA.EB_TYPE] = ebType
 
     def setSpoilerType(self, spType):
-        self.kartDNA[KartDNA.spType] = spType
+        self.kartDNA[EKartDNA.SP_TYPE] = spType
 
     def setFrontWheelWellType(self, fwwType):
-        self.kartDNA[KartDNA.fwwType] = fwwType
+        self.kartDNA[EKartDNA.FWW_TYPE] = fwwType
 
     def setBackWheelWellType(self, bwwType):
-        self.kartDNA[KartDNA.bwwType] = bwwType
+        self.kartDNA[EKartDNA.BWW_TYPE] = bwwType
 
     def setRimType(self, rimsType):
-        self.kartDNA[KartDNA.rimsType] = rimsType
+        self.kartDNA[EKartDNA.RIMS_TYPE] = rimsType
 
     def setDecalType(self, decalType):
-        self.kartDNA[KartDNA.decalType] = decalType
+        self.kartDNA[EKartDNA.DECAL_TYPE] = decalType
 
     def setOwner(self, avId):
         self.ownerId = avId
@@ -1138,14 +1139,14 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
     def lookUp(self):
         if self.toon and self.toon.headParts:
             headParts = self.toon.headParts
-            for hi in xrange(headParts.getNumPaths()):
+            for hi in range(headParts.getNumPaths()):
                 head = headParts[hi]
                 head.setP(90)
 
     def lookNormal(self):
         if self.toon and self.toon.headParts:
             headParts = self.toon.headParts
-            for hi in xrange(headParts.getNumPaths()):
+            for hi in range(headParts.getNumPaths()):
                 head = headParts[hi]
                 head.setP(0)
 
@@ -1199,7 +1200,7 @@ class DistributedVehicle(DistributedSmoothNode.DistributedSmoothNode, Kart.Kart,
         self.wipeOut.start()
 
     def hitPie(self):
-        print 'yar, got Me with pi!'
+        print('yar, got Me with pi!')
         self.splatPie()
         if self.wipeOut:
             self.wipeOut.pause()

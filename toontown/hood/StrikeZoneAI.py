@@ -1,4 +1,4 @@
-from toontown.hood.CogHQAI import CogHQAI
+from toontown.hood import HoodDataAI
 from toontown.toonbase import ToontownGlobals
 from toontown.suit.DistributedSuitPlannerAI import DistributedSuitPlannerAI
 from toontown.suit import DistributedSuitAI
@@ -6,17 +6,15 @@ from toontown.strike.CorporateStrikeManagerAI import CorporateStrikeManagerAI
 from toontown.strike import StrikeAreaGlobals
 
 
-class StrikeZoneAI(CogHQAI):
-    def __init__(self, air):
-        CogHQAI.__init__(
-            self, air, ToontownGlobals.StrikeZone, None,
-        None, None, None)
+class StrikeZoneAI(HoodDataAI.HoodDataAI):
+    def __init__(self, air, zoneId=None):
+        HoodDataAI.HoodDataAI.__init__(
+            self, air, zoneId, ToontownGlobals.StrikeZone)
 
         self.suitPlanners = []
         self.startup()
 
     def startup(self):
-        CogHQAI.startup(self)
         self.createSuitPlanner()
 
         # self.strikeManager = CorporateStrikeManagerAI(self.air)
@@ -30,7 +28,7 @@ class StrikeZoneAI(CogHQAI):
         suitPlanner.initTasks()
         self.suitPlanners.append(suitPlanner)
         self.air.suitPlanners[self.zoneId] = suitPlanner
-        print 'Suit planner created'
+        print('Suit planner created')
 
     def createLobbyManager(self):
         pass

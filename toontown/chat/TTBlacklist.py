@@ -79,7 +79,7 @@ BLACKLIST = {
 "betch's",
 "betches",
 "betchs",
-"bi\+ch",
+r"bi\+ch",
 "biatch",
 "bigtits",
 "bimbo",
@@ -531,7 +531,7 @@ BLACKLIST = {
 "kums",
 "kunilingus",
 "kyke",
-"l3i\+ch",
+r"l3i\+ch",
 "l3itch",
 "labia",
 "lech",
@@ -801,7 +801,7 @@ BLACKLIST = {
 "sex",
 "sex_story",
 "sexual",
-"sh!\+",
+r"sh!\+",
 "sh!t",
 "sh*t",
 "sh1t",
@@ -812,7 +812,7 @@ BLACKLIST = {
 "shamedame",
 "shat",
 "shemale",
-"shi\+",
+r"shi\+",
 "shit",
 "shitdick",
 "shite",
@@ -4625,3 +4625,22 @@ SEQUENCES = {
   ]
 }
 
+
+def cleanWord(word):
+    return word.lower().strip(',.!?\'\"')
+
+
+def containsBadWord(message):
+    words = message.split()
+
+    for word in words:
+        if word.lower().strip(',.!?\'\"') in BLACKLIST or message.lower().strip(',.!?\'\"') in BLACKLIST:
+            return True
+
+        phrase = ''
+        for letter in word:
+            phrase += letter
+            if phrase.lower().strip(',.!?\'\"') in BLACKLIST:
+                return True
+
+    return False

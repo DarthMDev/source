@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import NodePath, SequenceNode
 from direct.interval.IntervalGlobal import *
 from toontown.battle.BattleProps import globalPropPool
 
@@ -23,7 +23,7 @@ class Wake(NodePath):
 
     def createRipple(self, zPos, rate = 1.0, startFrame = 0):
         ripple = self.ripples.copyTo(self)
-        ripple.iPos(self.target)
+        ripple.setPos(self.target, 0, 0, 0)
         ripple.setZ(render, zPos + self.rippleCount * 0.001)
         ripple.setBin('fixed', self.sortBase + self.rippleCount, 1)
         seqNode = ripple.find('**/+SequenceNode').node()
@@ -43,7 +43,7 @@ class Wake(NodePath):
         self.rippleCount = (self.rippleCount + 1) % 20
 
     def stop(self):
-        for i in xrange(len(self.doLaters)):
+        for i in range(len(self.doLaters)):
             if self.doLaters[i]:
                 taskMgr.remove(self.doLaters[i])
                 self.doLaters[i] = None

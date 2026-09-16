@@ -1,4 +1,4 @@
-from panda3d.core import Vec4, TextNode
+from panda3d.core import TextNode, Vec4
 from direct.gui.DirectGui import DirectFrame, DirectScrolledList, DirectLabel, DirectButton, DGG
 from toontown.toonbase import TTLocalizer
 from toontown.safezone import JukeboxGlobals
@@ -203,7 +203,7 @@ class JukeboxGui(DirectFrame):
             self.leftArrow['state'] = DGG.DISABLED
         else:
             self.leftArrow['state'] = DGG.NORMAL
-        if self.pickerSongId == JukeboxGlobals.Songs.keys()[-1]:
+        if self.pickerSongId == list(JukeboxGlobals.Songs.keys())[-1]:
             self.rightArrow['state'] = DGG.DISABLED
         else:
             self.rightArrow['state'] = DGG.NORMAL
@@ -224,7 +224,7 @@ class JukeboxGui(DirectFrame):
         self.updateArrows()
 
     def __handleRightClicked(self):
-        if self.pickerSongId == JukeboxGlobals.Songs.keys()[-1]:
+        if self.pickerSongId == list(JukeboxGlobals.Songs.keys())[-1]:
             return
         self.pickerSongId += 1
         self.updateSelectorText()

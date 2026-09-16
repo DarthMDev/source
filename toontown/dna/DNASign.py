@@ -1,6 +1,6 @@
-from panda3d.core import LVector4f, NodePath, DecalEffect
-import DNANode
-import DNAUtil
+from panda3d.core import LVector4, LVector4f, NodePath
+from . import DNANode
+from . import DNAUtil
 
 class DNASign(DNANode.DNANode):
     COMPONENT_CODE = 5

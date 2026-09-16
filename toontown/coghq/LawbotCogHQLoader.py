@@ -1,8 +1,9 @@
-import CogHQLoader
-import LawbotHQBossBattle
-import LawbotHQExterior
-import LawbotOfficeExterior
-import StageInterior
+from panda3d.core import ConfigVariableBool
+from . import CogHQLoader
+from . import LawbotHQBossBattle
+from . import LawbotHQExterior
+from . import LawbotOfficeExterior
+from . import StageInterior
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import State
 from direct.fsm import StateData
@@ -43,8 +44,8 @@ class LawbotCogHQLoader(CogHQLoader.CogHQLoader):
     def load(self, zoneId):
         CogHQLoader.CogHQLoader.load(self, zoneId)
         Toon.loadSellbotHQAnims()
-        self.battleMusic = base.loadMusic(self.musicFile)
-        self.battleMusic = base.loadMusic(self.zone2music.get(ZoneUtil.getHoodId(zoneId), 'phase_11/audio/bgm/LB_courtyard_encntr.ogg'))
+        self.battleMusic = base.loader.loadMusic(self.musicFile)
+        self.battleMusic = base.loader.loadMusic(self.zone2music.get(ZoneUtil.getHoodId(zoneId), 'phase_11/audio/bgm/LB_courtyard_encntr.ogg'))
 
     def unloadPlaceGeom(self):
         if self.geom:
@@ -68,7 +69,7 @@ class LawbotCogHQLoader(CogHQLoader.CogHQLoader):
             ug.setBin('ground', -10)
             self.geom.flattenMedium()
         elif zoneId == ToontownGlobals.LawbotLobby:
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: COGHQ: Visit LawbotLobby')
             self.notify.debug('cogHQLobbyModelPath = %s' % self.cogHQLobbyModelPath)
             self.geom = loader.loadModel(self.cogHQLobbyModelPath)

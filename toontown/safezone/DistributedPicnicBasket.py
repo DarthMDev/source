@@ -1,8 +1,10 @@
-from pandac.PandaModules import *
+import enum
+import random
+from panda3d.core import BitMask32, CollideMask, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableDouble, Point3, Vec3, deg2Rad
 from direct.distributed.ClockDelta import *
 from direct.task.Task import Task
 from direct.interval.IntervalGlobal import *
-from TrolleyConstants import *
+from .TrolleyConstants import *
 from toontown.golf import GolfGlobals
 from toontown.toonbase import ToontownGlobals
 from direct.distributed import DistributedObject
@@ -15,11 +17,12 @@ from direct.task.Task import Task
 from direct.showbase import PythonUtil
 from toontown.toon import ToonDNA
 from toontown.battle.BattleSounds import *
-import random
 
+class ESeatState(enum.Enum):
+    EMPTY = 0
+    FULL = 1
 
 class DistributedPicnicBasket(DistributedObject.DistributedObject):
-    seatState = Enum('Empty, Full, Eating')
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedPicnicBasket')
 
     def __init__(self, cr):
@@ -27,7 +30,7 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         self.localToonOnBoard = 0
         self.seed = 0
         self.random = None
-        self.picnicCountdownTime = base.config.GetFloat('picnic-countdown-time', ToontownGlobals.PICNIC_COUNTDOWN_TIME)
+        self.picnicCountdownTime = ConfigVariableDouble('picnic-countdown-time', ToontownGlobals.PICNIC_COUNTDOWN_TIME).getValue()
         self.picnicBasketTrack = None
         states = [
             State.State('off', self.enterOff, self.exitOff, ['waitEmpty', 'waitCountdown']),
@@ -49,12 +52,11 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         ]
         self.fullSeat = []
         self.food = []
-        for i in xrange(4):
+        for i in range(4):
             self.food.append(None)
-            self.fullSeat.append(self.seatState.Empty)
+            self.fullSeat.append(ESeatState.EMPTY)
 
         self.picnicItem = 0
-        return
 
     def announceGenerate(self):
         self.picnicTable = self.loader.geom.find('**/*picnic_table_' + str(self.tableNumber))
@@ -63,13 +65,13 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         self.seats = []
         self.jumpOffsets = []
         self.basket = None
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             self.seats.append(self.picnicTable.find('**/*seat%d' % (i + 1)))
             self.jumpOffsets.append(self.picnicTable.find('**/*jumpOut%d' % (i + 1)))
 
         self.tablecloth = self.picnicTable.find('**/basket_locator')
         DistributedObject.DistributedObject.announceGenerate(self)
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             self.picnicTableSphereNodes.append(self.seats[i].attachNewNode(CollisionNode('picnicTable_sphere_%d_%d' % (self.getDoId(), i))))
             self.picnicTableSphereNodes[i].node().addSolid(CollisionSphere(0, 0, 0, 2))
 
@@ -94,7 +96,7 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         DistributedObject.DistributedObject.disable(self)
         self.fsm.request('off')
         self.clearToonTracks()
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             del self.picnicTableSphereNodes[0]
 
         del self.picnicTableSphereNodes
@@ -140,7 +142,7 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         if avId == 0:
             pass
         else:
-            self.fullSeat[index] = self.seatState.Full
+            self.fullSeat[index] = ESeatState.FULL
             if avId == base.localAvatar.getDoId():
                 self.clockNode.show()
                 if index == 0 or index == 3:
@@ -206,12 +208,12 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
 
         def emptySeat(index):
             self.notify.debug('### seat %s now empty' % index)
-            self.fullSeat[index] = self.seatState.Empty
+            self.fullSeat[index] = ESeatState.EMPTY
 
         if avId == 0:
             pass
         elif avId == 1:
-            self.fullSeat[index] = self.seatState.Empty
+            self.fullSeat[index] = ESeatState.EMPTY
             track = Sequence(self.generateFoodDisappearTrack(index))
             self.notify.debug('### empty slot - unexpetected: fullSeat = %s' % self.fullSeat)
             if self.fullSeat.count(0) == 4:
@@ -223,7 +225,7 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
                 self.picnicBasketTrack.start()
             track.start()
         else:
-            self.fullSeat[index] = self.seatState.Empty
+            self.fullSeat[index] = ESeatState.EMPTY
             if avId in self.cr.doId2do:
                 if avId == base.localAvatar.getDoId():
                     if self.clockNode:
@@ -252,17 +254,17 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         self.loader.place.trolley.handleRejectBoard()
 
     def __enableCollisions(self):
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             self.accept('enterpicnicTable_sphere_%d_%d' % (self.getDoId(), i), self.handleEnterPicnicTableSphere, [i])
             self.accept('enterPicnicTableOK_%d_%d' % (self.getDoId(), i), self.handleEnterPicnicTable, [i])
             self.picnicTableSphereNodes[i].setCollideMask(ToontownGlobals.WallBitmask)
 
     def __disableCollisions(self):
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             self.ignore('enterpicnicTable_sphere_%d_%d' % (self.getDoId(), i))
             self.ignore('enterPicnicTableOK_%d_%d' % (self.getDoId(), i))
 
-        for i in xrange(self.numSeats):
+        for i in range(self.numSeats):
             self.picnicTableSphereNodes[i].setCollideMask(BitMask32(0))
 
     def enterOff(self):
@@ -470,7 +472,7 @@ class DistributedPicnicBasket(DistributedObject.DistributedObject):
         return basketTrack
 
     def generateFoodAppearTrack(self, seat):
-        if self.fullSeat[seat] == self.seatState.Full:
+        if self.fullSeat[seat] == ESeatState.FULL:
             self.notify.debug('### food appear: self.fullSeat = %s' % self.fullSeat)
             if not self.food[seat]:
                 self.food[seat] = loader.loadModel(self.random.choice(self.foodLoader))

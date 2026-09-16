@@ -1,10 +1,11 @@
+from panda3d.core import CollisionNode, CollisionPolygon, ConfigVariable, ConfigVariableBool, Point3, Texture, VBase4, Vec3, Vec4
 from direct.directnotify import DirectNotifyGlobal
 from direct.gui import DirectGuiGlobals as DGG
 from direct.showbase.PythonUtil import Functor
 from direct.task.Task import Task
 
-import MinigameGlobals
-from PurchaseBase import *
+from . import MinigameGlobals
+from .PurchaseBase import *
 from toontown.distributed import DelayDelete
 from toontown.minigame import TravelGameGlobals
 from toontown.nametag import NametagGlobals
@@ -14,7 +15,6 @@ from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import ToontownTimer
 from direct.interval.IntervalGlobal import Sequence
 from direct.interval.IntervalGlobal import LerpScaleInterval
-from pandac.PandaModules import *
 from direct.interval.IntervalGlobal import *
 
 
@@ -84,7 +84,7 @@ class Purchase(PurchaseBase):
         numAvs = 0
         count = 0
         localToonIndex = 0
-        for index in xrange(len(self.ids)):
+        for index in range(len(self.ids)):
             avId = self.ids[index]
             if avId == base.localAvatar.doId:
                 localToonIndex = index
@@ -106,7 +106,7 @@ class Purchase(PurchaseBase):
         TOON_INDEX = 2
         self.avInfoArray = [(base.localAvatar.doId, headFramePosList[0], localToonIndex)]
         pos = 1
-        for index in xrange(len(self.ids)):
+        for index in range(len(self.ids)):
             avId = self.ids[index]
             if self.states[index] != PURCHASE_NO_CLIENT_STATE and self.states[index] != PURCHASE_DISCONNECTED_STATE:
                 if avId != base.localAvatar.doId:
@@ -159,16 +159,9 @@ class Purchase(PurchaseBase):
         self.rewardDoubledJellybeanLabel.hide()
         self.countSound = loader.loadSfx('phase_3.5/audio/sfx/tick_counter.ogg')
         self.overMaxSound = loader.loadSfx('phase_3.5/audio/sfx/AV_collision.ogg')
-        if random.randint(0, 100) < 5:
-            self.music = base.loader.loadMusic('phase_4/audio/bgm/trolley_purchase_dk_bgm.ogg')
-            self.celebrateSound = base.loader.loadSfx('phase_4/audio/sfx/MG_dk_win.ogg')
-            self.musicSequence = Sequence(Wait(9), Func(base.playMusic, self.music, looping=1, volume=0.8))
-            self.musicSequence.start()
-        else:
-            self.music = base.loader.loadMusic('phase_4/audio/bgm/trolley_purchase_bgm.ogg')
-            base.playMusic(self.music, looping = 1, volume = 0.8)
-            self.celebrateSound = base.loader.loadSfx('phase_4/audio/sfx/MG_win.ogg')
-        return
+        self.music = base.loader.loadMusic('phase_4/audio/bgm/trolley_purchase_bgm.ogg')
+        base.playMusic(self.music, looping = 1, volume = 0.8)
+        self.celebrateSound = base.loader.loadSfx('phase_4/audio/sfx/MG_win.ogg')
 
     def unload(self):
         PurchaseBase.unload(self)
@@ -317,7 +310,7 @@ class Purchase(PurchaseBase):
         floorNode.addSolid(floor)
         self.collisionFloor = render.attachNewNode(floorNode)
         NametagGlobals.setForceOnscreenChat(True)
-        for index in xrange(len(self.ids)):
+        for index in range(len(self.ids)):
             avId = self.ids[index]
             if self.states[index] != PURCHASE_NO_CLIENT_STATE and self.states[index] != PURCHASE_DISCONNECTED_STATE and avId in base.cr.doId2do:
                 numToons += 1
@@ -386,7 +379,7 @@ class Purchase(PurchaseBase):
                 counter.hide()
 
             winningPoints = max(task.pointsArray)
-            for i in xrange(len(task.ids)):
+            for i in range(len(task.ids)):
                 if task.pointsArray[i] == winningPoints:
                     avId = task.ids[i]
                     if avId in base.cr.doId2do:
@@ -521,7 +514,7 @@ class Purchase(PurchaseBase):
         if base.cr.newsManager.isHolidayRunning(ToontownGlobals.JELLYBEAN_TROLLEY_HOLIDAY) or base.cr.newsManager.isHolidayRunning(ToontownGlobals.JELLYBEAN_TROLLEY_HOLIDAY_MONTH):
             self.rewardDoubledJellybeanLabel.show()
         counterIndex = 0
-        for index in xrange(len(self.ids)):
+        for index in range(len(self.ids)):
             avId = self.ids[index]
             if self.states[index] != PURCHASE_NO_CLIENT_STATE and self.states[index] != PURCHASE_DISCONNECTED_STATE and avId in base.cr.doId2do:
                 self.counters[counterIndex].count = 0
@@ -536,7 +529,7 @@ class Purchase(PurchaseBase):
                 base.playSfx(state.countSound)
             return Task.done
 
-        for count in xrange(0, self.maxVotes):
+        for count in range(0, self.maxVotes):
             for counter in self.counters:
                 index = self.counters.index(counter)
                 if count < counter.max:
@@ -565,7 +558,7 @@ class Purchase(PurchaseBase):
                     base.playSfx(state.overMaxSound)
             return Task.done
 
-        for count in xrange(0, self.maxVotes):
+        for count in range(0, self.maxVotes):
             for counter in self.counters:
                 if count < counter.max:
                     index = self.counters.index(counter)
@@ -643,10 +636,10 @@ class Purchase(PurchaseBase):
             base.cr.loginFSM.request('periodTimeout')
             return
         if not self.tutorialMode:
-            if not config.GetBool('disable-purchase-timer', 0):
+            if not ConfigVariableBool('disable-purchase-timer', False).getValue():
                 self.timer.show()
                 self.timer.countdown(self.remain, self.__timerExpired)
-            if config.GetBool('metagame-disable-playAgain', 0):
+            if ConfigVariableBool('metagame-disable-playAgain', 0).getValue():
                 if self.metagameRound > -1:
                     self.disablePlayAgain()
         else:

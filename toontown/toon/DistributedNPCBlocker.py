@@ -1,8 +1,7 @@
-from pandac.PandaModules import *
-from DistributedNPCToonBase import *
+from panda3d.core import BitMask32, CollideMask, NodePath
+from .DistributedNPCToonBase import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
-import NPCToons
+from . import NPCToons
 from toontown.toonbase import TTLocalizer
 from direct.distributed import DistributedObject
 from toontown.quest import QuestParser

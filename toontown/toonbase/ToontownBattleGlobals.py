@@ -1,6 +1,7 @@
-from ToontownGlobals import *
 import math
-import TTLocalizer
+from panda3d.core import Point3, Vec3
+from .ToontownGlobals import *
+from . import TTLocalizer
 BattleCamFaceOffFov = 30.0
 BattleCamFaceOffPos = Point3(0, -10, 4)
 BattleCamDefaultPos = Point3(0, -8.6, 16.5)
@@ -38,9 +39,9 @@ MAX_UNPAID_LEVEL_INDEX = 4
 LAST_REGULAR_GAG_LEVEL = 5
 UBER_GAG_LEVEL_INDEX = 6
 NUM_GAG_TRACKS = 7
-PropTypeToTrackBonus = {AnimPropTypes.Hydrant: SQUIRT_TRACK,
- AnimPropTypes.Mailbox: THROW_TRACK,
- AnimPropTypes.Trashcan: HEAL_TRACK}
+PropTypeToTrackBonus = {AnimPropType.HYDRANT: SQUIRT_TRACK,
+ AnimPropType.MAILBOX: THROW_TRACK,
+ AnimPropType.TRASHCAN: HEAL_TRACK}
 Levels = [[0,
   20,
   200,
@@ -788,7 +789,7 @@ def getMoreXpHolidayMultiplier():
 
 def encodeUber(trackList):
     bitField = 0
-    for trackIndex in xrange(len(trackList)):
+    for trackIndex in range(len(trackList)):
         if trackList[trackIndex] > 0:
             bitField += pow(2, trackIndex)
 

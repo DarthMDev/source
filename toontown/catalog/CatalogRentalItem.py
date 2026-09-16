@@ -1,4 +1,5 @@
-import CatalogItem
+from panda3d.core import Datagram
+from . import CatalogItem
 import time
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -50,7 +51,7 @@ class CatalogRentalItem(CatalogItem.CatalogItem):
         self.notify.debug('rental -- record purchase')
         if avatar:
             self.notify.debug('rental -- has avater')
-            estate = simbase.air.estateManager._lookupEstate(avatar.doId)
+            estate = simbase.air.estateMgr._lookupEstate(avatar.doId)
             if estate:
                 self.notify.debug('rental -- has estate')
                 estate.rentItem(self.typeIndex, self.duration)
@@ -78,7 +79,7 @@ class CatalogRentalItem(CatalogItem.CatalogItem):
         return 'CatalogRentalItem(%s%s)' % (self.typeIndex, self.formatOptionalData(store))
 
     def compareTo(self, other):
-        return self.typeIndex - other.typeIndex
+        return self.typeIndex == other.typeIndex
 
     def getHashContents(self):
         return self.typeIndex

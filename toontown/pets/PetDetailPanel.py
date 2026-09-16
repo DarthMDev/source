@@ -1,7 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import TextNode
 from toontown.toonbase.ToontownGlobals import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.showbase import DirectObject
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import TTLocalizer
@@ -45,7 +44,7 @@ class PetDetailPanel(DirectFrame):
     def update(self, pet):
         if not pet:
             return
-        for trickId in PetTricks.TrickId2scIds.keys():
+        for trickId in list(PetTricks.TrickId2scIds.keys()):
             trickText = TTLocalizer.PetTrickStrings[trickId]
             if trickId < len(pet.trickAptitudes):
                 aptitude = pet.trickAptitudes[trickId]

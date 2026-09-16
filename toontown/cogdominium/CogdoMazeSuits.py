@@ -1,12 +1,12 @@
-from pandac.PandaModules import Point3, VBase4
+from panda3d.core import NodePath, Point3, VBase4
 from direct.fsm.FSM import FSM
 from direct.interval.IntervalGlobal import Sequence, Parallel, ActorInterval, Func, Wait, ParticleInterval, Track, LerpColorScaleInterval, LerpScaleInterval, LerpHprInterval
 from direct.task.Task import Task
 from toontown.battle import BattleParticles
 from toontown.battle import MovieUtil
 from toontown.minigame.MazeSuit import MazeSuit
-from CogdoMazeGameObjects import CogdoMazeSplattable
-import CogdoMazeGameGlobals as Globals
+from .CogdoMazeGameObjects import CogdoMazeSplattable
+from . import CogdoMazeGameGlobals as Globals
 import random
 
 class CogdoMazeSuit(MazeSuit, FSM, CogdoMazeSplattable):
@@ -135,7 +135,7 @@ class CogdoMazeSuit(MazeSuit, FSM, CogdoMazeSplattable):
 class CogdoMazeSlowMinionSuit(CogdoMazeSuit):
 
     def __init__(self, serialNum, maze, randomNumGen, difficulty, startTile = None):
-        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.SuitTypes.SlowMinion)
+        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.ESuitType.SLOW_MINION)
         self.defaultTransitions = {'Off': ['Normal'],
          'Normal': ['Attack', 'Off'],
          'Attack': ['Normal']}
@@ -169,7 +169,7 @@ class CogdoMazeSlowMinionSuit(CogdoMazeSuit):
 class CogdoMazeFastMinionSuit(CogdoMazeSuit):
 
     def __init__(self, serialNum, maze, randomNumGen, difficulty, startTile = None):
-        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.SuitTypes.FastMinion)
+        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.ESuitType.FAST_MINION)
 
 
 class CogdoMazeBossSuit(CogdoMazeSuit):
@@ -179,7 +179,7 @@ class CogdoMazeBossSuit(CogdoMazeSuit):
     ShakeEventName = 'CogdoMazeSuitShake'
 
     def __init__(self, serialNum, maze, randomNumGen, difficulty, startTile = None):
-        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.SuitTypes.Boss, walkAnimName='stomp')
+        CogdoMazeSuit.__init__(self, serialNum, maze, randomNumGen, difficulty, startTile, Globals.ESuitType.BOSS, walkAnimName='stomp')
         self.dropTimer = 0
         self._walkSpeed = float(self.maze.cellWidth) / self.cellWalkDuration * 0.5
 
@@ -228,8 +228,8 @@ class CogdoMazeBossSuit(CogdoMazeSuit):
 
     def pickRandomValidSpot(self, r = 5):
         validSpots = []
-        for x in xrange(self.TX - r, self.TX + r):
-            for y in xrange(self.TY - r, self.TY + r):
+        for x in range(self.TX - r, self.TX + r):
+            for y in range(self.TY - r, self.TY + r):
                 if self.maze.isWalkable(x, y):
                     validSpots.append([x, y])
 

@@ -1,5 +1,5 @@
+from panda3d.core import CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionSphere, LRotation, LRotationf, NodePath, Plane, Point3, Vec3
 import math
-from pandac.PandaModules import *
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.task import Task
@@ -11,8 +11,8 @@ from toontown.effects import Splash, DustCloud, Wake
 from toontown.minigame import Trajectory
 from toontown.minigame import CannonGameGlobals
 from toontown.parties import PartyGlobals
-from toontown.parties.PartyGlobals import ActivityIds
-from toontown.parties.PartyGlobals import ActivityTypes
+from toontown.parties.PartyGlobals import EActivityId
+from toontown.parties.PartyGlobals import EActivityType
 from toontown.parties.PartyGlobals import FireworksStartedEvent
 from toontown.parties.PartyGlobals import FireworksFinishedEvent
 from toontown.parties.PartyGlobals import PartyCannonCollisions
@@ -40,7 +40,7 @@ class DistributedPartyCannonActivity(DistributedPartyActivity):
     BroadcastPeriod = 0.2
 
     def __init__(self, cr):
-        DistributedPartyActivity.__init__(self, cr, ActivityIds.PartyCannon, ActivityTypes.Continuous, wantRewardGui=True)
+        DistributedPartyActivity.__init__(self, cr, EActivityId.PartyCannon, EActivityType.CONTINUOUS, wantRewardGui=True)
         self.gui = None
         self.firingCannon = None
         self.shadowNode = None
@@ -337,7 +337,7 @@ class DistributedPartyCannonActivity(DistributedPartyActivity):
     def _remoteToonFlyTask(self, task = None):
         ids2del = []
         frameTime = globalClock.getFrameTime()
-        for avId, trajInfo in self._avId2trajectoryInfo.iteritems():
+        for avId, trajInfo in self._avId2trajectoryInfo.items():
             trajectory = trajInfo.trajectory
             startTime = trajInfo.startT
             groundTime = trajectory.calcTimeOfImpactOnPlane(0.0) / self.TimeFactor + startTime

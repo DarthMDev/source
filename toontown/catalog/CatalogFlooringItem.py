@@ -1,4 +1,5 @@
-from CatalogSurfaceItem import *
+from panda3d.core import Datagram, Filename, Texture
+from .CatalogSurfaceItem import *
 FTTextureName = 0
 FTColor = 1
 FTBasePrice = 2
@@ -72,9 +73,7 @@ class CatalogFlooringItem(CatalogSurfaceItem):
         return FlooringTypes[self.patternIndex][FTTextureName]
 
     def compareTo(self, other):
-        if self.patternIndex != other.patternIndex:
-            return self.patternIndex - other.patternIndex
-        return 0
+        return self.patternIndex == other.patternIndex
 
     def getHashContents(self):
         return self.patternIndex
@@ -83,7 +82,6 @@ class CatalogFlooringItem(CatalogSurfaceItem):
         return FlooringTypes[self.patternIndex][FTBasePrice]
 
     def loadTexture(self):
-        from pandac.PandaModules import Texture
         filename = FlooringTypes[self.patternIndex][FTTextureName]
         texture = loader.loadTexture(filename)
         texture.setMinfilter(Texture.FTLinearMipmapLinear)
@@ -100,7 +98,7 @@ class CatalogFlooringItem(CatalogSurfaceItem):
             if colorIndex < len(colors):
                 return colors[colorIndex]
             else:
-                print 'Warning: colorIndex not in colors. Returning white.'
+                print('Warning: colorIndex not in colors. Returning white.')
                 return CT_WHITE
         else:
             return CT_WHITE
@@ -142,7 +140,7 @@ def getAllFloorings(*indexList):
     for index in indexList:
         colors = FlooringTypes[index][FTColor]
         if colors:
-            for n in xrange(len(colors)):
+            for n in range(len(colors)):
                 list.append(CatalogFlooringItem(index, n))
 
         else:
@@ -161,12 +159,12 @@ def getFlooringRange(fromIndex, toIndex, *otherRanges):
         tos.append(otherRanges[i + 1])
         i += 2
 
-    for patternIndex in FlooringTypes.keys():
+    for patternIndex in list(FlooringTypes.keys()):
         for fromIndex, toIndex in zip(froms, tos):
             if patternIndex >= fromIndex and patternIndex <= toIndex:
                 colors = FlooringTypes[patternIndex][FTColor]
                 if colors:
-                    for n in xrange(len(colors)):
+                    for n in range(len(colors)):
                         list.append(CatalogFlooringItem(patternIndex, n))
 
                 else:

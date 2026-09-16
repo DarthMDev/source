@@ -1,11 +1,11 @@
-import CatalogItem
+from panda3d.core import Datagram
+from . import CatalogItem
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from otp.otpbase import OTPLocalizer
 from direct.interval.IntervalGlobal import *
 from toontown.estate import GardenGlobals
 from direct.actor import Actor
-from pandac.PandaModules import NodePath
 
 class CatalogGardenItem(CatalogItem.CatalogItem):
     sequenceNumber = 0
@@ -86,9 +86,6 @@ class CatalogGardenItem(CatalogItem.CatalogItem):
     def output(self, store = -1):
         return 'CatalogGardenItem(%s%s)' % (self.gardenIndex, self.formatOptionalData(store))
 
-    def compareTo(self, other):
-        return 0
-
     def getHashContents(self):
         return self.gardenIndex
 
@@ -130,9 +127,7 @@ class CatalogGardenItem(CatalogItem.CatalogItem):
             return 0
 
     def compareTo(self, other):
-        if self.gardenIndex != other.gardenIndex:
-            return self.gardenIndex - other.gardenIndex
-        return self.gardenIndex - other.gardenIndex
+        return self.gardenIndex == other.gardenIndex
 
     def reachedPurchaseLimit(self, avatar):
         if avatar.onOrder.count(self) != 0:

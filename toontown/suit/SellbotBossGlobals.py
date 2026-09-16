@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import Point3, Vec3
 
 try:
     from toontown.coghq.DistributedHealBarrelAI import DistributedHealBarrelAI
@@ -46,7 +46,7 @@ BarrelDefs = {8000: {'type': DistributedHealBarrelAI,
         'rewardPerGrabMax': 0}}
 
 def setBarrelAttr(barrel, entId):
-    for defAttr, defValue in BarrelDefs[entId].iteritems():
+    for defAttr, defValue in BarrelDefs[entId].items():
         setattr(barrel, defAttr, defValue)
 
 

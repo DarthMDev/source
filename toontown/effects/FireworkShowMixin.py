@@ -1,12 +1,13 @@
+from panda3d.core import ConfigVariableBool, Fog, Vec4
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from toontown.toonbase.ToontownGlobals import *
 from toontown.toonbase import TTLocalizer
 from toontown.parties import PartyGlobals
-import Fireworks
-import FireworkShows
-from FireworkGlobals import skyTransitionDuration, preShowPauseDuration
+from . import Fireworks
+from . import FireworkShows
+from .FireworkGlobals import skyTransitionDuration, preShowPauseDuration
 from toontown.effects.FireworkShow import FireworkShow
 
 FIREWORK_SHOW_LOCATION = {
@@ -34,7 +35,7 @@ PRESHOW_DICT = {
         TTLocalizer.FireworksNewYearsEveEnding,
         ['new_years_fireworks_music', 'tt_s_ara_gen_fireworks_auldLangSyne']
     ],
-    PartyGlobals.FireworkShows.Summer: [
+    PartyGlobals.EFireworkShow.SUMMER: [
         TTLocalizer.FireworksActivityInstructions,
         TTLocalizer.FireworksActivityBeginning,
         TTLocalizer.FireworksActivityEnding,
@@ -51,7 +52,7 @@ PRESHOW_DICT = {
 POSTSHOW_DICT = {
     JULY4_FIREWORKS: TTLocalizer.FireworksJuly4Ending,
     NEWYEARS_FIREWORKS: TTLocalizer.FireworksNewYearsEveEnding,
-    PartyGlobals.FireworkShows.Summer: TTLocalizer.FireworksActivityEnding,
+    PartyGlobals.EFireworkShow.SUMMER: TTLocalizer.FireworksActivityEnding,
     COMBO_FIREWORKS: TTLocalizer.FireworksComboEnding
 }
 
@@ -73,7 +74,7 @@ class FireworkShowMixin:
         if self.currentShow:
             self.currentShow.pause()
             self.currentShow = None
-            if base.config.GetBool('want-old-fireworks', False):
+            if ConfigVariableBool('want-old-fireworks', False).getValue():
                 ivalMgr.finishIntervalsMatching('shootFirework*')
             else:
                 self.destroyFireworkShow()
@@ -108,7 +109,7 @@ class FireworkShowMixin:
         self.timestamp = timestamp
         self.showMusic = None
         self.eventId = eventId
-        if base.config.GetBool('want-old-fireworks', 0):
+        if ConfigVariableBool('want-old-fireworks', False).getValue():
             self.currentShow = self.getFireworkShowIval(eventId, style, songId, t)
             if self.currentShow:
                 self.currentShow.start(t)

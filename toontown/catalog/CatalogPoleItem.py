@@ -1,4 +1,5 @@
-import CatalogItem
+from panda3d.core import Datagram, Filename
+from . import CatalogItem
 from toontown.collectibles import CollectibleInventoryGlobals
 from toontown.toonbase import ToontownGlobals
 from toontown.fishing import FishGlobals
@@ -73,7 +74,7 @@ class CatalogPoleItem(CatalogItem.CatalogItem):
         return FishGlobals.RodFileDict.get(self.rodId)
 
     def compareTo(self, other):
-        return self.rodId - other.rodId
+        return self.rodId == other.rodId
 
     def getHashContents(self):
         return self.rodId
@@ -117,7 +118,7 @@ def nextAvailablePole(avatar, duplicateItems):
 
 def getAllPoles():
     list = []
-    for rodId in xrange(0, FishGlobals.MaxRodId + 1):
+    for rodId in range(0, FishGlobals.MaxRodId + 1):
         list.append(CatalogPoleItem(rodId))
 
     return list

@@ -1,7 +1,6 @@
+import enum
 from toontown.suit import SuitDNA
-import types
 from toontown.toonbase import TTLocalizer
-from direct.showbase import PythonUtil
 from otp.otpbase import OTPGlobals
 from toontown.battle import SuitBattleGlobals
 PartsPerSuit = (10,
@@ -118,14 +117,19 @@ PartsQueryNames = ({1: PartNameStrings[0],
   16384: PartNameStrings[14],
   32768: PartNameStrings[15],
   65536: PartNameStrings[15]})
-suitTypes = PythonUtil.Enum(('NoSuit', 'NoMerits', 'FullSuit'))
+
+
+class EPlayerSuitType(enum.Enum):
+    NO_SUIT = 0
+    NO_MERITS = 1
+    FULL_SUIT = 2
 
 
 def makeMeritHierarchy(baseMerits):
     meritHierarchy = []
-    for _ in xrange(SuitDNA.suitsPerDept):
+    for _ in range(SuitDNA.suitsPerDept):
         meritTier = []
-        for _ in xrange(SuitDNA.levelsPerSuit):
+        for _ in range(SuitDNA.levelsPerSuit):
             baseMerits += baseMerits * 0.25
             baseMerits = 5 * round(baseMerits / 5.0)
             meritTier.append(int(baseMerits))
@@ -159,7 +163,7 @@ def getPartName(partArray):
 
 def isSuitComplete(parts, dept):
     dept = dept2deptIndex(dept)
-    for p in xrange(len(PartsQueryMasks)):
+    for p in range(len(PartsQueryMasks)):
         if getNextPart(parts, p, dept):
             return 0
 
@@ -177,8 +181,9 @@ def isPaidSuitComplete(av, parts, dept):
     return 0
 
 
+
+
 def getTotalMerits(toon, index):
-    from toontown.battle import SuitBattleGlobals
     cogIndex = toon.cogTypes[index] + SuitDNA.suitsPerDept * index
     cogTypeStr = SuitDNA.suitHeadTypes[cogIndex]
     cogBaseLevel = SuitBattleGlobals.SuitAttributes[cogTypeStr]['level']
@@ -189,7 +194,7 @@ def getTotalMerits(toon, index):
 
 def getTotalParts(bitString, shiftWidth = 32):
     sum = 0
-    for shift in xrange(0, shiftWidth):
+    for shift in range(0, shiftWidth):
         sum = sum + (bitString >> shift & 1)
 
     return sum
@@ -208,7 +213,7 @@ def asBitstring(number):
         shift += 1
 
     str = ''
-    for i in xrange(0, len(array)):
+    for i in range(0, len(array)):
         str = str + array[i]
 
     return str
@@ -216,7 +221,7 @@ def asBitstring(number):
 
 def asNumber(bitstring):
     num = 0
-    for i in xrange(0, len(bitstring)):
+    for i in range(0, len(bitstring)):
         if bitstring[i] == '1':
             num += pow(2, len(bitstring) - 1 - i)
 
@@ -224,7 +229,7 @@ def asNumber(bitstring):
 
 
 def dept2deptIndex(dept):
-    if type(dept) == types.StringType:
+    if type(dept) == str:
         dept = SuitDNA.suitDepts.index(dept)
     return dept
 

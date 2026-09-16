@@ -1,8 +1,9 @@
+from panda3d.core import CollideMask, CollisionBox, CollisionEntry, CollisionNode, CollisionPolygon, CollisionSphere, ConfigVariable, ConfigVariableBool, NodePath, Point3, TextNode, Vec3, Vec4
 from direct.directtools.DirectSelection import *
-from direct.directtools.DirectUtil import ROUND_TO
+from direct.directtools.DirectUtil import CLAMP, ROUND_TO
 from direct.directtools.DirectGeometry import LineNodePath
+from direct.directtools.DirectGlobals import SKIP_ALL, SKIP_BACKFACE, SKIP_CAMERA, SKIP_UNPICKABLE
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.showbase.DirectObject import DirectObject
 from toontown.toonbase import ToontownGlobals
 from direct.directnotify import DirectNotifyGlobal
@@ -191,7 +192,7 @@ class MovableObject(NodePath, DirectObject):
         else:
             self.setIsTable(0)
         m = self.getTransform()
-        self.iPosHpr()
+        self.setPosHpr(0, 0, 0, 0, 0, 0)
         bMin, bMax = self.bounds = self.getTightBounds()
         bMin -= Vec3(0.1, 0.1, 0)
         bMax += Vec3(0.1, 0.1, 0)
@@ -540,7 +541,7 @@ class ObjectManager(NodePath, DirectObject):
                 self.selectedObject.wrtReparentTo(self.targetNodePath)
                 self.selectedObject.collisionNodePath.unstash()
                 self.selectedObject.dfitem.stopAdjustPosHpr()
-            for object in self.objectDict.values():
+            for object in list(self.objectDict.values()):
                 object.unstashBuiltInCollisionNodes()
 
             self.centerMarker['image'] = [self.grabUp, self.grabDown, self.grabRollover]
@@ -554,13 +555,13 @@ class ObjectManager(NodePath, DirectObject):
     def moveObjectContinue(self, *args):
         messenger.send('wakeup')
         if self.selectedObject:
-            for object in self.objectDict.values():
+            for object in list(self.objectDict.values()):
                 object.stashBuiltInCollisionNodes()
 
             self.selectedObject.collisionNodePath.stash()
             self.selectedObject.dfitem.startAdjustPosHpr()
             self.firstTime = 1
-            self.iPosHpr()
+            self.setPosHpr(0, 0, 0, 0, 0, 0)
             self.startPoseValid = 0
             self.centerMarker['image'] = self.grabDown
             self.centerMarker.configure(text=TTLocalizer.HDMoveLabel, text_pos=(0, 1), text_scale=0.7, text_fg=(1, 1, 1, 1), text_shadow=(0, 0, 0, 1), image_scale=0.3)
@@ -568,7 +569,7 @@ class ObjectManager(NodePath, DirectObject):
             self.movingObject = 1
 
     def setLnpColor(self, r, g, b):
-        for i in xrange(5):
+        for i in range(5):
             self.lnp.lineSegs.setVertexColor(i, r, g, b)
 
     def markNewPosition(self, isValid):
@@ -581,7 +582,7 @@ class ObjectManager(NodePath, DirectObject):
     def moveObjectTask(self, state):
         so = self.selectedObject
         target = self.targetNodePath
-        self.startPose.iPosHpr(so)
+        self.startPose.setPosHpr(so, 0, 0, 0, 0, 0, 0)
         self.iRay.setParentNP(base.cam)
         entry = self.iRay.pickBitMask(bitMask=ToontownGlobals.FurnitureDragBitmask, targetNodePath=target, skipFlags=SKIP_BACKFACE | SKIP_CAMERA | SKIP_UNPICKABLE)
         if not entry:
@@ -591,8 +592,8 @@ class ObjectManager(NodePath, DirectObject):
             self.moveObjectInit()
             self.firstTime = 0
         else:
-            self.gridSnapNP.iPos()
-            self.collisionOffsetNP.iPosHpr()
+            self.gridSnapNP.setPos(0, 0, 0)
+            self.collisionOffsetNP.setPosHpr(0, 0, 0, 0, 0, 0)
         if self.gridSpacing:
             pos = self.dragPointNP.getPos(target)
             self.gridSnapNP.setPos(target, ROUND_TO(pos[0], self.gridSpacing), ROUND_TO(pos[1], self.gridSpacing), pos[2])
@@ -649,7 +650,7 @@ class ObjectManager(NodePath, DirectObject):
             entry = self.iSegment.findNextCollisionEntry(skipFlags=SKIP_CAMERA | SKIP_UNPICKABLE)
 
         if offsetDict:
-            keys = offsetDict.keys()
+            keys = list(offsetDict.keys())
             ortho1 = offsetDict[keys[0]]
             ortho2 = Vec3(0)
             v1 = Vec3(ortho1)
@@ -771,7 +772,7 @@ class ObjectManager(NodePath, DirectObject):
             return
         so = self.selectedObject
         so.dfitem.startAdjustPosHpr()
-        self.iPosHpr(so)
+        self.setPosHpr(so, 0, 0, 0, 0, 0, 0)
         self.moveObjectInit()
         if so.getOnWall():
             startR = self.gridSnapNP.getR()
@@ -795,7 +796,7 @@ class ObjectManager(NodePath, DirectObject):
             return
         so = self.selectedObject
         so.dfitem.startAdjustPosHpr()
-        self.iPosHpr(so)
+        self.setPosHpr(so, 0, 0, 0, 0, 0, 0)
         self.moveObjectInit()
         if so.getOnWall():
             startR = self.gridSnapNP.getR()
@@ -816,12 +817,12 @@ class ObjectManager(NodePath, DirectObject):
 
     def moveObjectInit(self):
         self.dragPointNP.setPosHpr(self.selectedObject, self.selectedObject.dragPoint, Vec3(0))
-        self.gridSnapNP.iPosHpr()
-        self.collisionOffsetNP.iPosHpr()
+        self.gridSnapNP.setPosHpr(0, 0, 0, 0, 0, 0)
+        self.collisionOffsetNP.setPosHpr(0, 0, 0, 0, 0, 0)
         self.selectedObject.wrtReparentTo(self.collisionOffsetNP)
 
     def resetFurniture(self):
-        for o in self.objectDict.values():
+        for o in list(self.objectDict.values()):
             o.resetMovableObject()
 
         self.objectDict = {}
@@ -938,7 +939,7 @@ class ObjectManager(NodePath, DirectObject):
         self.bindHelpText(self.inRoomButton, 'Room')
         self.inTrashButton = DirectButton(parent=self.itemBackgroundFrame, relief=None, text=TTLocalizer.HDInTrashLabel, text_pos=(-0.1, -0.25), image=[tagUp, tagDown, tagRollover], pos=(2.85, 0, -1.8), scale=0.8, command=self.showInTrashPicker)
         self.bindHelpText(self.inTrashButton, 'Trash')
-        for i in xrange(4):
+        for i in range(4):
             self.inAtticButton.component('text%d' % i).setR(-90)
             self.inRoomButton.component('text%d' % i).setR(-90)
             self.inTrashButton.component('text%d' % i).setR(-90)
@@ -1001,17 +1002,17 @@ class ObjectManager(NodePath, DirectObject):
 
     def createAtticPicker(self):
         self.atticItemPanels = []
-        for itemIndex in xrange(len(self.furnitureManager.atticItems)):
+        for itemIndex in range(len(self.furnitureManager.atticItems)):
             panel = FurnitureItemPanel(self.furnitureManager.atticItems[itemIndex], itemIndex, command=self.bringItemFromAttic, deleteMode=self.deleteMode, helpCategory='FurnitureItemPanelAttic')
             self.atticItemPanels.append(panel)
 
         self.atticWallpaperPanels = []
-        for itemIndex in xrange(len(self.furnitureManager.atticWallpaper)):
+        for itemIndex in range(len(self.furnitureManager.atticWallpaper)):
             panel = FurnitureItemPanel(self.furnitureManager.atticWallpaper[itemIndex], itemIndex, command=self.bringWallpaperFromAttic, deleteMode=self.deleteMode, helpCategory='FurnitureItemPanelAttic')
             self.atticWallpaperPanels.append(panel)
 
         self.atticWindowPanels = []
-        for itemIndex in xrange(len(self.furnitureManager.atticWindows)):
+        for itemIndex in range(len(self.furnitureManager.atticWindows)):
             panel = FurnitureItemPanel(self.furnitureManager.atticWindows[itemIndex], itemIndex, command=self.bringWindowFromAttic, deleteMode=self.deleteMode, helpCategory='FurnitureItemPanelAttic')
             self.atticWindowPanels.append(panel)
 
@@ -1046,7 +1047,7 @@ class ObjectManager(NodePath, DirectObject):
 
     def createInRoomPicker(self):
         self.inRoomPanels = []
-        for objectId, object in self.objectDict.items():
+        for objectId, object in list(self.objectDict.items()):
             panel = FurnitureItemPanel(object.dfitem.item, objectId, command=self.requestReturnToAttic, deleteMode=self.deleteMode, withinFunc=self.pickInRoom, helpCategory='FurnitureItemPanelRoom')
             self.inRoomPanels.append(panel)
 
@@ -1070,7 +1071,7 @@ class ObjectManager(NodePath, DirectObject):
 
     def createInTrashPicker(self):
         self.inTrashPanels = []
-        for itemIndex in xrange(len(self.furnitureManager.deletedItems)):
+        for itemIndex in range(len(self.furnitureManager.deletedItems)):
             panel = FurnitureItemPanel(self.furnitureManager.deletedItems[itemIndex], itemIndex, command=self.requestReturnToAtticFromTrash, helpCategory='FurnitureItemPanelTrash')
             self.inTrashPanels.append(panel)
 
@@ -1152,7 +1153,7 @@ class ObjectManager(NodePath, DirectObject):
         return
 
     def sendItemToAttic(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: ESTATE:  Send Item to Attic')
         messenger.send('wakeup')
         if self.selectedObject:
@@ -1174,7 +1175,7 @@ class ObjectManager(NodePath, DirectObject):
         self.atticItemPanels.append(panel)
         self.regenerateAtticPicker()
         if self.inRoomPicker:
-            for i in xrange(len(self.inRoomPanels)):
+            for i in range(len(self.inRoomPanels)):
                 if self.inRoomPanels[i].itemId == objectId:
                     del self.inRoomPanels[i]
                     self.regenerateInRoomPicker()
@@ -1254,7 +1255,7 @@ class ObjectManager(NodePath, DirectObject):
         return
 
     def bringItemFromAttic(self, item, itemIndex):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: ESTATE: Place Item in Room')
         messenger.send('wakeup')
         self.__enableItemButtons(0)
@@ -1266,14 +1267,14 @@ class ObjectManager(NodePath, DirectObject):
         if abs(pos[0]) > 3000 or abs(pos[1]) > 3000 or abs(pos[2]) > 300:
             self.notify.warning('bringItemFromAttic extreme pos targetNodePath=%s avatar=%s %s' % (repr(self.targetNodePath.getPos(render)), repr(base.localAvatar.getPos(render)), repr(pos)))
         if item.getFlags() & CatalogFurnitureItem.FLPainting:
-            for object in self.objectDict.values():
+            for object in list(self.objectDict.values()):
                 object.stashBuiltInCollisionNodes()
 
-            self.gridSnapNP.iPosHpr()
+            self.gridSnapNP.setPosHpr(0, 0, 0, 0, 0, 0)
             target = self.targetNodePath
             self.iRay.setParentNP(base.localAvatar)
             entry = self.iRay.pickBitMask3D(bitMask=ToontownGlobals.WallBitmask, targetNodePath=target, origin=Point3(0, 0, 6), dir=Vec3(0, 1, 0), skipFlags=SKIP_BACKFACE | SKIP_CAMERA | SKIP_UNPICKABLE)
-            for object in self.objectDict.values():
+            for object in list(self.objectDict.values()):
                 object.unstashBuiltInCollisionNodes()
 
             if entry:
@@ -1298,7 +1299,7 @@ class ObjectManager(NodePath, DirectObject):
         objectId = mo.get_key()
         self.atticItemPanels[itemIndex].destroy()
         del self.atticItemPanels[itemIndex]
-        for i in xrange(itemIndex, len(self.atticItemPanels)):
+        for i in range(itemIndex, len(self.atticItemPanels)):
             self.atticItemPanels[i].itemId -= 1
 
         self.regenerateAtticPicker()
@@ -1318,7 +1319,7 @@ class ObjectManager(NodePath, DirectObject):
             return
         self.atticItemPanels[itemIndex].destroy()
         del self.atticItemPanels[itemIndex]
-        for i in xrange(itemIndex, len(self.atticItemPanels)):
+        for i in range(itemIndex, len(self.atticItemPanels)):
             self.atticItemPanels[i].itemId -= 1
 
         self.regenerateAtticPicker()
@@ -1357,7 +1358,7 @@ class ObjectManager(NodePath, DirectObject):
             return
         self.atticWallpaperPanels[itemIndex].destroy()
         del self.atticWallpaperPanels[itemIndex]
-        for i in xrange(itemIndex, len(self.atticWallpaperPanels)):
+        for i in range(itemIndex, len(self.atticWallpaperPanels)):
             self.atticWallpaperPanels[i].itemId -= 1
 
         self.regenerateAtticPicker()
@@ -1387,7 +1388,7 @@ class ObjectManager(NodePath, DirectObject):
         else:
             self.atticWindowPanels[itemIndex].destroy()
             del self.atticWindowPanels[itemIndex]
-            for i in xrange(itemIndex, len(self.atticWindowPanels)):
+            for i in range(itemIndex, len(self.atticWindowPanels)):
                 self.atticWindowPanels[i].itemId -= 1
 
         self.regenerateAtticPicker()
@@ -1403,7 +1404,7 @@ class ObjectManager(NodePath, DirectObject):
             return
         self.atticWindowPanels[itemIndex].destroy()
         del self.atticWindowPanels[itemIndex]
-        for i in xrange(itemIndex, len(self.atticWindowPanels)):
+        for i in range(itemIndex, len(self.atticWindowPanels)):
             self.atticWindowPanels[i].itemId -= 1
 
         self.regenerateAtticPicker()
@@ -1472,7 +1473,7 @@ class ObjectManager(NodePath, DirectObject):
         return
 
     def __handleVerifyDeleteOK(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: ESTATE:  Send Item to Trash')
         deleteFunction = self.verifyItems[0]
         deleteFunctionArgs = self.verifyItems[1:]
@@ -1556,7 +1557,7 @@ class ObjectManager(NodePath, DirectObject):
     def requestReturnToAttic(self, item, objectId):
         self.__cleanupVerifyDelete()
         itemIndex = None
-        for i in xrange(len(self.inRoomPanels)):
+        for i in range(len(self.inRoomPanels)):
             if self.inRoomPanels[i].itemId == objectId:
                 itemIndex = i
                 self.__enableItemButtons(0)
@@ -1583,7 +1584,7 @@ class ObjectManager(NodePath, DirectObject):
         self.verifyItems = (item, itemIndex)
 
     def __handleVerifyReturnFromTrashOK(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: ESTATE:  Send Item to Attic')
         item, itemIndex = self.verifyItems
         self.__cleanupVerifyDelete()
@@ -1603,7 +1604,7 @@ class ObjectManager(NodePath, DirectObject):
         self.__enableItemButtons(1)
         self.inTrashPanels[itemIndex].destroy()
         del self.inTrashPanels[itemIndex]
-        for i in xrange(itemIndex, len(self.inTrashPanels)):
+        for i in range(itemIndex, len(self.inTrashPanels)):
             self.inTrashPanels[i].itemId -= 1
 
         self.regenerateInTrashPicker()
@@ -1646,7 +1647,7 @@ class ObjectManager(NodePath, DirectObject):
                 self.helpText['text'] = helpText
                 self.helpText.show()
             else:
-                print 'category: %s not found'
+                print('category: %s not found')
 
         taskMgr.doMethodLater(0.75, showIt, 'showHelpTextDoLater')
 

@@ -1,3 +1,4 @@
+from panda3d.core import TextNode, VBase4
 from direct.interval.IntervalGlobal import Sequence, Func, Wait, LerpColorScaleInterval, Parallel
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
@@ -7,7 +8,6 @@ from toontown.distributed import DelayDelete
 from toontown.distributed.DelayDeletable import DelayDeletable
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
-from pandac.PandaModules import *
 from direct.gui.DirectGui import *
 from direct.distributed.ClockDelta import *
 from direct.fsm.FSM import FSM
@@ -92,7 +92,7 @@ class DistributedGolfCourse(DistributedObject.DistributedObject, FSM, DelayDelet
             self.golfRewardDialog.delete()
         self.cleanUpReward()
         if self.toonPanels:
-            for x in xrange(len(self.toonPanels)):
+            for x in range(len(self.toonPanels)):
                 self.toonPanels[x].destroy()
 
             self.toonPanels = None
@@ -107,7 +107,7 @@ class DistributedGolfCourse(DistributedObject.DistributedObject, FSM, DelayDelet
         return
 
     def load(self):
-        self.music = base.loadMusic('phase_6/audio/bgm/GZ_PlayGolf.ogg')
+        self.music = base.loader.loadMusic('phase_6/audio/bgm/GZ_PlayGolf.ogg')
 
     def setCourseReady(self, numHoles, holeIds, coursePar):
         self.notify.debug('GOLF COURSE: received setCourseReady')
@@ -223,7 +223,7 @@ class DistributedGolfCourse(DistributedObject.DistributedObject, FSM, DelayDelet
     def exitMessageForToon(self, avId):
         if self.toonPanels and self.localAvId != avId:
             y = 0
-            for x in xrange(len(self.avIdList)):
+            for x in range(len(self.avIdList)):
                 if avId == self.avIdList[x] and y < len(self.toonPanels):
                     toonPanel = self.toonPanels[y]
                     toonPanel.headModel.hide()
@@ -271,7 +271,7 @@ class DistributedGolfCourse(DistributedObject.DistributedObject, FSM, DelayDelet
         if not self.scoreBoard == None:
             self.scoreBoard.delete()
         if self.toonPanels:
-            for x in xrange(len(self.toonPanels)):
+            for x in range(len(self.toonPanels)):
                 self.toonPanels[x].destroy()
 
         self.toonPanels = None
@@ -317,7 +317,7 @@ class DistributedGolfCourse(DistributedObject.DistributedObject, FSM, DelayDelet
         scoreList.reverse()
         for avId in self.avIdList:
             avScores = []
-            for holeIndex in xrange(self.numHoles):
+            for holeIndex in range(self.numHoles):
                 avScores.append(scoreList.pop())
 
             self.scores[avId] = avScores

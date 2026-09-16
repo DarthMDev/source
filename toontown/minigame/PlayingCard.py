@@ -1,8 +1,8 @@
+from panda3d.core import NodePath, Point3, Vec3
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.task import Task
 from toontown.toonbase import TTLocalizer
-import PlayingCardGlobals
+from . import PlayingCardGlobals
 
 class PlayingCardBase:
 

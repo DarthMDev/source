@@ -1,9 +1,9 @@
+from panda3d.core import Point3
 from direct.distributed.ClockDelta import globalClockDelta
-from pandac.PandaModules import Point3
 from toontown.toonbase import TTLocalizer
-import PartyGlobals
-from DistributedPartyTeamActivity import DistributedPartyTeamActivity
-from PartyCogActivity import PartyCogActivity
+from . import PartyGlobals
+from .DistributedPartyTeamActivity import DistributedPartyTeamActivity
+from .PartyCogActivity import PartyCogActivity
 
 class DistributedPartyCogActivity(DistributedPartyTeamActivity):
     notify = directNotify.newCategory('DistributedPartyCogActivity')
@@ -12,7 +12,7 @@ class DistributedPartyCogActivity(DistributedPartyTeamActivity):
     view = None
 
     def __init__(self, cr, arenaModel = 'phase_13/models/parties/cogPieArena_model', texture = None):
-        DistributedPartyTeamActivity.__init__(self, cr, PartyGlobals.ActivityIds.PartyCog, startDelay=PartyGlobals.CogActivityStartDelay, balanceTeams=PartyGlobals.CogActivityBalanceTeams)
+        DistributedPartyTeamActivity.__init__(self, cr, PartyGlobals.EActivityId.PartyCog, startDelay=PartyGlobals.CogActivityStartDelay, balanceTeams=PartyGlobals.CogActivityBalanceTeams)
         self.arenaModel = arenaModel
         self.texture = texture
 
@@ -23,7 +23,7 @@ class DistributedPartyCogActivity(DistributedPartyTeamActivity):
 
     def announceGenerate(self):
         DistributedPartyTeamActivity.announceGenerate(self)
-        for i in xrange(len(self.toonIds)):
+        for i in range(len(self.toonIds)):
             for toonId in self.toonIds[i]:
                 toon = base.cr.doId2do.get(toonId, None)
                 if toon:
@@ -179,10 +179,10 @@ class DistributedPartyCogActivity(DistributedPartyTeamActivity):
         DistributedPartyTeamActivity.startConclusion(self, data)
         if self.isLocalToonPlaying:
             winner = 2
-            if data[PartyGlobals.TeamActivityTeams.LeftTeam] > data[PartyGlobals.TeamActivityTeams.RightTeam]:
-                winner = PartyGlobals.TeamActivityTeams.LeftTeam
-            elif data[PartyGlobals.TeamActivityTeams.LeftTeam] < data[PartyGlobals.TeamActivityTeams.RightTeam]:
-                winner = PartyGlobals.TeamActivityTeams.RightTeam
+            if data[PartyGlobals.ETeamActivityTeam.LeftTeam] > data[PartyGlobals.ETeamActivityTeam.RightTeam]:
+                winner = PartyGlobals.ETeamActivityTeam.LeftTeam
+            elif data[PartyGlobals.ETeamActivityTeam.LeftTeam] < data[PartyGlobals.ETeamActivityTeam.RightTeam]:
+                winner = PartyGlobals.ETeamActivityTeam.RightTeam
             if winner < 2:
                 if self.getTeam(base.localAvatar.doId) == winner:
                     resultsText = TTLocalizer.PartyTeamActivityLocalAvatarTeamWins

@@ -1,15 +1,19 @@
+from panda3d.core import ConfigVariableString, Datagram
 import semidbm
 from direct.distributed.DistributedObjectGlobalUD import DistributedObjectGlobalUD
 from direct.distributed.PyDatagram import *
-from pandac.PandaModules import *
 from toontown.friends.TTIFriendsManagerUD import OperationFSM
 from toontown.guilds.GuildGlobals import *
 from toontown.guilds.GuildUD import *
 from toontown.util import ThreadedCall
+from toontown.web.ChatLog import GUILD_CHANNEL, websiteUserId
 
 guildDBPath = ConfigVariableString(
     'guild-db-path', 'astron/databases/guilds',
     'The path to the database that will store Guild IDs.')
+
+NAME_RETRY_SECONDS = 300
+GUILD_NOT_PENDING = 'The Guild is no longer awaiting that name.'
 
 
 class GuildDB:
@@ -20,17 +24,25 @@ class GuildDB:
         self.dbm[str(guildId)] = str(ownerId)
         self.dbm.sync()
 
+    def remove(self, guildId):
+        try:
+            del self.dbm[str(guildId)]
+        except KeyError:
+            return
+
+        self.dbm.sync()
+
     def getGuildIds(self):
-        return [int(guildId) for guildId in self.dbm.keys()]
+        return [int(guildId) for guildId in list(self.dbm.keys())]
 
     def getOwnerIds(self):
-        return [int(ownerId) for ownerId in self.dbm.values()]
+        return [int(ownerId) for ownerId in list(self.dbm.values())]
 
     def getOwnerIdFromGuildId(self, guildId):
         return int(self.dbm[str(guildId)])
 
     def getGuildIdFromOwnerId(self, ownerId):
-        for key, value in self.dbm.values():
+        for key, value in list(self.dbm.items()):
             if int(value) == ownerId:
                 return int(key)
 
@@ -41,16 +53,10 @@ class GuildDB:
 # -- Create Guild --
 class CreateGuildOperation(OperationFSM):
     def enterStart(self, name, iconId):
-        self.nameStatus = GUILD_NAME_NONE
-        self.name = name
+        self.nameStatus = GUILD_NAME_PENDING
+        self.name = ''
         self.iconId = iconId
         self.pendingName = name
-
-        # If a webApi instance exists, then we can assume that we are working
-        # in a production environment. Let's set their name status to pending:
-        if self.air.webApi is not None:
-            self.nameStatus = GUILD_NAME_PENDING
-            self.name = 'Unnamed Guild'
 
         # Create this Guild in the database:
         self.air.dbInterface.createObject(
@@ -73,6 +79,13 @@ class CreateGuildOperation(OperationFSM):
         )
 
     def handleCreate(self, guildId):
+        if not guildId:
+            self.mgr.notify.warning('The database could not create a guild for avatar %d' % self.sender)
+            self.mgr.d_createGuildResult(self.sender, False)
+            self.callback = None
+            self.demand('Off')
+            return
+
         self.result = guildId
 
         # Give this Guild a temporary name if its name status is pending:
@@ -88,39 +101,13 @@ class CreateGuildOperation(OperationFSM):
         self.mgr.guilds[guildId] = guild
         self.mgr.avId2GuildId[self.sender] = guildId
 
-        guild.addNewMember([self.sender, GUILD_ROLE_ID_OWNER, 0], self.name)
+        guild.addNewMember([self.sender, GUILD_ROLE_ID_OWNER, 0], '')
 
         self.mgr.guildDB.update(guildId, self.sender)
 
-        takenNames = self.mgr.getTakenNames(guildId)
-
-        def handleNameAvailable(response):
-            # This name is reserved or not reserved, handle it
-            if response['reserved']:
-                self.mgr.nameResponse(guildId, False)
-            else:
-                # Submit our name if its not reserved
-                if self.air.webApi is not None:
-                    payload = {'distribution': config.GetString('distribution'), 'name': guild.pendingName}
-                    self.air.webApi.execute('guilds/%d' % guildId, payload, 'post')
-            self.demand('Off')
-
-        def handleNameError():
-            # Something went wrong, deny the name for safety
-            self.mgr.nameResponse(guildId, False)
-            # Go off, we're done!
-            self.demand('Off')
-
-        # Check if the name is available via the rpc
-        if self.air.webApi is not None:
-            payload = {'name': guild.pendingName, 'distribution': config.GetString('distribution')}
-            self.air.webApi.execute('reserved-guilds', payload, 'get', callback=handleNameAvailable,
-                                    errback=handleNameError)
-        else:
-            # No wbRpc exists, just check server names
-            self.mgr.nameResponse(guildId, guild.pendingName not in takenNames)
-            # Go off, we're done!
-            self.demand('Off')
+        self.mgr.submitName(guild, self.sender)
+        # Go off, we're done!
+        self.demand('Off')
 
 
 # Manager
@@ -138,7 +125,12 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         self.guildDB = GuildDB()
         self.topTen = []
         self.leaderboardListeners = []
+
+        self.loaded = False
+        self.whenLoaded = []
+
         taskMgr.add(self.retrieveGuilds, 'guildManagerUD-retrieveTask')
+        self.scheduleQuestRollover()
 
     def retrieveGuilds(self, task=None):
         self.notify.info('Retrieving Guilds...')
@@ -148,6 +140,17 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             self.notify.info('Done Retrieving Guilds! There is/are %d Guild(s) on this server...' % len(self.guilds))
             # Calculate ranks after retrieving all guilds
             self.calculateRanksThreaded()
+
+            self.loaded = True
+            for callback in self.whenLoaded:
+                callback()
+            self.whenLoaded = []
+
+            # The website may never have heard about names left pending before a restart
+            for guild in list(self.guilds.values()):
+                ownerId = guild.getOwnerId()
+                if guild.nameStatus == GUILD_NAME_PENDING and ownerId:
+                    self.sendName(guild, ownerId, resubmit=True)
 
         if not guildIds:
             finishRetrieved()
@@ -183,10 +186,29 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         self.air.dbInterface.queryObject(self.air.dbId, guildId, handleRetrieved)
 
     def handleDestroy(self, guildId):
-        self.notify.debug('Handling the destruction of guild %d' % guildId)
-        # Re-sync the rankings TODO: Uncomment this when implemented the features below
-        # self.calculateRanks()
-        # TODO: Delete this guild from the db then remove it from self.guilds
+        self.notify.info('Guild %d has no members left and is disbanded' % guildId)
+        taskMgr.remove('guildManagerUD-retryName-%d' % guildId)
+
+        self.guilds.pop(guildId, None)
+        for avId in [avId for avId, memberGuildId in self.avId2GuildId.items() if memberGuildId == guildId]:
+            del self.avId2GuildId[avId]
+
+        self.guildDB.remove(guildId)
+        self.calculateRanksThreaded()
+
+    def d_createGuildResult(self, avId, success):
+        self.air.sendNetEvent('guildCreateResult', [avId, success])
+
+    def scheduleQuestRollover(self):
+        taskMgr.doMethodLater(GuildQuestGlobals.getSecondsUntilNextQuestDay() + 1, self.rolloverQuests,
+                              'guildManagerUD-questRollover')
+
+    def rolloverQuests(self, task):
+        for guild in list(self.guilds.values()):
+            guild.rolloverQuest()
+
+        self.scheduleQuestRollover()
+        return task.done
 
     # Handling Toon online status
     def toonOnline(self, avId, guildId):
@@ -219,7 +241,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
         dgcleanup = self.dclass.aiFormatUpdate('toonOffline', self.doId, self.doId, self.air.ourChannel, [avId])
         dg = PyDatagram()
         dg.addServerHeader(clientChannel, self.air.ourChannel, CLIENTAGENT_ADD_POST_REMOVE)
-        dg.addString(dgcleanup.getMessage())
+        dg.addBlob(bytes(dgcleanup))
         self.air.send(dg)
 
         # Tell the guild that this member is online
@@ -245,7 +267,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
     def nameResponse(self, guildId, response):
         self.notify.debug('Received name response %s for guildId %d' % (response, guildId))
-        guild = self.guilds[guildId]
+        guild = self.guilds.get(guildId)
         if guild is None:
             self.notify.warning('Tried to respond to non existent guild %d' % guildId)
             return
@@ -261,17 +283,17 @@ class GuildManagerUD(DistributedObjectGlobalUD):
     # Whispers
     def sendTalkWhisperToGuild(self, message):
         avId = self.air.getAvatarIdFromSender()
-        guildId = self.avId2GuildId.get(avId, None)
-
-        if guildId is None:
+        guild = self.guilds.get(self.avId2GuildId.get(avId))
+        member = guild.getMember(avId) if guild is not None else None
+        if member is None:
             return
 
-        guild = self.guilds.get(guildId, None)
-        if guild is None:
-            self.sendUpdateToAvatarId(avId, 'guildError', [GUILD_FATAL_ERROR])
-            return
+        self.air.getGlobalObject('ChatAgent').chatMessage(message, member.name, GUILD_CHANNEL)
 
-        guild.handleTalkWhisper(avId, message)
+    def sendGuildTalk(self, avId, message):
+        guild = self.guilds.get(self.avId2GuildId.get(avId))
+        if guild is not None:
+            guild.handleTalkWhisper(avId, message)
 
     # Client Requests
     def requestCreateGuild(self, avId, name, iconId):
@@ -280,6 +302,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             if self.avId2GuildId[avId] in self.guilds:
                 # Tell the avatar that they are already in a guild
                 self.sendUpdateToAvatarId(avId, 'guildError', [GUILD_ALREADY_IN_GUILD_ERROR])
+                self.d_createGuildResult(avId, False)
 
                 # Log this as a warning
                 self.notify.warning('Avatar %d requested a new guild yet they are already part of one: %d' % (
@@ -288,6 +311,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
         def handleCreated(avId, guildId):
             self.notify.info('Avatar %d successfully created guild %d!' % (avId, guildId))
+            self.d_createGuildResult(avId, True)
 
         # Log that an avatar is creating a guild
         self.notify.info('Avatar %d requested a guild!' % avId)
@@ -324,34 +348,9 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
         guild.pendingName = guildName
         guild.nameStatus = GUILD_NAME_PENDING
+        guild.saveGuild()
 
-        takenNames = self.getTakenNames(guildId)
-
-        def handleNameAvailable(reserved):
-            # This name is reserved or not reserved, handle it
-            self.notify.debug('WebApi replied with %s' % reserved)
-            if reserved['reserved'] or guildName in takenNames:
-                self.nameResponse(guildId, False)
-
-            if self.air.webApi is not None:
-                payload = {'distribution': config.GetString('distribution'), 'name': guild.pendingName}
-                self.air.webApi.execute('guilds/%d' % guildId, payload, 'post')
-
-        def handleNameError():
-            # Something went wrong, deny the name for safety
-            self.notify.debug('Something went wrong with webApi returning False')
-            self.nameResponse(guildId, False)
-
-        # Check if the name is available via the rpc
-        if self.air.webApi is not None:
-            self.notify.debug('Asking webApi if guild name is taken')
-            payload = {'name': guild.pendingName, 'distribution': config.GetString('distribution')}
-            self.air.webApi.execute('reserved-guilds', payload, 'get', callback=handleNameAvailable,
-                                    errback=handleNameError)
-        else:
-            # No wbRpc exists, just check server names
-            self.notify.debug('No webApi exists. Checking if guild name is taken')
-            self.nameResponse(guildId, guildName not in takenNames)
+        self.submitName(guild, avId)
 
     def requestRemoveMember(self, avId):
         senderId = self.air.getAvatarIdFromSender()
@@ -468,11 +467,12 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
     def calculateRanks(self):
         self.notify.debug('Calculating Ranks for Guilds...')
-        descendingGuilds = sorted(self.guilds, key=lambda guildId: self.guilds[guildId].rankPoints, reverse=True)
+        guilds = dict(self.guilds)
+        descendingGuilds = sorted(guilds, key=lambda guildId: guilds[guildId].rankPoints, reverse=True)
         deadGuildCount = 0
         self.topTen = []
         for index, guildId in enumerate(descendingGuilds):
-            guild = self.guilds.get(guildId)
+            guild = guilds.get(guildId)
             if guild is None or guild.name == 'Infinite Staff' or len(guild.members) == 0 or guild.rankPoints == 0:
                 # This guild does not count, do not rank it
                 deadGuildCount += 1
@@ -491,29 +491,83 @@ class GuildManagerUD(DistributedObjectGlobalUD):
     def requestCheckName(self, guildName):
         avId = self.air.getAvatarIdFromSender()
         self.notify.debug('Avatar %d requesting to check name %s' % (avId, guildName))
-        takenNames = self.getTakenNames()
 
-        def handleNameAvailable(reserved):
-            # This name is reserved or not reserved, handle it
-            self.notify.debug('WebApi replied with %s' % reserved)
-            valid = (not reserved['reserved']) and (guildName not in takenNames)
-            self.checkNameResponse(avId, valid)
+        self.checkNameResponse(avId, not self.isNameRefused(guildName))
 
-        def handleNameError():
-            # Something went wrong, deny the name for safety
-            self.notify.debug('Something went wrong with webApi returning False')
-            self.checkNameResponse(avId, False)
+    def isNameRefused(self, guildName, guildId=0):
+        if not guildName.strip():
+            return True
 
-        # Check if the name is available via the rpc
-        if self.air.webApi is not None:
-            self.notify.debug('Asking webApi if guild name is taken')
-            payload = {'name': guildName, 'distribution': config.GetString('distribution')}
-            self.air.webApi.execute('reserved-guilds', payload, 'get', callback=handleNameAvailable,
-                                    errback=handleNameError)
+        if guildName in self.getTakenNames(guildId):
+            return True
+
+        chatAgent = self.air.getGlobalObject('ChatAgent')
+        return bool(chatAgent.checkBadNames(guildName, nameCheck=True))
+
+    # Name Review
+    def submitName(self, guild, avId):
+        if self.isNameRefused(guild.pendingName, guild.id):
+            self.notify.info('Guild %d asked for a name the game refuses.' % guild.id)
+            guild.rejectName()
+            return
+
+        self.sendName(guild, avId, resubmit=False)
+
+    def sendName(self, guild, avId, resubmit):
+        name = guild.pendingName
+
+        def reviewed(decided):
+            if decided:
+                self.decideName(guild.id, name, True)
+
+        def failed(status):
+            self.notify.warning(
+                'Could not submit the name for guild %d (status %s); will retry.' % (guild.id, status))
+            taskMgr.doMethodLater(NAME_RETRY_SECONDS, retry, 'guildManagerUD-retryName-%d' % guild.id)
+
+        def retry(task):
+            if guild.nameStatus == GUILD_NAME_PENDING and guild.pendingName == name:
+                self.sendName(guild, avId, resubmit=True)
+            return task.done
+
+        userId = self.userIdFor(avId)
+        if not userId:
+            failed('no website account for avatar %d' % avId)
+            return
+
+        self.air.csm.accountDB.submitGuildNameRequest(
+            userId, guild.id, avId, name, resubmit, reviewed, failed)
+
+    def userIdFor(self, avId):
+        objects = self.air.dbAstronCursor.objects
+        toon = objects.find_one({'_id': avId})
+        if not toon:
+            return None
+
+        account = objects.find_one({'_id': toon['fields'].get('setDISLid', {}).get('_0')})
+        return websiteUserId(account) if account else None
+
+    def decideName(self, guildId, name, approved):
+        guild = self.guilds.get(guildId)
+        if guild is None:
+            return 'There is no Guild %d.' % guildId
+
+        if guild.nameStatus != GUILD_NAME_PENDING or guild.pendingName != name:
+            return GUILD_NOT_PENDING
+
+        if approved:
+            guild.approveName()
         else:
-            # No wbRpc exists, just check server names
-            self.notify.debug('No webApi exists. Checking if guild name is taken')
-            self.checkNameResponse(avId, guildName not in takenNames)
+            guild.rejectName()
+
+        self.calculateRanksThreaded()
+        return None
+
+    def callWhenLoaded(self, callback):
+        if self.loaded:
+            callback()
+        else:
+            self.whenLoaded.append(callback)
 
     def getTakenNames(self, guildId=0):
         takenNames = []
@@ -558,7 +612,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             self.notify.warning('Could not retrieve matching guild for id %d' % guildId)
             return
 
-        for avId in avIds:
+        for avId in list(avIds):
             if guild.getMember(avId) is None:
                 self.notify.warning('Avatar %d not in guild but tried to get in this quest' % avId)
                 avIds.remove(avId)
@@ -587,7 +641,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
             self.notify.warning('Could not retrieve matching guild for id %d' % guildId)
             return
 
-        for i in xrange(0, amount):
+        for i in range(0, amount):
             quest = GuildQuestGlobals.GuildQuestDict[guild.questInst.questId]
             category = quest[0]
             objective = quest[1]
@@ -601,7 +655,7 @@ class GuildManagerUD(DistributedObjectGlobalUD):
 
         if targetId == 0:
             # This is a request to cancel an invite
-            for otherTargetId, otherSenderId in self.invites.iteritems():
+            for otherTargetId, otherSenderId in self.invites.items():
                 # Check if we have an invite pending
                 if senderId == otherSenderId:
                     # Tell the target we no longer want them

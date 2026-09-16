@@ -1,8 +1,9 @@
+from panda3d.core import ConfigVariableBool, URLSpec
 from otp.login.HTTPUtil import *
 from direct.directnotify import DirectNotifyGlobal
 from otp.login import TTAccount
-import DateObject
-import TTDateObject
+from . import DateObject
+from . import TTDateObject
 import time
 
 class AccountServerDate:
@@ -18,7 +19,7 @@ class AccountServerDate:
         if self.__grabbed and not force:
             self.notify.debug('using cached account server date')
             return
-        if base.cr.accountOldAuth or base.config.GetBool('use-local-date', 0):
+        if base.cr.accountOldAuth or ConfigVariableBool('use-local-date', False).getValue():
             self.__useLocalClock()
             return
         url = URLSpec(self.getServer())
@@ -27,12 +28,12 @@ class AccountServerDate:
         response = getHTTPResponse(url, http)
         if response[0] != 'ACCOUNT SERVER DATE':
             self.notify.debug('invalid response header')
-            raise UnexpectedResponse, 'unexpected response, response=%s' % response
+            raise UnexpectedResponse('unexpected response, response=%s' % response)
         try:
             epoch = int(response[1])
-        except ValueError, e:
+        except ValueError as e:
             self.notify.debug(str(e))
-            raise UnexpectedResponse, 'unexpected response, response=%s' % response
+            raise UnexpectedResponse('unexpected response, response=%s' % response)
 
         timeTuple = time.gmtime(epoch)
         self.year = timeTuple[0]

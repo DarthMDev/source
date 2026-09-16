@@ -1,9 +1,5 @@
+from panda3d.core import CollideMask, CollisionNode, CollisionTube, NodePath, Point3, RopeNode, Texture, VBase3
 import math
-from pandac.PandaModules import CollisionTube
-from pandac.PandaModules import CollisionNode
-from pandac.PandaModules import Point3
-from pandac.PandaModules import VBase3
-from pandac.PandaModules import RopeNode
 from direct.interval.IntervalGlobal import LerpPosHprInterval
 from direct.interval.IntervalGlobal import LerpPosInterval
 from direct.interval.IntervalGlobal import Wait
@@ -19,15 +15,15 @@ from toontown.toonbase import ToontownGlobals
 from toontown.effects import Splash
 from toontown.minigame.MinigamePowerMeter import MinigamePowerMeter
 from toontown.minigame.ArrowKeys import ArrowKeys
-import PartyGlobals
-import PartyUtils
-from DistributedPartyTeamActivity import DistributedPartyTeamActivity
+from . import PartyGlobals
+from . import PartyUtils
+from .DistributedPartyTeamActivity import DistributedPartyTeamActivity
 
 class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
     notify = directNotify.newCategory('DistributedPartyTugOfWarActivity')
 
     def __init__(self, cr):
-        DistributedPartyTeamActivity.__init__(self, cr, PartyGlobals.ActivityIds.PartyTugOfWar, startDelay=PartyGlobals.TugOfWarStartDelay)
+        DistributedPartyTeamActivity.__init__(self, cr, PartyGlobals.EActivityId.PartyTugOfWar, startDelay=PartyGlobals.TugOfWarStartDelay)
         self.buttons = [0, 1]
         self.arrowKeys = None
         self.keyTTL = []
@@ -156,24 +152,24 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         self.playArea.reparentTo(self.root)
         self.sign.reparentTo(self.playArea.find('**/TugOfWar_sign_locator'))
         self.dockPositions = [[], []]
-        for i in xrange(4):
+        for i in range(4):
             self.dockPositions[0].append(Point3(-PartyGlobals.TugOfWarInitialToonPositionsXOffset - PartyGlobals.TugOfWarToonPositionXSeparation * i, 0.0, PartyGlobals.TugOfWarToonPositionZ))
 
-        for i in xrange(4):
+        for i in range(4):
             self.dockPositions[1].append(Point3(PartyGlobals.TugOfWarInitialToonPositionsXOffset + PartyGlobals.TugOfWarToonPositionXSeparation * i, 0.0, PartyGlobals.TugOfWarToonPositionZ))
 
         self.hopOffPositions = [[], []]
-        for i in xrange(1, 5):
-            self.hopOffPositions[PartyGlobals.TeamActivityTeams.LeftTeam].append(self.playArea.find('**/leftTeamHopOff%d_locator' % i).getPos())
-            self.hopOffPositions[PartyGlobals.TeamActivityTeams.RightTeam].append(self.playArea.find('**/rightTeamHopOff%d_locator' % i).getPos())
+        for i in range(1, 5):
+            self.hopOffPositions[PartyGlobals.ETeamActivityTeam.LeftTeam].append(self.playArea.find('**/leftTeamHopOff%d_locator' % i).getPos())
+            self.hopOffPositions[PartyGlobals.ETeamActivityTeam.RightTeam].append(self.playArea.find('**/rightTeamHopOff%d_locator' % i).getPos())
 
-        for i in xrange(1, 5):
+        for i in range(1, 5):
             pos = self.playArea.find('**/fallenToon%d_locator' % i).getPos()
             self.fallenPositions.append(pos)
 
         self.joinCollision = []
         self.joinCollisionNodePaths = []
-        for i in xrange(len(PartyGlobals.TeamActivityTeams)):
+        for i in range(len(PartyGlobals.ETeamActivityTeam)):
             collShape = CollisionTube(PartyGlobals.TugOfWarJoinCollisionEndPoints[0], PartyGlobals.TugOfWarJoinCollisionEndPoints[1], PartyGlobals.TugOfWarJoinCollisionRadius)
             collShape.setTangible(True)
             self.joinCollision.append(CollisionNode('TugOfWarJoinCollision%d' % i))
@@ -187,7 +183,7 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         ropeModel = loader.loadModel('phase_4/models/minigames/tug_of_war_rope')
         self.ropeTexture = ropeModel.findTexture('*')
         ropeModel.removeNode()
-        for i in xrange(PartyGlobals.TugOfWarMaximumPlayersPerTeam * 2 - 1):
+        for i in range(PartyGlobals.TugOfWarMaximumPlayersPerTeam * 2 - 1):
             rope = Rope(self.uniqueName('TugRope%d' % i))
             if rope.showRope:
                 rope.ropeNode.setRenderMode(RopeNode.RMBillboard)
@@ -213,7 +209,7 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         self.powerMeter.setPos(0.0, 0.0, 0.6)
         self.powerMeter.hide()
         self.arrows = [None] * 2
-        for x in xrange(len(self.arrows)):
+        for x in range(len(self.arrows)):
             self.arrows[x] = loader.loadModel('phase_3/models/props/arrow')
             self.arrows[x].reparentTo(self.powerMeter)
             self.arrows[x].setScale(0.2 - 0.4 * x, 0.2, 0.2)
@@ -222,13 +218,13 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         return
 
     def loadSounds(self):
-        self.splashSound = base.loadSfx('phase_4/audio/sfx/MG_cannon_splash.ogg')
-        self.whistleSound = base.loadSfx('phase_4/audio/sfx/AA_sound_whistle.ogg')
+        self.splashSound = base.loader.loadSfx('phase_4/audio/sfx/MG_cannon_splash.ogg')
+        self.whistleSound = base.loader.loadSfx('phase_4/audio/sfx/AA_sound_whistle.ogg')
 
     def loadIntervals(self):
         self.updateIdealRateInterval = Sequence()
         self.updateIdealRateInterval.append(Wait(PartyGlobals.TugOfWarTargetRateList[0][0]))
-        for i in xrange(1, len(PartyGlobals.TugOfWarTargetRateList)):
+        for i in range(1, len(PartyGlobals.TugOfWarTargetRateList)):
             duration = PartyGlobals.TugOfWarTargetRateList[i][0]
             idealRate = PartyGlobals.TugOfWarTargetRateList[i][1]
             self.updateIdealRateInterval.append(Func(self.setIdealRate, idealRate))
@@ -328,11 +324,11 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         del self.splashInterval
 
     def __enableCollisions(self):
-        for i in xrange(len(PartyGlobals.TeamActivityTeams)):
-            self.accept('enterTugOfWarJoinCollision%d' % i, getattr(self, '_join%s' % PartyGlobals.TeamActivityTeams.getString(i)))
+        for i in range(len(PartyGlobals.ETeamActivityTeam)):
+            self.accept('enterTugOfWarJoinCollision%d' % i, getattr(self, '_join%s' % PartyGlobals.ETeamActivityTeam(i).name))
 
     def __disableCollisions(self):
-        for i in xrange(len(PartyGlobals.TeamActivityTeams)):
+        for i in range(len(PartyGlobals.ETeamActivityTeam)):
             self.ignore('enterTugOfWarJoinCollision%d' % i)
 
     def startWaitForEnough(self):
@@ -431,7 +427,7 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
                 if self.getAvatar(toonId):
                     self.getAvatar(toonId).loop('victory')
 
-        for ival in self.toonIdsToAnimIntervals.values():
+        for ival in list(self.toonIdsToAnimIntervals.values()):
             if ival is not None:
                 ival.finish()
 
@@ -464,11 +460,11 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         self.notify.debug('setUpRopes')
         ropeIndex = 0
         leftToonId = -1
-        if self.toonIds[PartyGlobals.TeamActivityTeams.LeftTeam]:
-            leftToonId = self.toonIds[PartyGlobals.TeamActivityTeams.LeftTeam][0]
+        if self.toonIds[PartyGlobals.ETeamActivityTeam.LeftTeam]:
+            leftToonId = self.toonIds[PartyGlobals.ETeamActivityTeam.LeftTeam][0]
         rightToonId = -1
-        if self.toonIds[PartyGlobals.TeamActivityTeams.RightTeam]:
-            rightToonId = self.toonIds[PartyGlobals.TeamActivityTeams.RightTeam][0]
+        if self.toonIds[PartyGlobals.ETeamActivityTeam.RightTeam]:
+            rightToonId = self.toonIds[PartyGlobals.ETeamActivityTeam.RightTeam][0]
         if leftToonId in self.toonIdsToRightHands and rightToonId in self.toonIdsToRightHands:
             self.tugRopes[ropeIndex].setup(3, ((self.toonIdsToRightHands[leftToonId], (0, 0, 0)), (self.root, (0.0, 0.0, 2.5)), (self.toonIdsToRightHands[rightToonId], (0, 0, 0))), [0,
              0,
@@ -478,11 +474,11 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
              1])
             self.tugRopes[ropeIndex].unstash()
             ropeIndex += 1
-        teams = [PartyGlobals.TeamActivityTeams.LeftTeam, PartyGlobals.TeamActivityTeams.RightTeam]
+        teams = [PartyGlobals.ETeamActivityTeam.LeftTeam, PartyGlobals.ETeamActivityTeam.RightTeam]
         for currTeam in teams:
             numToons = len(self.toonIds[currTeam])
             if numToons > 1:
-                for i in xrange(numToons - 1, 0, -1):
+                for i in range(numToons - 1, 0, -1):
                     toon1 = self.toonIds[currTeam][i]
                     toon2 = self.toonIds[currTeam][i - 1]
                     if toon1 not in self.toonIdsToRightHands:
@@ -502,7 +498,7 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
 
     def tightenRopes(self):
         self.notify.debug('tightenRopes')
-        self.tugRopes[0].setup(3, ((self.toonIdsToRightHands[self.toonIds[PartyGlobals.TeamActivityTeams.LeftTeam][0]], (0, 0, 0)), (self.toonIdsToRightHands[self.toonIds[PartyGlobals.TeamActivityTeams.LeftTeam][0]], (0, 0, 0)), (self.toonIdsToRightHands[self.toonIds[PartyGlobals.TeamActivityTeams.RightTeam][0]], (0, 0, 0))), [0,
+        self.tugRopes[0].setup(3, ((self.toonIdsToRightHands[self.toonIds[PartyGlobals.ETeamActivityTeam.LeftTeam][0]], (0, 0, 0)), (self.toonIdsToRightHands[self.toonIds[PartyGlobals.ETeamActivityTeam.LeftTeam][0]], (0, 0, 0)), (self.toonIdsToRightHands[self.toonIds[PartyGlobals.ETeamActivityTeam.RightTeam][0]], (0, 0, 0))), [0,
          0,
          0,
          1,
@@ -523,10 +519,10 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
         self.idealForce = self.advantage * (4 + 0.4 * self.idealRate)
 
     def updateKeyPressRate(self):
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             self.keyTTL[i] -= PartyGlobals.TugOfWarKeyPressUpdateRate
 
-        for i in xrange(len(self.keyTTL)):
+        for i in range(len(self.keyTTL)):
             if self.keyTTL[i] <= 0.0:
                 a = self.keyTTL[0:i]
                 del self.keyTTL
@@ -657,13 +653,13 @@ class DistributedPartyTugOfWarActivity(DistributedPartyTeamActivity):
             if toon:
                 curPos = toon.getPos(self.root)
                 team = self.getTeam(toonId)
-                if team == PartyGlobals.TeamActivityTeams.LeftTeam and curPos[0] > -2.0 or team == PartyGlobals.TeamActivityTeams.RightTeam and curPos[0] < 2.0:
+                if team == PartyGlobals.ETeamActivityTeam.LeftTeam and curPos[0] > -2.0 or team == PartyGlobals.ETeamActivityTeam.RightTeam and curPos[0] < 2.0:
                     losingTeam = self.getTeam(toonId)
                     self.throwTeamInWater(losingTeam)
                     self.sendUpdate('reportFallIn', [losingTeam])
 
     def throwTeamInWater(self, losingTeam):
-        self.notify.debug('throwTeamInWater( %s )' % PartyGlobals.TeamActivityTeams.getString(losingTeam))
+        self.notify.debug('throwTeamInWater( %s )' % PartyGlobals.ETeamActivityTeam(losingTeam).name)
         splashSet = False
         for toonId in self.toonIds[losingTeam]:
             self.fallenToons.append(toonId)

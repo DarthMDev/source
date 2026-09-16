@@ -1,18 +1,18 @@
-import __builtin__
-import types
-import urlparse
+import collections
+import socket
+import urllib.parse
 
-import pymongo
-from direct.distributed.AstronInternalRepository import AstronInternalRepository
+from panda3d_astron.repository import AstronInternalRepository, msgpack_encode
 from direct.distributed.PyDatagram import PyDatagram
 from panda3d.core import loadPrcFile
+from panda3d.direct import DCPacker
 
-from otp.distributed.OtpDoGlobals import *
-from toontown.distributed.ToontownNetMessengerAI import ToontownNetMessengerAI
 from toontown.toonbase import EventGlobals
+from otp.distributed.OtpDoGlobals import *
 
-if config.GetBool('want-web-api', False):
-    from toontown.web.WebserverAPIClient import WebserverAPIClient
+from toontown.distributed.ToontownNetMessengerAI import ToontownNetMessengerAI
+
+import pymongo
 
 
 class ToontownInternalRepository(AstronInternalRepository):
@@ -26,190 +26,110 @@ class ToontownInternalRepository(AstronInternalRepository):
             dcSuffix=dcSuffix, connectMethod=connectMethod,
             threadedNet=threadedNet)
 
-        self.__callbacks = {}
-
         url = config.GetString('mongodb-url', 'mongodb://localhost')
         replicaset = config.GetString('mongodb-replicaset', '')
         if replicaset:
             self.mongo = pymongo.MongoClient(url, replicaset=replicaset)
         else:
             self.mongo = pymongo.MongoClient(url)
-        db = (urlparse.urlparse(url).path or '/game')[1:]
+        db = (urllib.parse.urlparse(url).path or '/game')[1:]
         self.mongodb = self.mongo[db]
         self.dbAstronCursor = self.mongodb.astron
 
-        if config.GetBool('want-web-api', False):
-            endpoint = config.GetString(
-                'web-api-endpoint', 'https://localhost:8000/api/')
-            token = config.GetString('web-api-token', '')
-            self.webApi = WebserverAPIClient(endpoint, token)
-        else:
-            self.webApi = None
+        self.netMessenger = ToontownNetMessengerAI(self)
 
-    def readDCFile(self, dcFileNames=None):
-        dcFile = self.getDcFile()
-        dcFile.clear()
-        self.dclassesByName = {}
-        self.dclassesByNumber = {}
-        self.hashVal = 0
+    def setEventLogHost(self, host, port=7197):
+        self.eventSocket = None
+        self.eventLogAddress = None
 
-        if isinstance(dcFileNames, types.StringTypes):
-            # If we were given a single string, make it a list.
-            dcFileNames = [dcFileNames]
+        if not host:
+            return
 
-        if hasattr(__builtin__, 'dcData'):
-            dcFileNames = [StringStream(dcData)]
+        try:
+            address = socket.getaddrinfo(
+                host, port, socket.AF_INET, socket.SOCK_DGRAM)[0][4]
+        except OSError as e:
+            self.notify.warning(
+                'Invalid Event Log host specified: %s:%s (%s)' % (host, port, e))
+            return
 
-        dcImports = {}
-        if dcFileNames is None:
-            readResult = dcFile.readAll()
-            if not readResult:
-                self.notify.error('Could not read DC file.')
-        else:
-            for dcFileName in dcFileNames:
-                if isinstance(dcFileName, StringStream):
-                    readResult = dcFile.read(dcFileName, 'DC stream')
-                else:
-                    readResult = dcFile.read(dcFileName)
-                if not readResult:
-                    self.notify.error('Could not read DC file.')
+        self.eventSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.eventLogAddress = address
 
-        self.hashVal = dcFile.getHash()
+    def writeServerEvent(self, logtype, *args, **kwargs):
+        if self.eventSocket is None:
+            return
 
-        # Now import all of the modules required by the DC file.
-        for n in range(dcFile.getNumImportModules()):
-            moduleName = dcFile.getImportModule(n)[:]
+        log = collections.OrderedDict()
+        log['type'] = logtype
+        log['sender'] = self.eventLogId
 
-            # Maybe the module name is represented as "moduleName/AI".
-            suffix = moduleName.split('/')
-            moduleName = suffix[0]
-            suffix=suffix[1:]
-            if self.dcSuffix in suffix:
-                moduleName += self.dcSuffix
-            elif self.dcSuffix == 'UD' and 'AI' in suffix:  # HACK:
-                moduleName += 'AI'
+        for i, v in enumerate(args):
+            log['_%d' % (i + 1)] = v
 
-            importSymbols = []
-            for i in range(dcFile.getNumImportSymbols(n)):
-                symbolName = dcFile.getImportSymbol(n, i)
+        log.update(kwargs)
 
-                # Maybe the symbol name is represented as "symbolName/AI".
-                suffix = symbolName.split('/')
-                symbolName = suffix[0]
-                suffix=suffix[1:]
-                if self.dcSuffix in suffix:
-                    symbolName += self.dcSuffix
-                elif self.dcSuffix == 'UD' and 'AI' in suffix:  # HACK:
-                    symbolName += 'AI'
-
-                importSymbols.append(symbolName)
-
-            self.importModule(dcImports, moduleName, importSymbols)
-
-        # Now get the class definition for the classes named in the DC
-        # file.
-        for i in range(dcFile.getNumClasses()):
-            dclass = dcFile.getClass(i)
-            number = dclass.getNumber()
-            className = dclass.getName() + self.dcSuffix
-
-            # Does the class have a definition defined in the newly
-            # imported namespace?
-            classDef = dcImports.get(className)
-            if classDef is None and self.dcSuffix == 'UD':  # HACK:
-                className = dclass.getName() + 'AI'
-                classDef = dcImports.get(className)
-
-            # Also try it without the dcSuffix.
-            if classDef is None:
-                className = dclass.getName()
-                classDef = dcImports.get(className)
-            if classDef is None:
-                self.notify.debug('No class definition for %s.' % className)
-            else:
-                if type(classDef) == types.ModuleType:
-                    if not hasattr(classDef, className):
-                        self.notify.warning('Module %s does not define class %s.' % (className, className))
-                        continue
-                    classDef = getattr(classDef, className)
-
-                if type(classDef) != types.ClassType and type(classDef) != types.TypeType:
-                    self.notify.error('Symbol %s is not a class name.' % className)
-                else:
-                    dclass.setClassDef(classDef)
-
-            self.dclassesByName[className] = dclass
-            if number >= 0:
-                self.dclassesByNumber[number] = dclass
-
-        # Owner Views
-        if self.hasOwnerView():
-            ownerDcSuffix = self.dcSuffix + 'OV'
-            # dict of class names (without 'OV') that have owner views
-            ownerImportSymbols = {}
-
-            # Now import all of the modules required by the DC file.
-            for n in range(dcFile.getNumImportModules()):
-                moduleName = dcFile.getImportModule(n)
-
-                # Maybe the module name is represented as "moduleName/AI".
-                suffix = moduleName.split('/')
-                moduleName = suffix[0]
-                suffix=suffix[1:]
-                if ownerDcSuffix in suffix:
-                    moduleName = moduleName + ownerDcSuffix
-
-                importSymbols = []
-                for i in range(dcFile.getNumImportSymbols(n)):
-                    symbolName = dcFile.getImportSymbol(n, i)
-
-                    # Check for the OV suffix
-                    suffix = symbolName.split('/')
-                    symbolName = suffix[0]
-                    suffix=suffix[1:]
-                    if ownerDcSuffix in suffix:
-                        symbolName += ownerDcSuffix
-                    importSymbols.append(symbolName)
-                    ownerImportSymbols[symbolName] = None
-
-                self.importModule(dcImports, moduleName, importSymbols)
-
-            # Now get the class definition for the owner classes named
-            # in the DC file.
-            for i in range(dcFile.getNumClasses()):
-                dclass = dcFile.getClass(i)
-                if ((dclass.getName()+ownerDcSuffix) in ownerImportSymbols):
-                    number = dclass.getNumber()
-                    className = dclass.getName() + ownerDcSuffix
-
-                    # Does the class have a definition defined in the newly
-                    # imported namespace?
-                    classDef = dcImports.get(className)
-                    if classDef is None:
-                        self.notify.error('No class definition for %s.' % className)
-                    else:
-                        if type(classDef) == types.ModuleType:
-                            if not hasattr(classDef, className):
-                                self.notify.error('Module %s does not define class %s.' % (className, className))
-                            classDef = getattr(classDef, className)
-                        dclass.setOwnerClassDef(classDef)
-                        self.dclassesByName[className] = dclass
+        try:
+            dg = PyDatagram()
+            msgpack_encode(dg, log)
+            self.eventSocket.sendto(dg.getMessage(), self.eventLogAddress)
+        except Exception as e:
+            self.notify.warning('Could not write server event %r: %s' % (logtype, e))
 
     def handleConnected(self):
-        self.__messenger = ToontownNetMessengerAI(self)
+        self.netMessenger.register()
+
         self.accept('reloadConfig', self.handleReloadConfig)
-
-    def prepareMessage(self, message, sentArgs=[], channels=None):
-        return self.__messenger.prepare(message, sentArgs, channels)
-
-    def sendNetEvent(self, message, sentArgs=[], channels=None):
-        self.__messenger.send(message, sentArgs, channels)
 
     def getAvatarIdFromSender(self):
         return int(self.getMsgSender() & 0xFFFFFFFF)
 
     def getAccountIdFromSender(self):
         return int((self.getMsgSender() >> 32) & 0xFFFFFFFF)
+
+    def createDgUpdateToDoId(self, dclassName, fieldName, doId, args,
+                             channelId=None):
+        """
+        channelId can be used as a recipient if you want to bypass the normal
+        airecv, ownrecv, broadcast, etc.  If you don't include a channelId
+        or if channelId == doId, then the normal broadcast options will
+        be used.
+        This is just like sendUpdateToDoId, but just returns
+        the datagram instead of immediately sending it.
+        """
+        result = None
+
+        dclass = self.dclassesByName.get(dclassName+self.dcSuffix)
+
+        assert dclass is not None
+
+        if channelId is None:
+            channelId = doId
+
+        if dclass is not None:
+            dg = dclass.aiFormatUpdate(fieldName, doId, channelId, self.ourChannel, args)
+            result = dg
+
+        return result
+
+    def sendUpdateToDoId(self, dclassName, fieldName, doId, args, channelId=None):
+        """
+        channelId can be used as a recipient if you want to bypass the normal
+        airecv, ownrecv, broadcast, etc.  If you don't include a channelId
+        or if channelId == doId, then the normal broadcast options will
+        be used.
+
+        """
+        dclass = self.dclassesByName.get(dclassName+self.dcSuffix)
+
+        assert dclass is not None
+
+        if channelId is None:
+            channelId = doId
+
+        if dclass is not None:
+            dg = dclass.aiFormatUpdate(fieldName, doId, channelId, self.ourChannel, args)
+            self.send(dg)
 
     def _isValidPlayerLocation(self, parentId, zoneId):
         if zoneId < 1000 and zoneId != 1:
@@ -218,62 +138,24 @@ class ToontownInternalRepository(AstronInternalRepository):
         return True
 
     def queryObjectLocation(self, doId, callback):
-        ctx = self.getContext()
-        self.__callbacks[ctx] = callback
+        self.getLocation(
+            doId, lambda _doId, parentId, zoneId: callback(parentId, zoneId))
 
-        dg = PyDatagram()
-        dg.addServerHeader(doId, self.ourChannel,
-                           STATESERVER_OBJECT_GET_LOCATION)
-        dg.addUint32(ctx)
-        self.send(dg)
+    def sendNetEvent(self, message, sentArgs=[]):
+        self.netMessenger.send(message, sentArgs)
 
-    def handleQueryObjectLocationResp(self, msgType, di):
-        ctx = di.getUint32()
-
-        if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected %s'
-                                ' (ctx %d)' % (MsgId2Names[msgType], ctx))
-            return
-
-        di.skipBytes(4)
-        parentId = di.getUint32()
-        zoneId = di.getUint32()
-
-        self.__callbacks[ctx](parentId, zoneId)
-        del self.__callbacks[ctx]
+    def addExitEvent(self, message, sentArgs=[]):
+        dg = self.netMessenger.prepare(message, sentArgs)
+        self.addPostRemove(dg)
 
     def handleDatagram(self, di):
         msgType = self.getMsgType()
 
-        if msgType in (STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED,
-                       STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER):
-            self.handleObjEntry(di,
-                                msgType == STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER)
-        elif msgType in (STATESERVER_OBJECT_CHANGING_AI,
-                         STATESERVER_OBJECT_DELETE_RAM):
-            self.handleObjExit(di)
-        elif msgType == STATESERVER_OBJECT_CHANGING_LOCATION:
-            self.handleObjLocation(di)
-        elif msgType in (DBSERVER_CREATE_OBJECT_RESP,
-                         DBSERVER_OBJECT_GET_ALL_RESP,
-                         DBSERVER_OBJECT_GET_FIELDS_RESP,
-                         DBSERVER_OBJECT_GET_FIELD_RESP,
-                         DBSERVER_OBJECT_SET_FIELD_IF_EQUALS_RESP,
-                         DBSERVER_OBJECT_SET_FIELDS_IF_EQUALS_RESP):
-            self.dbInterface.handleDatagram(msgType, di)
-        elif msgType == DBSS_OBJECT_GET_ACTIVATED_RESP:
-            self.handleGetActivatedResp(di)
-        elif msgType == STATESERVER_OBJECT_GET_LOCATION_RESP:
-            self.handleQueryObjectLocationResp(msgType, di)
-        elif msgType == self.__messenger.msgType:
-            self.__messenger.handle(msgType, di)
+        if msgType == self.netMessenger.msgType:
+            self.netMessenger.handle(di)
             return
-        elif msgType >= 20000:
-            # These messages belong to the NetMessenger:
-            self.netMessenger.handle(msgType, di)
-        else:
-            self.notify.warning(
-                'Received message with unknown MsgType=%d' % msgType)
+
+        AstronInternalRepository.handleDatagram(self, di)
 
     def handleReloadConfig(self, channel):
         if channel == self.ourChannel:
@@ -281,3 +163,28 @@ class ToontownInternalRepository(AstronInternalRepository):
                 loadPrcFile(prc)
 
             messenger.send(EventGlobals.ConfigReloaded)
+
+    def packDclassValueDict(self, dclass, fieldDict):
+        '''
+        Converts {fieldName: fieldValue} dictionaries to
+        {fieldName: packedFieldValue} dictionary.
+
+        Useful for converting values returned from from Astron's Database
+        interface to something more OTP compatible (for dObj.directUpdate or
+        dObj.initFromServerResponse calls).
+        '''
+
+        valueDict = {}
+        packer = DCPacker()
+
+        for fieldName in fieldDict:
+            field = dclass.getFieldByName(fieldName)
+
+            packer.beginPack(field)
+            field.packArgs(packer, fieldDict[fieldName])
+            packer.endPack()
+
+            valueDict[fieldName] = packer.getBytes()
+            packer.clearData()
+
+        return valueDict

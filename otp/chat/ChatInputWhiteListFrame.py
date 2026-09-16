@@ -1,8 +1,8 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableInt, TextProperties, TextPropertiesManager
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import FSM
 from direct.gui.DirectGui import *
 from direct.task import Task
-from pandac.PandaModules import *
 import sys
 
 from otp.chat.ChatInputTyped import ChatInputTyped
@@ -48,12 +48,12 @@ class ChatInputWhiteListFrame(FSM.FSM, DirectFrame):
         wantHistory = 0
         if __dev__:
             wantHistory = 1
-        self.wantHistory = base.config.GetBool('want-chat-history', wantHistory)
+        self.wantHistory = ConfigVariableBool('want-chat-history', wantHistory).getValue()
         self.history = ['']
-        self.historySize = base.config.GetInt('chat-history-size', 10)
+        self.historySize = ConfigVariableInt('chat-history-size', 10).getValue()
         self.historyIndex = 0
         self.promoteWhiteList = 0
-        self.checkBeforeSend = base.config.GetBool('white-list-check-before-send', 0)
+        self.checkBeforeSend = ConfigVariableBool('white-list-check-before-send', False).getValue()
         self.whiteList = None
         self.active = 0
         self.autoOff = 0
@@ -113,6 +113,7 @@ class ChatInputWhiteListFrame(FSM.FSM, DirectFrame):
     def enterAllChat(self):
         self.chatEntry['focus'] = 1
         self.show()
+        self.accept('escape', self.requestMode, ['Off'])
 
     def exitAllChat(self):
         pass
@@ -120,6 +121,7 @@ class ChatInputWhiteListFrame(FSM.FSM, DirectFrame):
     def enterGuildChat(self):
         self['focus'] = 1
         self.show()
+        self.accept('escape', self.requestMode, ['Off'])
 
     def exitGuildChat(self):
         pass
@@ -127,6 +129,7 @@ class ChatInputWhiteListFrame(FSM.FSM, DirectFrame):
     def enterCrewChat(self):
         self['focus'] = 1
         self.show()
+        self.accept('escape', self.requestMode, ['Off'])
 
     def exitCrewChat(self):
         pass
@@ -168,8 +171,10 @@ class ChatInputWhiteListFrame(FSM.FSM, DirectFrame):
         self.show()
         self.active = 1
         self.chatEntry.guiItem.setAcceptEnabled(False)
+        self.accept('escape', self.requestMode, ['Off'])
 
     def deactivate(self):
+        self.ignore('escape')
         self.chatEntry.set('')
         self.chatEntry['focus'] = 0
         self.hide()

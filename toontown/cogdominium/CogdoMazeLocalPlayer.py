@@ -1,4 +1,4 @@
-from pandac.PandaModules import Point3, CollisionNode, CollisionSphere, CollisionHandlerEvent
+from panda3d.core import CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionSphere, NodePath, Point3
 from direct.interval.IntervalGlobal import Func, Sequence, Wait
 from direct.showbase.PythonUtil import bound as clamp
 from direct.directnotify import DirectNotifyGlobal
@@ -6,10 +6,10 @@ from toontown.toonbase import TTLocalizer
 from toontown.minigame.OrthoDrive import OrthoDrive
 from toontown.minigame.OrthoWalk import OrthoWalk
 from toontown.toonbase import ToontownGlobals
-import CogdoGameConsts
-import CogdoMazeGameGlobals as Globals
-from CogdoMazePlayer import CogdoMazePlayer
-from CogdoMazeCameraManager import CogdoMazeCameraManager
+from . import CogdoGameConsts
+from . import CogdoMazeGameGlobals as Globals
+from .CogdoMazePlayer import CogdoMazePlayer
+from .CogdoMazeCameraManager import CogdoMazeCameraManager
 
 class CogdoMazeLocalPlayer(CogdoMazePlayer):
     notify = directNotify.newCategory('CogdoMazeLocalPlayer')
@@ -157,10 +157,10 @@ class CogdoMazeLocalPlayer(CogdoMazePlayer):
             self.hints['throw'] = True
 
     def hitSuit(self, suitType):
-        if suitType == Globals.SuitTypes.Boss and not self.hints['boss']:
+        if suitType == Globals.ESuitType.BOSS and not self.hints['boss']:
             self._guiMgr.setMessageTemporary(TTLocalizer.CogdoMazeBossHint, Globals.HintTimeout)
             self.hints['boss'] = True
-        if suitType != Globals.SuitTypes.Boss and not self.hints['minion']:
+        if suitType != Globals.ESuitType.BOSS and not self.hints['minion']:
             self._guiMgr.setMessageTemporary(TTLocalizer.CogdoMazeMinionHint, Globals.HintTimeout)
             self.hints['minion'] = True
 

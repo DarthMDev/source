@@ -1,7 +1,7 @@
+from panda3d.core import Point3, VBase3, Vec4
 from toontown.battle.DistributedBattleWaiters import DistributedBattleWaiters
 
 import random
-from pandac.PandaModules import VBase3, Point3, Vec4
 from direct.interval.IntervalGlobal import Sequence, Func, Parallel, Track, Wait, SoundInterval, LerpColorScaleInterval
 from toontown.battle import DistributedBattleFinal, SuitBattleGlobals
 from toontown.chat.ChatGlobals import CFSpeech, CFTimeout
@@ -18,7 +18,7 @@ class DistributedBattleVault(DistributedBattleWaiters):
         self.showSuitsFalling(self.suits, 0, self.uniqueName('initial-FlyDown'), self.flyDownDone)
 
     def flyDownDone(self):
-        print 'flyDownDone'
+        print('flyDownDone')
 
     def showSuitsFalling(self, suits, ts, name, callback):
         if self.bossCog == None:

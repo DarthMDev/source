@@ -1,3 +1,4 @@
+from panda3d.core import CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionRay, CollisionSphere, NodePath, TextNode, Vec3, Vec4
 from direct.interval.IntervalGlobal import *
 
 from direct.gui.DirectGui import *
@@ -7,7 +8,7 @@ from direct.distributed.ClockDelta import *
 
 from toontown.toonbase import TTLocalizer
 
-from CheckersBoard import CheckersBoard
+from .CheckersBoard import CheckersBoard
 from toontown.toonbase.ToontownTimer import ToontownTimer
 from toontown.toonbase import ToontownGlobals
 
@@ -94,7 +95,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
         x = self.boardNode.find('**/locator*')
         self.locatorList = x.getChildren()
         tempList = []
-        for x in xrange(0, 32):
+        for x in range(0, 32):
             self.locatorList[x].setTag('GamePieceLocator', '%d' % x)
             tempList.append(self.locatorList[x].attachNewNode(CollisionNode('picker%d' % x)))
             tempList[x].node().addSolid(CollisionSphere(0, 0, 0, 0.39))
@@ -465,7 +466,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
 
     def existsLegalJumpsFrom(self, index, piece):
         if piece == 'king':
-            for x in xrange(4):
+            for x in range(4):
                 if self.board.squareList[index].getAdjacent()[x] != None and \
                                 self.board.squareList[index].getJumps()[x] != None:
                     adj = self.board.squareList[self.board.squareList[index].getAdjacent()[x]]
@@ -527,7 +528,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
         else:
             moveForward = [0, 3]
         if piece == 'king':
-            for x in xrange(4):
+            for x in range(4):
                 if firstSquare.getAdjacent()[x] != None:
                     if self.board.squareList[firstSquare.getAdjacent()[
                         x]].getState() == 0 and secondSquare.getNum() in firstSquare.getAdjacent():
@@ -601,7 +602,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
             self.playerNum = 1
             self.playerColorString = 'white'
             isObserve = True
-        for xx in xrange(32):
+        for xx in range(32):
             for blah in self.locatorList[xx].getChildren():
                 blah.hide()
                 blah1 = blah.find('**/checker_k*')
@@ -685,7 +686,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
         return
 
     def hideChildren(self, nodeList):
-        for x in xrange(1, 2):
+        for x in range(1, 2):
             nodeList[x].hide()
 
     def animatePiece(self, tableState, moveList, type, playerColor):
@@ -707,7 +708,7 @@ class DistributedCheckers(DistributedNode.DistributedNode):
 
         checkersPieceTrack = Sequence()
         length = len(moveList)
-        for x in xrange(length - 1):
+        for x in range(length - 1):
             checkersPieceTrack.append(Parallel(SoundInterval(self.moveSound), ProjectileInterval(gamePieceForAnimation,
                                                                                                  endPos=
                                                                                                  self.locatorList[

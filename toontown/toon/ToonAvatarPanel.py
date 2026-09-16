@@ -1,18 +1,17 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, TextNode, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.showbase import DirectObject
-import ToonHead
+from . import ToonHead
 from toontown.friends import FriendHandle
-import LaffMeter
+from . import LaffMeter
 from otp.avatar import Avatar
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.friends import ToontownFriendSecret
-import ToonAvatarDetailPanel
-import AvatarPanelBase
+from . import ToonAvatarDetailPanel
+from . import AvatarPanelBase
 from toontown.toontowngui import TTDialog
 from otp.otpbase import OTPGlobals
 
@@ -537,10 +536,9 @@ class ToonAvatarPanel(AvatarPanelBase.AvatarPanelBase):
                             self.groupButton['command'] = self.handleInvite
                             self.groupButton['image'] = self.inviteImageList
                         self.groupButton['state'] = DGG.NORMAL
-                    if base.config.GetBool('want-boarding-groups', 1):
+                    if ConfigVariableBool('want-boarding-groups', True).getValue():
                         base.setCellsActive([base.rightCells[0]], 0)
                         self.groupFrame.show()
-        return
 
     def handleReadInfo(self, task = None):
         self.boardingInfoButton['state'] = DGG.DISABLED
@@ -554,7 +552,6 @@ class ToonAvatarPanel(AvatarPanelBase.AvatarPanelBase):
             self.boardingInfoText.destroy()
             del self.boardingInfoText
         self.boardingInfoText = None
-        return
 
     def __makePetGui(self, avatar):
         petGui = loader.loadModel('phase_3.5/models/gui/PetControlPannel')

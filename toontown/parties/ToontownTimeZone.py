@@ -1,3 +1,4 @@
+from panda3d.core import ConfigVariableString
 from datetime import datetime, timedelta, tzinfo
 
 
@@ -16,20 +17,9 @@ def forwardToSunday(dt):
     return dt
 
 
-class UTC(tzinfo):
-    def tzname(self, dt):
-        return 'UTC'
-
-    def utcoffset(self, dt):
-        return timedelta(0)
-
-    def dst(self, dt):
-        return timedelta(0)
-
-
 class ToontownTimeZone(tzinfo):
     def __init__(self):
-        timeZoneInfo = config.GetString('server-timezone', 'EST/EDT/-5')
+        timeZoneInfo = ConfigVariableString('server-timezone', 'EST/EDT/-5').getValue()
         self.stdName, self.dstName, self.stdOffset = timeZoneInfo.split('/')
         self.stdOffset = int(self.stdOffset)
 

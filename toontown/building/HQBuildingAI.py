@@ -1,7 +1,6 @@
-import DistributedDoorAI
-import DistributedHQInteriorAI
-import DoorTypes
-from pandac.PandaModules import *
+from . import DistributedDoorAI
+from . import DistributedHQInteriorAI
+from . import DoorTypes
 from toontown.toon import NPCToons
 
 

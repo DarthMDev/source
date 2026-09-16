@@ -1,9 +1,10 @@
-from DistributedMinigameAI import *
+from panda3d.core import ConfigVariableBool
+from .DistributedMinigameAI import *
 from direct.distributed.ClockDelta import *
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.task import Task
-import CannonGameGlobals
+from . import CannonGameGlobals
 
 class DistributedCannonGameAI(DistributedMinigameAI):
 
@@ -45,7 +46,7 @@ class DistributedCannonGameAI(DistributedMinigameAI):
 
     def enterPlay(self):
         self.notify.debug('enterPlay')
-        if not config.GetBool('endless-cannon-game', 0):
+        if not ConfigVariableBool('endless-cannon-game', False).getValue():
             taskMgr.doMethodLater(CannonGameGlobals.GameTime, self.timerExpired, self.taskName('gameTimer'))
 
     def timerExpired(self, task):

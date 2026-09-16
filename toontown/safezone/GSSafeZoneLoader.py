@@ -1,7 +1,7 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
-from pandac.PandaModules import *
 from toontown.hood import ZoneUtil
 from toontown.launcher import DownloadForceAcknowledge
 from toontown.safezone.SafeZoneLoader import SafeZoneLoader
@@ -36,7 +36,7 @@ class GSSafeZoneLoader(SafeZoneLoader):
             holidayIds = base.cr.newsManager.getDecorationHolidayId()
             if ToontownGlobals.CRASHED_LEADERBOARD in holidayIds:
                 self.startSmokeEffect()
-        self.birdSound = map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg', 'phase_4/audio/sfx/SZ_TC_bird2.ogg', 'phase_4/audio/sfx/SZ_TC_bird3.ogg'])
+        self.birdSound = list(map(loader.loadSfx, ['phase_4/audio/sfx/SZ_TC_bird1.ogg', 'phase_4/audio/sfx/SZ_TC_bird2.ogg', 'phase_4/audio/sfx/SZ_TC_bird3.ogg']))
 
     def unload(self):
         del self.birdSound
@@ -86,7 +86,7 @@ class GSSafeZoneLoader(SafeZoneLoader):
         del self.trackId
 
     def handleRaceOver(self):
-        print 'you done!!'
+        print('you done!!')
 
     def handleLeftRace(self):
         req = {'loader': 'safeZoneLoader',
@@ -99,7 +99,7 @@ class GSSafeZoneLoader(SafeZoneLoader):
         return
 
     def startSmokeEffect(self):
-        if base.config.GetBool('want-crashedLeaderBoard-Smoke', 1):
+        if ConfigVariableBool('want-crashedLeaderBoard-Smoke', True).getValue():
             leaderBoard = self.geom.find('**/*crashed*')
             locator = leaderBoard.find('**/*locator_smoke*')
             if locator != None:
@@ -108,7 +108,7 @@ class GSSafeZoneLoader(SafeZoneLoader):
         return
 
     def stopSmokeEffect(self):
-        if base.config.GetBool('want-crashedLeaderBoard-Smoke', 1):
+        if ConfigVariableBool('want-crashedLeaderBoard-Smoke', True).getValue():
             if self.smoke != None:
                 self.smoke.stop()
                 self.smoke.destroy()

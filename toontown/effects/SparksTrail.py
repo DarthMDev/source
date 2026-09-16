@@ -1,8 +1,9 @@
-from pandac.PandaModules import *
+from panda3d.physics import BaseParticleEmitter, BaseParticleRenderer
+from panda3d.core import ColorBlendAttrib, ModelNode, Point3, Vec3, Vec4
 from direct.interval.IntervalGlobal import *
 from direct.particles import ParticleEffect, Particles, ForceGroup
-from PooledEffect import PooledEffect
-from EffectController import EffectController
+from .PooledEffect import PooledEffect
+from .EffectController import EffectController
 
 class SparksTrail(PooledEffect, EffectController):
 

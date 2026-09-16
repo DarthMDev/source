@@ -1,4 +1,4 @@
-from FireworkGlobals import *
+from .FireworkGlobals import *
 from toontown.toonbase import ToontownGlobals
 from toontown.parties import PartyGlobals
 shows = {ToontownGlobals.JULY4_FIREWORKS: [((2,
@@ -12529,7 +12529,7 @@ shows = {ToontownGlobals.JULY4_FIREWORKS: [((2,
                                         54.79,
                                         127.03,
                                         100))],
- PartyGlobals.FireworkShows.Summer: [((0.5,
+ PartyGlobals.EFireworkShow.SUMMER: [((0.5,
                                        ROCKET,
                                        WHITE,
                                        WHITE,

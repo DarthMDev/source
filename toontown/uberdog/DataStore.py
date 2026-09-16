@@ -1,28 +1,27 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify import DirectNotifyGlobal
-from pandac.PandaModules import ConfigVariableBool
 from direct.task import Task
-from string import maketrans
-import cPickle
+import pickle
 import os
 import sys
-import dumbdbm
-import anydbm
+import dbm.dumb
+import dbm
 import time
 
 class DataStore:
     QueryTypes = []
-    QueryTypes = dict(zip(QueryTypes, range(len(QueryTypes))))
+    QueryTypes = dict(list(zip(QueryTypes, list(range(len(QueryTypes))))))
 
     @classmethod
     def addQueryTypes(cls, typeStrings):
-        superTypes = zip(cls.QueryTypes.values(), cls.QueryTypes.keys())
+        superTypes = list(zip(list(cls.QueryTypes.values()), list(cls.QueryTypes.keys())))
         superTypes.sort()
         newTypes = [ item[1] for item in superTypes ] + typeStrings
-        newTypes = dict(zip(newTypes, range(1 + len(newTypes))))
+        newTypes = dict(list(zip(newTypes, list(range(1 + len(newTypes))))))
         return newTypes
 
     notify = DirectNotifyGlobal.directNotify.newCategory('DataStore')
-    wantAnyDbm = ConfigVariableBool('want-ds-anydbm', 1).getValue()
+    wantAnyDbm = ConfigVariableBool('want-ds-anydbm', False).getValue()
 
     def __init__(self, filepath, writePeriod = 300, writeCountTrigger = 100):
         self.filepath = filepath
@@ -33,20 +32,19 @@ class DataStore:
         self.className = self.__class__.__name__
         if self.wantAnyDbm:
             self.filepath += '-anydbm'
-            self.notify.debug('anydbm default module used: %s ' % anydbm._defaultmod.__name__)
+            self.notify.debug('anydbm default module used: %s ' % dbm._defaultmod.__name__)
         self.open()
-        return
 
     def readDataFromFile(self):
         if self.wantAnyDbm:
             try:
                 if os.path.exists(self.filepath):
-                    self.data = anydbm.open(self.filepath, 'w')
+                    self.data = dbm.open(self.filepath, 'w')
                     self.notify.debug('Opening existing anydbm database at: %s.' % (self.filepath,))
                 else:
-                    self.data = anydbm.open(self.filepath, 'c')
+                    self.data = dbm.open(self.filepath, 'c')
                     self.notify.debug('Creating new anydbm database at: %s.' % (self.filepath,))
-            except anydbm.error:
+            except dbm.error:
                 self.notify.warning('Cannot open anydbm database at: %s.' % (self.filepath,))
 
         else:
@@ -64,12 +62,11 @@ class DataStore:
                     self.notify.debug('New pickle data file will be written to %s.' % (self.filepath,))
 
             if file:
-                data = cPickle.load(file)
+                data = pickle.load(file)
                 file.close()
                 self.data = data
             else:
                 self.data = {}
-        return
 
     def writeDataToFile(self):
         if self.data is not None:
@@ -82,7 +79,7 @@ class DataStore:
                     if os.path.exists(self.filepath):
                         os.rename(self.filepath, backuppath)
                     outfile = open(self.filepath, 'w')
-                    cPickle.dump(self.data, outfile)
+                    pickle.dump(self.data, outfile)
                     outfile.close()
                     if os.path.exists(backuppath):
                         os.remove(backuppath)
@@ -91,7 +88,6 @@ class DataStore:
 
         else:
             self.notify.warning('No data to write. Aborting sync.')
-        return
 
     def syncTask(self, task):
         task.timeElapsed += globalClock.getDt()
@@ -137,7 +133,7 @@ class DataStore:
         self.close()
         if self.wantAnyDbm:
             lt = time.asctime(time.localtime())
-            trans = maketrans(': ', '__')
+            trans = str.maketrans(': ', '__')
             t = lt.translate(trans)
             head, tail = os.path.split(self.filepath)
             newFileName = 'UDStoreBak' + t
@@ -167,12 +163,12 @@ class DataStore:
 
     def query(self, query):
         if self.data is not None:
-            qData = cPickle.loads(query)
+            qData = pickle.loads(query)
             results = self.handleQuery(qData)
-            qResults = cPickle.dumps(results)
+            qResults = pickle.dumps(results)
         else:
             results = None
-            qResults = cPickle.dumps(results)
+            qResults = pickle.dumps(results)
         return qResults
 
     def handleQuery(self, query):

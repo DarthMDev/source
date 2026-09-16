@@ -1,5 +1,6 @@
-import ZoneEntityBase
-import BasicEntities
+from panda3d.core import NodePath
+from . import ZoneEntityBase
+from . import BasicEntities
 
 class ZoneEntity(ZoneEntityBase.ZoneEntityBase, BasicEntities.NodePathAttribs):
 
@@ -24,7 +25,7 @@ class ZoneEntity(ZoneEntityBase.ZoneEntityBase, BasicEntities.NodePathAttribs):
         return self.nodePath
 
     def getVisibleZoneNums(self):
-        return self.visibleZoneNums.keys()
+        return list(self.visibleZoneNums.keys())
 
     def incrementRefCounts(self, zoneNumList):
         for zoneNum in zoneNumList:

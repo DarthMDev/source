@@ -3,7 +3,6 @@ from toontown.battle import BattlePlace
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.showbase import BulletinBoardWatcher
-from pandac.PandaModules import *
 from otp.distributed.TelemetryLimiter import RotationLimitToH, TLGatherAllAvs
 from toontown.toon import Toon
 from toontown.toonbase import ToontownGlobals
@@ -67,7 +66,7 @@ class MintInterior(BattlePlace.BattlePlace):
     def load(self):
         self.parentFSM.getStateNamed('mintInterior').addChild(self.fsm)
         BattlePlace.BattlePlace.load(self)
-        self.music = base.loadMusic('phase_9/audio/bgm/CBHQ_Mint_bg.ogg')
+        self.music = base.loader.loadMusic('phase_9/audio/bgm/CBHQ_Mint_bg.ogg')
 
     def unload(self):
         self.parentFSM.getStateNamed('mintInterior').removeChild(self.fsm)
@@ -94,8 +93,6 @@ class MintInterior(BattlePlace.BattlePlace):
         self.mintReadyWatcher = BulletinBoardWatcher.BulletinBoardWatcher('MintReady', DistributedMint.DistributedMint.ReadyPost, commence)
         self.mintDefeated = 0
         self.acceptOnce(DistributedMint.DistributedMint.WinEvent, self.handleMintWinEvent)
-        if __debug__ and 0:
-            self.accept('f10', lambda : messenger.send(DistributedMint.DistributedMint.WinEvent))
         self.confrontedBoss = 0
 
         def handleConfrontedBoss(self = self):

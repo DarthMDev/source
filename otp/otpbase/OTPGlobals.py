@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import BitMask32, Point3, TextNode
 QuietZone = 1
 UberZone = 2
 WallBitmask = BitMask32(1)
@@ -23,6 +23,7 @@ AICollMovePriority = 8
 MaxFriends = 200
 
 MaxPlayerFriends = 300
+MaxBackCatalog = 48
 FriendChat = 1
 CommonChat = 1
 SuperChat = 2
@@ -218,7 +219,7 @@ REVERSE_INDEX = 3
 STRAFE_LEFT_INDEX = 4
 STRAFE_RIGHT_INDEX = 5
 ToonSpeedFactor = 1.25
-ToonForwardSpeed = 16.0 * ToonSpeedFactor
+ToonForwardSpeed = 20.0 * ToonSpeedFactor
 ToonJumpForce = 24.0
 ToonReverseSpeed = 8.0 * ToonSpeedFactor
 ToonRotateSpeed = 80.0 * ToonSpeedFactor

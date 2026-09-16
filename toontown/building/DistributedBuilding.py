@@ -1,12 +1,11 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, DecalEffect, DepthOffsetAttrib, NodePath, Point3, TextNode, VBase4, Vec3
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.directtools.DirectGeometry import *
-from ElevatorConstants import *
-from ElevatorUtils import *
-from SuitBuildingGlobals import *
+from .ElevatorConstants import *
+from .ElevatorUtils import *
+from .SuitBuildingGlobals import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import ToontownGlobals
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import ClassicFSM, State
@@ -308,7 +307,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
     def getNodePaths(self):
         nodePath = []
         npc = self.townTopLevel.findAllMatches('**/?b' + str(self.block) + ':*_DNARoot;+s')
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             nodePath.append(npc.getPath(i))
         return nodePath
 
@@ -320,7 +319,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
         else:
             self.elevatorModel = loader.loadModel('phase_4/models/modules/elevator')
             npc = self.elevatorModel.findAllMatches('**/floor_light_?;+s')
-            for i in xrange(npc.getNumPaths()):
+            for i in range(npc.getNumPaths()):
                 np = npc.getPath(i)
                 floor = int(np.getName()[-1:]) - 1
                 self.floorIndicator[floor] = np
@@ -359,7 +358,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
         return
 
     def loadAnimToSuitSfx(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: COGBUILDING: Cog Take Over')
         if self.cogDropSound == None:
             self.cogDropSound = loader.loadSfx(self.TAKEOVER_SFX_PREFIX + 'cogbldg_drop.ogg')
@@ -369,7 +368,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
         return
 
     def loadAnimToToonSfx(self):
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             self.notify.info('QA-REGRESSION: COGBUILDING: Toon Take Over')
         if self.cogWeakenSound == None:
             self.cogWeakenSound = loader.loadSfx(self.TAKEOVER_SFX_PREFIX + 'cogbldg_weaken.ogg')
@@ -572,7 +571,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
         textNode.setFont(ToontownGlobals.getSuitFont())
         textNode.setAlign(TextNode.ACenter)
         textNode.setWordwrap(12.0)
-        textNode.setText(buildingTitle.decode('ascii'))
+        textNode.setText(buildingTitle)
         textHeight = textNode.getHeight()
         zScale = (textHeight + 2) / 3.0
         signOrigin = suitBuildingNP.find('**/sign_origin;+s')
@@ -754,7 +753,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
                 delayDeletes.append(DelayDelete.DelayDelete(toon, 'getVictoryRunTrack'))
                 toon.stopSmooth()
                 toon.setParent(ToontownGlobals.SPHidden)
-                origPosTrack.append(Func(toon.setPosHpr, self.elevatorNodePath, apply(Point3, ElevatorPoints[i]), Point3(180, 0, 0)))
+                origPosTrack.append(Func(toon.setPosHpr, self.elevatorNodePath, Point3(*ElevatorPoints[i]), Point3(180, 0, 0)))
                 origPosTrack.append(Func(toon.setParent, ToontownGlobals.SPRender))
             i += 1
 
@@ -826,7 +825,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
             currTime = bounceTime
         realScale = nodeObj.getScale()
         currScaleDiff = startScale - realScale[2]
-        for currBounceScale in xrange(numBounces):
+        for currBounceScale in range(numBounces):
             if currBounceScale == numBounces - 1:
                 currScale = realScale[2]
             elif currBounceScale % 2:
@@ -869,7 +868,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
                     i.stash()
 
         npc = hidden.findAllMatches(self.getSbSearchString())
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             nodePath = npc.getPath(i)
             self.adjustSbNodepathScale(nodePath)
             self.notify.debug('net transform = %s' % str(nodePath.getNetTransform()))
@@ -904,7 +903,7 @@ class DistributedBuilding(DistributedObject.DistributedObject):
                 np.setColorScale(0.6, 0.6, 0.6, 1.0)
 
         npc = hidden.findAllMatches(self.getSbSearchString())
-        for i in xrange(npc.getNumPaths()):
+        for i in range(npc.getNumPaths()):
             nodePath = npc.getPath(i)
             self.adjustSbNodepathScale(nodePath)
             self.notify.debug('net transform = %s' % str(nodePath.getNetTransform()))

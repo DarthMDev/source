@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import NodePath, Point3, Vec3, Vec4
 from direct.interval.IntervalGlobal import *
 from toontown.effects.FireworkGlobals import *
 from toontown.effects.Firework import Firework
@@ -16,7 +16,7 @@ colors = [Vec4(1, 1, 1, 1),
  Vec4(0.1, 1, 1, 1),
  Vec4(0.1, 0.5, 1, 1)]
 fireworkShowTypes = [ToontownGlobals.JULY4_FIREWORKS,
- PartyGlobals.FireworkShows.Summer,
+ PartyGlobals.EFireworkShow.SUMMER,
  ToontownGlobals.NEWYEARS_FIREWORKS,
  ToontownGlobals.COMBO_FIREWORKS]
 
@@ -395,7 +395,7 @@ class FireworkShow(NodePath):
                                         rC(),
                                         2.0,
                                         10.0]],
-     PartyGlobals.FireworkShows.Summer: [[FireworkType.DiademPeony,
+     PartyGlobals.EFireworkShow.SUMMER: [[FireworkType.DiademPeony,
                                           Vec3(90, 0, 120),
                                           rP(),
                                           rS(),
@@ -1077,14 +1077,14 @@ class FireworkShow(NodePath):
                                            10.0]]}
     showData[ToontownGlobals.COMBO_FIREWORKS] = showData[ToontownGlobals.NEWYEARS_FIREWORKS]
     sectionData = {ToontownGlobals.JULY4_FIREWORKS: [(0, 24), (24, len(showData[ToontownGlobals.JULY4_FIREWORKS]))],
-     PartyGlobals.FireworkShows.Summer: [(0, 24), (24, len(showData[PartyGlobals.FireworkShows.Summer]))],
-     ToontownGlobals.NEWYEARS_FIREWORKS: [(0, len(showData[PartyGlobals.FireworkShows.Summer]))],
-     ToontownGlobals.COMBO_FIREWORKS: [(0, len(showData[PartyGlobals.FireworkShows.Summer]))]}
+     PartyGlobals.EFireworkShow.SUMMER: [(0, 24), (24, len(showData[PartyGlobals.EFireworkShow.SUMMER]))],
+     ToontownGlobals.NEWYEARS_FIREWORKS: [(0, len(showData[PartyGlobals.EFireworkShow.SUMMER]))],
+     ToontownGlobals.COMBO_FIREWORKS: [(0, len(showData[PartyGlobals.EFireworkShow.SUMMER]))]}
     showMusic = {}
 
     @classmethod
     def isValidShowType(cls, showType = -1):
-        if showType in cls.showData.keys():
+        if showType in list(cls.showData.keys()):
             return True
         else:
             return False

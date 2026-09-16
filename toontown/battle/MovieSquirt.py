@@ -1,13 +1,14 @@
+from panda3d.core import ConfigVariableBool, GeomNode, Point3, Point4, VBase3
 from direct.interval.IntervalGlobal import *
-from BattleBase import *
-from BattleProps import *
-from BattleSounds import *
+from .BattleBase import *
+from .BattleProps import *
+from .BattleSounds import *
 from toontown.toon.ToonDNA import *
 from toontown.suit.SuitDNA import *
-import MovieUtil
-import MovieCamera
+from . import MovieUtil
+from . import MovieCamera
 from direct.directnotify import DirectNotifyGlobal
-import BattleParticles
+from . import BattleParticles
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import ToontownBattleGlobals
 import random
@@ -48,15 +49,8 @@ def doSquirts(squirts):
             else:
                 suitSquirtsDict[suitId] = [squirt]
 
-    suitSquirts = suitSquirtsDict.values()
-
-    def compFunc(a, b):
-        if len(a) > len(b):
-            return 1
-        elif len(a) < len(b):
-            return -1
-        return 0
-    suitSquirts.sort(compFunc)
+    suitSquirts = list(suitSquirtsDict.values())
+    suitSquirts.sort(key=lambda x: len(x))
 
     delay = 0.0
 
@@ -219,7 +213,7 @@ def __getSuitTrack(suit, tContact, tDodge, hp, hpbonus, kbbonus, anim, died, lef
 
 
 def say(statement):
-    print statement
+    print(statement)
 
 
 def __getSoundTrack(level, hitSuit, delay, node = None):
@@ -279,11 +273,11 @@ def __doFlower(squirt, delay, fShowStun):
     lodnames = toon.getLODNames()
     toonlod0 = toon.getLOD(lodnames[0])
     toonlod1 = toon.getLOD(lodnames[1])
-    if base.config.GetBool('want-new-anims', 1) and not toonlod0.find('**/def_joint_attachFlower').isEmpty():
+    if ConfigVariableBool('want-new-anims', True).getValue() and not toonlod0.find('**/def_joint_attachFlower').isEmpty():
         flower_joint0 = toonlod0.find('**/def_joint_attachFlower')
     else:
         flower_joint0 = toonlod0.find('**/joint_attachFlower')
-    if base.config.GetBool('want-new-anims', 1) and not toonlod1.find('**/def_joint_attachFlower').isEmpty():
+    if ConfigVariableBool('want-new-anims', True).getValue() and not toonlod1.find('**/def_joint_attachFlower').isEmpty():
         flower_joint1 = toonlod1.find('**/def_joint_attachFlower')
     else:
         flower_joint1 = toonlod1.find('**/joint_attachFlower')
@@ -345,7 +339,7 @@ def __doWaterGlass(squirt, delay, fShowStun):
     def getSprayStartPos(toon = toon):
         toon.update(0)
         lod0 = toon.getLOD(toon.getLODNames()[0])
-        if base.config.GetBool('want-new-anims', 1):
+        if ConfigVariableBool('want-new-anims', True).getValue():
             if not lod0.find('**/def_head').isEmpty():
                 joint = lod0.find('**/def_head')
             else:
@@ -635,7 +629,7 @@ def __doStormCloud(squirt, delay, fShowStun):
             delay = trickleDuration = cloudHold * 0.25
             trickleTrack = Sequence(Func(battle.movie.needRestoreParticleEffect, trickleEffect), ParticleInterval(trickleEffect, cloud, worldRelative=0, duration=trickleDuration, cleanup=True), Func(battle.movie.clearRestoreParticleEffect, trickleEffect))
             track.append(trickleTrack)
-            for i in xrange(0, 3):
+            for i in range(0, 3):
                 dur = cloudHold - 2 * trickleDuration
                 ptrack.append(Sequence(Func(battle.movie.needRestoreParticleEffect, rainEffects[i]), Wait(delay), ParticleInterval(rainEffects[i], cloud, worldRelative=0, duration=dur, cleanup=True), Func(battle.movie.clearRestoreParticleEffect, rainEffects[i])))
                 delay += effectDelay
@@ -709,13 +703,13 @@ def __doGeyser(squirt, delay, fShowStun, uberClone = 0):
             geyserMound = MovieUtil.copyProp(geyser)
             geyserRemoveM = geyserMound.findAllMatches('**/Splash*')
             geyserRemoveM.addPathsFrom(geyserMound.findAllMatches('**/spout'))
-            for i in xrange(geyserRemoveM.getNumPaths()):
+            for i in range(geyserRemoveM.getNumPaths()):
                 geyserRemoveM[i].removeNode()
 
             geyserWater = MovieUtil.copyProp(geyser)
             geyserRemoveW = geyserWater.findAllMatches('**/hole')
             geyserRemoveW.addPathsFrom(geyserWater.findAllMatches('**/shadow'))
-            for i in xrange(geyserRemoveW.getNumPaths()):
+            for i in range(geyserRemoveW.getNumPaths()):
                 geyserRemoveW[i].removeNode()
 
             track = Sequence(Wait(rainDelay), Func(MovieUtil.showProp, geyserMound, battle, suit.getPos(battle)), Func(MovieUtil.showProp, geyserWater, battle, suit.getPos(battle)), LerpScaleInterval(geyserWater, 1.0, scaleUpPoint, startScale=MovieUtil.PNT3_NEARZERO), Wait(geyserHold * 0.5), LerpScaleInterval(geyserWater, 0.5, MovieUtil.PNT3_NEARZERO, startScale=scaleUpPoint))

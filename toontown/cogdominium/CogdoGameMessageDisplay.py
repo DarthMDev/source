@@ -1,9 +1,9 @@
+from panda3d.core import TextNode
 from direct.interval.FunctionInterval import Func
 from direct.interval.LerpInterval import LerpFunc
 from direct.interval.MetaInterval import Sequence
-from pandac.PandaModules import TextNode
 from toontown.toonbase import ToontownGlobals
-import CogdoGameConsts
+from . import CogdoGameConsts
 
 class CogdoGameMessageDisplay:
     UpdateMessageTaskName = 'MessageDisplay.updateMessage'

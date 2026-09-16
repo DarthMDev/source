@@ -1,4 +1,5 @@
-import CatalogGardenItem
+from panda3d.core import Datagram
+from . import CatalogGardenItem
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from otp.otpbase import OTPLocalizer
@@ -45,12 +46,12 @@ class CatalogToonStatueItem(CatalogGardenItem.CatalogGardenItem):
 
     def compareTo(self, other):
         if self.gardenIndex >= self.startPoseIndex and self.gardenIndex <= self.endPoseIndex:
-            return 0
-        return 1
+            return True
+        return False
 
     def getAllToonStatues(self):
         self.statueList = []
-        for index in xrange(self.startPoseIndex, self.endPoseIndex + 1):
+        for index in range(self.startPoseIndex, self.endPoseIndex + 1):
             self.statueList.append(CatalogToonStatueItem(index, 1, endPoseIndex=index))
 
         return self.statueList

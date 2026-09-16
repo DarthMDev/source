@@ -44,6 +44,7 @@ class LoginScreen(DirectFrame):
             pos=(0, 0, -0.60),
             width=10.5,
             obscured=True,
+            command=self.__handleEnterPressed,
             **MainMenuGlobals.ENTRY_PROPERTIES
         )
 
@@ -51,6 +52,7 @@ class LoginScreen(DirectFrame):
             parent=self,
             pos=(0, 0, -0.30),
             width=10.5,
+            command=self.__handleEnterPressed,
             **MainMenuGlobals.ENTRY_PROPERTIES
         )
 
@@ -64,12 +66,23 @@ class LoginScreen(DirectFrame):
 
         self.loginDialog = None
 
+        self.accept('tab', self.__handleTab)
+
     def destroy(self):
+        self.ignore('tab')
         if self.loginDialog:
             self.loginDialog.cleanup()
             self.loginDialog = None
         taskMgr.remove('clearLoginErrorTask')
         DirectFrame.destroy(self)
+
+    def __handleTab(self):
+        if self.usernameInput.guiItem.getFocus():
+            self.usernameInput['focus'] = 0
+            self.passwordInput['focus'] = 1
+
+    def __handleEnterPressed(self, text):
+        self.doLogin()
 
     def setErrorMessage(self, text):
         self.errorLabel['text'] = text
@@ -84,7 +97,7 @@ class LoginScreen(DirectFrame):
             base.cr.sendSetAvatarIdMsg(0)
             self.acceptOnce(EventGlobals.LoginError, self.__handleLoginError)
             self.acceptOnce(EventGlobals.LoginDone, self.__handleLoginSuccess)
-            password = hashlib.sha512(self.passwordInput.get()).hexdigest()
+            password = hashlib.sha512(self.passwordInput.get().encode('utf-8')).hexdigest()
             base.cr.csm.performLogin(EventGlobals.LoginDone, self.usernameInput.get(), password)
             base.cr.waitForDatabaseTimeout(requestName='WaitOnCSMLoginResponse')
             self.showLoginDialog()

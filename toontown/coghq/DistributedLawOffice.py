@@ -1,13 +1,12 @@
-from pandac.PandaModules import *
 from toontown.toonbase.ToontownGlobals import *
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 import random
 from otp.level import DistributedLevel
 from direct.directnotify import DirectNotifyGlobal
-import LawOfficeBase
-import FactoryEntityCreator
-import FactorySpecs
+from . import LawOfficeBase
+from . import FactoryEntityCreator
+from . import FactorySpecs
 from otp.level import LevelSpec
 from otp.level import LevelConstants
 from toontown.toonbase import TTLocalizer

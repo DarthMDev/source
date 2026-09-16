@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool
 
 from toontown.guilds.GuildRoleUD import GuildRoleUD
 from toontown.guilds.GuildMemberUD import GuildMemberUD
@@ -96,6 +96,7 @@ class GuildUD:
 
     # Destruction
     def destroy(self):
+        taskMgr.remove(self.getUniqueName('guildQuestUpdateLater'))
         self.mgr.handleDestroy(self.id)
 
     # Name Functions
@@ -135,8 +136,25 @@ class GuildUD:
         # Save the guild
         self.saveGuild()
 
+    def rolloverQuest(self):
+        if not ConfigVariableBool('want-guild-quests', True).getValue():
+            return
+        if self.questNum // GuildQuestGlobals.QUESTS_PER_DAY == GuildQuestGlobals.getQuestDay():
+            return
+
+        taskMgr.remove(self.getUniqueName('guildQuestUpdateLater'))
+        self.startQuest()
+        self.sendUpdate('alertQuestStarted', [self.quest])
+        self.saveGuild()
+
     def startQuest(self):
-        if not config.GetBool('want-guild-quests', True):
+        today = GuildQuestGlobals.getQuestDay()
+        if self.questNum // GuildQuestGlobals.QUESTS_PER_DAY != today:
+            # Unfinished quests expire at the end of the day
+            self.questNum = today * GuildQuestGlobals.QUESTS_PER_DAY
+            self.quest = GuildQuestGlobals.GUILD_QUEST_EMPTY
+
+        if not ConfigVariableBool('want-guild-quests', True).getValue():
             # We don't want quests right now, shut it all down
             quest = GuildQuestGlobals.GUILD_QUEST_EMPTY
             self.questContributions = {}
@@ -146,7 +164,7 @@ class GuildUD:
             self.questContributions = {}
         else:
             # We have a quest, lets make sure this quest actually exists (safety-net)
-            if self.quest[GuildQuestGlobals.GUILD_QUEST_ID] not in GuildQuestGlobals.GuildQuestDict.keys():
+            if self.quest[GuildQuestGlobals.GUILD_QUEST_ID] not in list(GuildQuestGlobals.GuildQuestDict.keys()):
                 # Something went wrong with this quest, get a new one
                 quest = GuildQuestGlobals.getQuestFromNum(self.questNum)
                 self.questContributions = {}
@@ -309,7 +327,7 @@ class GuildUD:
                 self.avId2MemberIndex[member.id] = self.members.index(fields)
 
                 # Check if this guild is ready
-                for avId, _member in self.avId2Member.items():
+                for avId, _member in list(self.avId2Member.items()):
                     if _member is None:
                         return
 
@@ -377,15 +395,10 @@ class GuildUD:
         senderRole = sender.getRole()
         targetRole = target.getRole()
 
-        # Check if the owner is trying to leave
-        if target is sender:
-            if targetRole.sortIndex == 0:
-                # If the owner is the last person
-                if len(self.avId2Member) == 1:
-                    self.destroy()
-                else:
-                    self.mgr.sendUpdateToAvatarId(senderId, 'guildError', [GUILD_CANT_LEAVE_ERROR])
-                    return
+        # The owner can only leave as the last member, which disbands the guild
+        if target is sender and targetRole.sortIndex == 0 and len(self.members) > 1:
+            self.mgr.sendUpdateToAvatarId(senderId, 'guildError', [GUILD_CANT_LEAVE_ERROR])
+            return
                 
         # Is this someone trying to kick someone else?
         if target is not sender:
@@ -432,6 +445,10 @@ class GuildUD:
         if avId in self.mgr.avId2GuildId:
             del self.mgr.avId2GuildId[avId]
 
+        if not self.members:
+            self.destroy()
+            return
+
         # Calculate the guilds rank
         self.mgr.calculateRanksThreaded()
 
@@ -464,6 +481,10 @@ class GuildUD:
             del self.avId2MemberIndex[avId]
         if avId in self.mgr.avId2GuildId:
             del self.mgr.avId2GuildId[avId]
+
+        if not self.members:
+            self.destroy()
+            return
 
         # Calculate the guilds rank
         self.mgr.calculateRanksThreaded()
@@ -509,8 +530,14 @@ class GuildUD:
     def getMember(self, avId):
         return self.avId2Member.get(avId)
 
+    def getOwnerId(self):
+        for entry in self.members:
+            if entry[GUILD_MEMBER_ENTRY_ROLE] == GUILD_ROLE_ID_OWNER:
+                return entry[GUILD_MEMBER_ENTRY_ID]
+        return 0
+
     def getMemberCount(self):
-        return len(self.avId2Member.keys())
+        return len(list(self.avId2Member.keys()))
 
     def getMemberIndex(self, member):
         if member.asEntry() not in self.members:

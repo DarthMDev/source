@@ -1,20 +1,16 @@
-from pandac.PandaModules import *
+from panda3d.core import NodePath, VBase3, VBase4, Vec3
 from direct.interval.IntervalGlobal import *
 from toontown.toonbase.ToontownGlobals import *
-from CrateGlobals import *
+from .CrateGlobals import *
 from direct.showbase.PythonUtil import fitSrcAngle2Dest
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
-import MovingPlatform
+from . import MovingPlatform
 from direct.task.Task import Task
-import DistributedCrushableEntity
+from . import DistributedCrushableEntity
 
 class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedCrate')
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
     ModelPaths = ('phase_9/models/cogHQ/woodCrateB', 'phase_10/models/cashbotHQ/CBWoodCrate')
 
     def __init__(self, cr):
@@ -59,7 +55,7 @@ class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
         if self.pushable:
             self.__listenForCollisions(0)
             self.ignore(base.MOVE_UP)
-            self.ignore('arrow_up-up')
+            self.ignore(base.MOVE_UP + '-up')
         DistributedCrushableEntity.DistributedCrushableEntity.disable(self)
 
     def delete(self):
@@ -93,11 +89,11 @@ class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
 
     def __upKeyPressed(self):
         self.ignore(base.MOVE_UP)
-        self.accept('arrow_up-up', self.__upKeyReleased)
+        self.accept(base.MOVE_UP + '-up', self.__upKeyReleased)
         self.upPressed = 1
 
     def __upKeyReleased(self):
-        self.ignore('arrow_up-up')
+        self.ignore(base.MOVE_UP + '-up')
         self.accept(base.MOVE_UP, self.__upKeyPressed)
         self.upPressed = 0
         if self.stuckToCrate:
@@ -186,7 +182,7 @@ class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
             return Task.cont
 
     def getCrateSide(self, crateNormal):
-        for i in xrange(len(CrateNormals)):
+        for i in range(len(CrateNormals)):
             dotP = CrateNormals[i].dot(crateNormal)
             if dotP > 0.9:
                 self.crateSide = i

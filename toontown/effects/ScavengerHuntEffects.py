@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import NodePath, VBase3, VBase4
 from direct.interval.IntervalGlobal import *
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -22,7 +22,7 @@ class ScavengerHuntEffect:
 
             def countUp(t, startVal, endVal):
                 beanCountStr = startVal + t * (endVal - startVal)
-                self.countLabel['text'] = '+' + `(int(beanCountStr))`
+                self.countLabel['text'] = '+' + repr((int(beanCountStr)))
 
             def setCountColor(color):
                 self.countLabel['text_fg'] = color

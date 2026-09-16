@@ -1,6 +1,5 @@
-from pandac.PandaModules import NodePath, Point3, PlaneNode, TextNode
+from panda3d.core import GeomNode, NodePath, Plane, PlaneNode, Point3, TextNode
 from direct.interval.IntervalGlobal import *
-from direct.showbase.ShowBase import Plane
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.RandomNumGen import RandomNumGen
 from direct.interval.MetaInterval import Sequence, Parallel
@@ -10,8 +9,8 @@ from toontown.toonbase.ToontownGlobals import *
 from toontown.toonbase import TTLocalizer
 from toontown.suit import Suit, SuitDNA
 from toontown.toon import Toon, ToonHead, ToonDNA
-from CogdoUtil import CogdoGameMovie
-import CogdoUtil
+from .CogdoUtil import CogdoGameMovie
+from . import CogdoUtil
 
 class CogdoExecutiveSuiteIntro(CogdoGameMovie):
     notify = DirectNotifyGlobal.directNotify.newCategory('CogdoExecutiveSuiteIntro')

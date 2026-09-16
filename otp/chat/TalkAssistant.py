@@ -1,6 +1,6 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase import DirectObject
-from pandac.PandaModules import *
 import sys
 import time
 
@@ -13,6 +13,7 @@ from otp.otpbase import OTPLocalizer
 from otp.speedchat import SCDecoders
 from toontown.chat.ChatGlobals import *
 from toontown.chat.TTWhiteList import TTWhiteList
+from toontown.toonbase import TTLocalizer
 
 
 class TalkAssistant(DirectObject.DirectObject):
@@ -25,7 +26,7 @@ class TalkAssistant(DirectObject.DirectObject):
         self.zeroTimeDay = time.time()
         self.zeroTimeGame = globalClock.getRealTime()
         self.floodThreshold = 10.0
-        self.useWhiteListFilter = base.config.GetBool('white-list-filter-openchat', 0)
+        self.useWhiteListFilter = ConfigVariableBool('white-list-filter-openchat', False).getValue()
         self.lastWhisperDoId = None
         self.lastWhisperPlayerId = None
         self.lastWhisper = None
@@ -221,12 +222,12 @@ class TalkAssistant(DirectObject.DirectObject):
         return
 
     def printHistoryComplete(self):
-        print 'HISTORY COMPLETE'
+        print('HISTORY COMPLETE')
         for message in self.historyComplete:
-            print '%s %s %s\n%s\n' % (message.getTimeStamp(),
+            print('%s %s %s\n%s\n' % (message.getTimeStamp(),
              message.getSenderAvatarName(),
              message.getSenderAccountName(),
-             message.getBody())
+             message.getBody()))
 
     def checkOpenTypedChat(self):
         if base.localAvatar.commonChatFlags & OTPGlobals.CommonChat:
@@ -555,7 +556,7 @@ class TalkAssistant(DirectObject.DirectObject):
             message.encode('ascii')
         except UnicodeEncodeError:
             return
-        if base.config.GetBool('want-talkative-tyler', False):
+        if ConfigVariableBool('want-talkative-tyler', False).getValue():
             if base.localAvatar.zoneId == 2000:
                 tyler = base.cr.doFind('Talkative Tyler')
                 if tyler:
@@ -572,6 +573,12 @@ class TalkAssistant(DirectObject.DirectObject):
                 if channel is not None:
                     self.channel = Modifiers.index(channel)
                 message = removeModifier(message)
+            if Modifiers[self.channel] == GuildModifier:
+                if base.cr.guildManager.guild is None:
+                    base.localAvatar.displayWhisper(0, TTLocalizer.GuildChatWarning, WTSystem)
+                else:
+                    base.cr.chatAgent.sendChatMessage(message, self.channel)
+                return error
             base.cr.chatAgent.sendChatMessage(message, self.channel)
             messenger.send('chatUpdate', [message, chatFlags])
         return error
@@ -581,7 +588,7 @@ class TalkAssistant(DirectObject.DirectObject):
         words = message.split(' ')
         offset = 0
 
-        WantWhitelist = config.GetBool('want-whitelist', 1)
+        WantWhitelist = ConfigVariableBool('want-whitelist', True).getValue()
         friendsList = base.localAvatar.getFriendsList()
         for friendEntry in friendsList:
             if friendEntry[0] == receiverAvId and friendEntry[1]:
@@ -611,7 +618,7 @@ class TalkAssistant(DirectObject.DirectObject):
         if self.checkGuildTypedChat():
             base.cr.guildManager.sendTalk(message)
         else:
-            print 'Guild chat error'
+            print('Guild chat error')
             error = ERROR_NO_GUILD_CHAT
         return error
 
@@ -679,7 +686,7 @@ class TalkAssistant(DirectObject.DirectObject):
         if self.checkGuildSpeedChat():
             base.cr.guildManager.sendSC(msgIndex)
         else:
-            print 'Guild Speedchat error'
+            print('Guild Speedchat error')
             error = ERROR_NO_GUILD_CHAT
         return error
 

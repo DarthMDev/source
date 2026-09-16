@@ -1,3 +1,4 @@
+from panda3d.core import BitMask32, CollideMask, CollisionEntry, CollisionHandler, CollisionHandlerFloor, CollisionHandlerPusher, CollisionHandlerQueue, CollisionNode, CollisionRay, CollisionSegment, CollisionSphere, CollisionTraverser, ConfigVariable, ConfigVariableBool, ConfigVariableInt, GeomNode, NodePath, Point3, TextNode, Vec3, Vec4, deg2Rad
 from direct.controls.GhostWalker import GhostWalker
 from direct.controls.GravityWalker import GravityWalker
 from direct.controls.ObserverWalker import ObserverWalker
@@ -11,10 +12,9 @@ from direct.showbase.InputStateGlobal import inputState
 from direct.showbase.PythonUtil import *
 from direct.task import Task
 import math
-from pandac.PandaModules import *
 import random
 
-import DistributedAvatar
+from . import DistributedAvatar
 from otp.ai.MagicWordGlobal import *
 from otp.avatar import ToontownControlManager
 from otp.otpbase import OTPGlobals
@@ -25,11 +25,11 @@ from toontown.toonbase import ToontownGlobals, EventGlobals
 
 class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.DistributedSmoothNode):
     notify = DirectNotifyGlobal.directNotify.newCategory('LocalAvatar')
-    wantDevCameraPositions = base.config.GetBool('want-dev-camera-positions', 0)
-    wantMouse = base.config.GetBool('want-mouse', 0)
-    sleepTimeout = base.config.GetInt('sleep-timeout', 120)
-    swimTimeout = base.config.GetInt('afk-timeout', 600)
-    __enableMarkerPlacement = base.config.GetBool('place-markers', 0)
+    wantDevCameraPositions = ConfigVariableBool('want-dev-camera-positions', False).getValue()
+    wantMouse = ConfigVariableBool('want-mouse', False).getValue()
+    sleepTimeout = ConfigVariableInt('sleep-timeout', 120).getValue()
+    swimTimeout = ConfigVariableInt('afk-timeout', 600).getValue()
+    __enableMarkerPlacement = ConfigVariableBool('place-markers', False).getValue()
 
     def __init__(self, cr, chatMgr, talkAssistant = None, passMessagesThrough = False):
         try:
@@ -601,21 +601,21 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
             self.nextCameraPos(1)
 
     def printCameraPositions(self):
-        print '['
-        for i in xrange(len(self.cameraPositions)):
+        print('[')
+        for i in range(len(self.cameraPositions)):
             self.printCameraPosition(i)
-            print ','
+            print(',')
 
-        print ']'
+        print(']')
 
     def printCameraPosition(self, index):
         cp = self.cameraPositions[index]
-        print '(Point3(%0.2f, %0.2f, %0.2f),' % (cp[0][0], cp[0][1], cp[0][2])
-        print 'Point3(%0.2f, %0.2f, %0.2f),' % (cp[1][0], cp[1][1], cp[1][2])
-        print 'Point3(%0.2f, %0.2f, %0.2f),' % (cp[2][0], cp[2][1], cp[2][2])
-        print 'Point3(%0.2f, %0.2f, %0.2f),' % (cp[3][0], cp[3][1], cp[3][2])
-        print '%d,' % cp[4]
-        print ')',
+        print('(Point3(%0.2f, %0.2f, %0.2f),' % (cp[0][0], cp[0][1], cp[0][2]))
+        print('Point3(%0.2f, %0.2f, %0.2f),' % (cp[1][0], cp[1][1], cp[1][2]))
+        print('Point3(%0.2f, %0.2f, %0.2f),' % (cp[2][0], cp[2][1], cp[2][2]))
+        print('Point3(%0.2f, %0.2f, %0.2f),' % (cp[3][0], cp[3][1], cp[3][2]))
+        print('%d,' % cp[4])
+        print(')', end=' ')
 
     def posCamera(self, lerp, duration):
         if not lerp:
@@ -1079,7 +1079,7 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
     def wakeUp(self):
         if self.neverSleep:
             return
-        if self.sleepCallback != None:
+        if self.sleepCallback is not None:
             taskMgr.remove(self.uniqueName('sleepwatch'))
             self.startSleepWatch(self.sleepCallback)
         self.lastMoved = globalClock.getFrameTime()
@@ -1135,7 +1135,6 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
         if self.swimmingFlag or self.hp <= 0:
             self.wakeUp()
         elif not self.sleepFlag:
-            now = globalClock.getFrameTime()
             if now - self.lastMoved > self.swimTimeout:
                 self.swimTimeoutAction()
                 return Task.done
@@ -1242,7 +1241,7 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
         node = base.camera.getParent()
         pos = base.cam.getPos(node)
         hpr = base.cam.getHpr(node)
-        print 'cam pos = ', `pos`, ', cam hpr = ', `hpr`
+        print('cam pos = ', repr(pos), ', cam hpr = ', repr(hpr))
 
     def d_broadcastPositionNow(self):
         self.d_clearSmoothing()
@@ -1320,7 +1319,7 @@ class LocalAvatar(DistributedAvatar.DistributedAvatar, DistributedSmoothNode.Dis
         DistributedSmoothNode.DistributedSmoothNode.d_setParent(self, parentToken)
 
     def handlePlayerFriendWhisper(self, playerId, charMessage):
-        print 'handlePlayerFriendWhisper'
+        print('handlePlayerFriendWhisper')
         self.displayWhisperPlayer(playerId, charMessage, WTNormal)
 
     def canChat(self):

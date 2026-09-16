@@ -1,7 +1,6 @@
-from pandac.PandaModules import *
-import ShtikerPage
+from panda3d.core import Vec4
+from . import ShtikerPage
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.quest import Quests
 from toontown.toon import NPCToons
 from toontown.hood import ZoneUtil
@@ -23,6 +22,7 @@ class QuestPage(ShtikerPage.ShtikerPage):
         self.textDownColor = Vec4(0.5, 0.9, 1, 1)
         self.textDisabledColor = Vec4(0.4, 0.8, 0.4, 1)
         self.onscreen = 0
+        self.onscreenHotkeys = ()
         self.lastQuestTime = globalClock.getRealTime()
         return
 
@@ -48,7 +48,7 @@ class QuestPage(ShtikerPage.ShtikerPage):
           0,
           0))
         self.questFrames = []
-        for i in xrange(ToontownGlobals.MaxQuestCarryLimit):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
             frame = QuestBookPoster.QuestBookPoster(reverse=i > 1, mapIndex=i + 1)
             frame.reparentTo(self)
             frame.setPosHpr(*questFramePlaceList[i])
@@ -59,12 +59,22 @@ class QuestPage(ShtikerPage.ShtikerPage):
         return
 
     def acceptOnscreenHooks(self):
-        self.accept(ToontownGlobals.QuestsHotkeyOn, self.showQuestsOnscreen)
-        self.accept(ToontownGlobals.QuestsHotkeyOff, self.hideQuestsOnscreen)
+        # Remember what we bound:
+        self.onscreenHotkeys = (ToontownGlobals.QuestsHotkeyOn, ToontownGlobals.QuestsHotkeyOff)
+        self.accept(self.onscreenHotkeys[0], self.showQuestsOnscreen)
+        self.accept(self.onscreenHotkeys[1], self.hideQuestsOnscreen)
+        self.accept('controlsRemapped', self.reloadOnscreenHooks)
 
     def ignoreOnscreenHooks(self):
-        self.ignore(ToontownGlobals.QuestsHotkeyOn)
-        self.ignore(ToontownGlobals.QuestsHotkeyOff)
+        self.ignore('controlsRemapped')
+        for hotkey in self.onscreenHotkeys:
+            self.ignore(hotkey)
+        self.onscreenHotkeys = ()
+
+    def reloadOnscreenHooks(self):
+        self.hideQuestsOnscreen()
+        self.ignoreOnscreenHooks()
+        self.acceptOnscreenHooks()
 
     def unload(self):
         self.ignore('questsChanged')
@@ -84,7 +94,7 @@ class QuestPage(ShtikerPage.ShtikerPage):
         self.quests[index] = questDesc
 
     def getLowestUnusedIndex(self):
-        for i in xrange(ToontownGlobals.MaxQuestCarryLimit):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if self.quests[i] == None:
                 return i
 
@@ -94,23 +104,23 @@ class QuestPage(ShtikerPage.ShtikerPage):
         self.notify.debug('updatePage()')
         newQuests = base.localAvatar.quests
         carryLimit = base.localAvatar.getQuestCarryLimit()
-        for i in xrange(ToontownGlobals.MaxQuestCarryLimit):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if i < carryLimit:
                 self.questFrames[i].show()
             else:
                 self.questFrames[i].hide()
 
-        for index, questDesc in self.quests.items():
+        for index, questDesc in list(self.quests.items()):
             if questDesc is not None and list(questDesc) not in newQuests:
                 self.clearQuestFrame(index)
 
         for questDesc in newQuests:
             newQuestDesc = tuple(questDesc)
-            if newQuestDesc not in self.quests.values():
+            if newQuestDesc not in list(self.quests.values()):
                 index = self.getLowestUnusedIndex()
                 self.fillQuestFrame(newQuestDesc, index)
 
-        for i, questDesc in self.quests.iteritems():
+        for i, questDesc in self.quests.items():
             if questDesc:
                 if self.canDeleteQuest(questDesc):
                     self.questFrames[i].setDeleteCallback(self.__deleteQuest)
@@ -143,7 +153,7 @@ class QuestPage(ShtikerPage.ShtikerPage):
         if self.onscreen or base.localAvatar.invPage.onscreen:
             return
         self.onscreen = 1
-        for i in xrange(ToontownGlobals.MaxQuestCarryLimit):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if hasattr(self.questFrames[i], 'mapIndex'):
                 self.questFrames[i].mapIndex.show()
 
@@ -160,7 +170,7 @@ class QuestPage(ShtikerPage.ShtikerPage):
         if not self.onscreen:
             return
         self.onscreen = 0
-        for i in xrange(ToontownGlobals.MaxQuestCarryLimit):
+        for i in range(ToontownGlobals.MaxQuestCarryLimit):
             if hasattr(self.questFrames[i], 'mapIndex'):
                 self.questFrames[i].mapIndex.hide()
 

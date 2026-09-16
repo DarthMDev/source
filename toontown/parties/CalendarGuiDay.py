@@ -1,6 +1,6 @@
+from panda3d.core import ConfigVariableBool, Plane, PlaneNode, Point3, TextNode, Vec3, Vec4
 import datetime
 import time
-from pandac.PandaModules import TextNode, Vec3, Vec4, PlaneNode, Plane, Point3
 from direct.gui.DirectGui import DirectFrame, DirectLabel, DirectButton, DirectScrolledList, DGG
 from direct.directnotify import DirectNotifyGlobal
 from direct.gui import DirectGuiGlobals
@@ -34,7 +34,7 @@ class CalendarGuiDay(DirectFrame):
         self.partiesInvitedToToday = []
         self.hostedPartiesToday = []
         self.yearlyHolidaysToday = []
-        self.showMarkers = base.config.GetBool('show-calendar-markers', 0)
+        self.showMarkers = ConfigVariableBool('show-calendar-markers', False).getValue()
         self.filter = ToontownGlobals.CalendarFilterShowAll
         self.load()
         self.createGuiObjects()
@@ -181,7 +181,7 @@ class CalendarGuiDay(DirectFrame):
                 self.addTitleAndDescToScrollList(holidayName, holidayDesc)
 
             self.scrollList.refresh()
-        if base.config.GetBool('calendar-test-items', 0):
+        if ConfigVariableBool('calendar-test-items', False).getValue():
             if self.myDate.date() + datetime.timedelta(days=-1) == base.cr.toontownTimeManager.getCurServerDateTime().date():
                 testItems = ('1:00 AM Party', '2:00 AM CEO', '11:15 AM Party', '5:30 PM CJ', '11:00 PM Party', 'Really Really Long String')
                 for text in testItems:
@@ -287,7 +287,7 @@ class CalendarGuiDay(DirectFrame):
             else:
                 return 1
 
-        self.timedEvents.sort(cmp=timedEventCompare)
+        self.timedEvents.sort(key=lambda te: te[0])
         for timedEvent in self.timedEvents:
             if isinstance(timedEvent[1], PartyInfo):
                 self.addPartyToScrollList(timedEvent[1])
@@ -559,13 +559,13 @@ class MiniInviteVisual(DirectFrame):
             time = myStrftime(self.partyInfo.startTime)
             self.whenTextLabel['text'] = time
         if self.partyStatusLabel['text'] == ' ':
-            if self.partyInfo.status == PartyGlobals.PartyStatus.Cancelled:
+            if self.partyInfo.status == PartyGlobals.EPartyStatus.CANCELLED:
                 self.partyStatusLabel['text'] = TTLocalizer.CalendarPartyCancelled
-            elif self.partyInfo.status == PartyGlobals.PartyStatus.Finished:
+            elif self.partyInfo.status == PartyGlobals.EPartyStatus.FINISHED:
                 self.partyStatusLabel['text'] = TTLocalizer.CalendarPartyFinished
-            elif self.partyInfo.status == PartyGlobals.PartyStatus.Started:
+            elif self.partyInfo.status == PartyGlobals.EPartyStatus.STARTED:
                 self.partyStatusLabel['text'] = TTLocalizer.CalendarPartyGo
-            elif self.partyInfo.status == PartyGlobals.PartyStatus.NeverStarted:
+            elif self.partyInfo.status == PartyGlobals.EPartyStatus.NEVER_STARTED:
                 self.partyStatusLabel['text'] = TTLocalizer.CalendarPartyNeverStarted
             else:
                 self.partyStatusLabel['text'] = TTLocalizer.CalendarPartyGetReady

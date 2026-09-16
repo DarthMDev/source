@@ -1,10 +1,9 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableInt
+import math
+import random
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import globalClockDelta
 from direct.fsm import FSM
-from direct.interval.IntervalGlobal import LerpPosInterval
-import math
-from pandac.PandaModules import Point3
-import random
 
 from otp.ai.MagicWordGlobal import *
 from toontown.battle import BattleExperienceAI
@@ -27,7 +26,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     toonUpLevels = [1, 2, 3, 4]
 
     def __init__(self, air):
-        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_DAY):
+        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_COSTUMES):
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'm')
         else:
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'c')
@@ -65,8 +64,8 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.toonupsGranted = []
         self.doneOvertimeOneAttack = False
         self.doneOvertimeTwoAttack = False
-        self.overtimeOneTime = simbase.air.config.GetInt('overtime-one-time', 1200)
-        self.battleFourDuration = simbase.air.config.GetInt('battle-four-duration', 1800)
+        self.overtimeOneTime = ConfigVariableInt('overtime-one-time', 1200).getValue()
+        self.battleFourDuration = ConfigVariableInt('battle-four-duration', 1800).getValue()
         self.overtimeOneStart = float(self.overtimeOneTime) / self.battleFourDuration
         self.moveAttackAllowed = True
 
@@ -85,7 +84,6 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.arenaSide = None
         self.makeBattleOneBattles()
         self.barrier = self.beginBarrier('Introduction', self.involvedToons, 45, self.doneIntroduction)
-        return
 
     def makeBattleOneBattles(self):
         if not self.battleOneBattlesMade:
@@ -104,7 +102,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
              (1, 1),
              (1, 1, 1, 1, 1))
             listVersion = list(SuitBuildingGlobals.SuitBuildingInfo)
-            if simbase.config.GetBool('bossbot-boss-cheat', 0):
+            if ConfigVariableBool('bossbot-boss-cheat', False).getValue():
                 listVersion[14] = weakenedValue
                 SuitBuildingGlobals.SuitBuildingInfo = tuple(listVersion)
             retval = self.invokeSuitPlanner(14, 0)
@@ -218,7 +216,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     def createFoodBelts(self):
         if self.foodBelts:
             return
-        for i in xrange(2):
+        for i in range(2):
             newBelt = DistributedFoodBeltAI.DistributedFoodBeltAI(self.air, self, i)
             self.foodBelts.append(newBelt)
             newBelt.generateWithRequired(self.zoneId)
@@ -238,7 +236,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         self.numTables = diffInfo[0]
         self.numDinersPerTable = diffInfo[1]
         dinerLevel = diffInfo[2]
-        for i in xrange(self.numTables):
+        for i in range(self.numTables):
             newTable = DistributedBanquetTableAI.DistributedBanquetTableAI(self.air, self, i, self.numDinersPerTable, dinerLevel)
             self.tables.append(newTable)
             newTable.generateWithRequired(self.zoneId)
@@ -277,7 +275,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
         avId = self.air.getAvatarIdFromSender()
         if self.state != 'BattleTwo':
             grantRequest = False
-        elif (beltIndex, foodNum) not in self.toonFoodStatus.values():
+        elif (beltIndex, foodNum) not in list(self.toonFoodStatus.values()):
             if avId not in self.toonFoodStatus:
                 grantRequest = True
             elif self.toonFoodStatus[avId] == None:
@@ -338,8 +336,8 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
 
     def generateDinerSuits(self):
         diners = []
-        for i in xrange(len(self.notDeadList)):
-            if simbase.config.GetBool('bossbot-boss-cheat', 0):
+        for i in range(len(self.notDeadList)):
+            if ConfigVariableBool('bossbot-boss-cheat', False).getValue():
                 suit = self.__genSuitObject(self.zoneId, 2, 'c', 2, 0)
             else:
                 info = self.notDeadList[i]
@@ -349,8 +347,8 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
             diners.append((suit, 100))
 
         active = []
-        for i in xrange(2):
-            if simbase.config.GetBool('bossbot-boss-cheat', 0):
+        for i in range(2):
+            if ConfigVariableBool('bossbot-boss-cheat', False).getValue():
                 suit = self.__genSuitObject(self.zoneId, 2, 'c', 2, 0)
             else:
                 suitType = 8
@@ -538,7 +536,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
     def createGolfSpots(self):
         if self.golfSpots:
             return
-        for i in xrange(self.numGolfSpots):
+        for i in range(self.numGolfSpots):
             newGolfSpot = DistributedGolfSpotAI.DistributedGolfSpotAI(self.air, self, i)
             self.golfSpots.append(newGolfSpot)
             newGolfSpot.generateWithRequired(self.zoneId)
@@ -575,7 +573,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
             golfSpot.turnOff()
 
         self.suitsKilled.append({'type': None,
-         'level': None,
+         'level': 0,
          'track': self.dna.dept,
          'isSkelecog': 0,
          'isForeman': 0,
@@ -585,7 +583,6 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
          'isVirtual': 0,
          'activeToons': self.involvedToons[:]})
         self.barrier = self.beginBarrier('Victory', self.involvedToons, 30, self.__doneVictory)
-        return
 
     def __doneVictory(self, avIds):
         self.d_setBattleExperience()
@@ -598,7 +595,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
                 toon.b_promote(self.deptIndex)
 
     def givePinkSlipReward(self, toon):
-        amount = (self.battleDifficulty + 1) * self.air.holidayManager.rewardMultiplier
+        amount = self.battleDifficulty + 1
         toon.addPinkSlips(amount)
 
     def getThreat(self, toonId):
@@ -686,7 +683,7 @@ class DistributedBossbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FS
                 self.b_setAttackCode(ToontownGlobals.BossCogGolfAttack, toonId)
                 self.numGolfAttacks += 1
             elif self.isToonOnTable(toonId):
-                doesMoveAttack = simbase.air.config.GetBool('ceo-does-move-attack', 1)
+                doesMoveAttack = ConfigVariableBool('ceo-does-move-attack', True).getValue()
                 if doesMoveAttack:
                     chanceToShoot = 0.25
                 else:
@@ -925,14 +922,14 @@ def skipCEO():
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedBossbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CEO!"
-    if boss.state in ('PrepareBattleThree', 'BattleThree'):
+        return "You aren't in a C.E.O.!"
+    if boss.state in ('PrepareBattleFour', 'BattleFour', 'Victory', 'Reward', 'Epilogue'):
         return "You can't skip this round."
     boss.exitIntroduction()
     for toonId in boss.involvedToons:
@@ -940,26 +937,13 @@ def skipCEO():
         if toon is not None:
             posLoc = random.choice([ToontownGlobals.WaiterBattleAPosHpr, ToontownGlobals.WaiterBattleBPosHpr])
             toon.b_setPosHpr(*posLoc)
-    boss.b_setState('PrepareBattleFour')
-
-@magicWord(category=CATEGORY_ADMINISTRATOR)
-def skipWaiters():
-    """
-    Skips to the final round of the CEO.
-    """
-    invoker = spellbook.getInvoker()
-    boss = None
-    for do in simbase.air.doId2do.values():
-        if isinstance(do, DistributedBossbotBossAI):
-            if invoker.doId in do.involvedToons:
-                boss = do
-                break
-    if not boss:
-        return "You aren't in a CEO!"
-    if boss.state in ('PrepareBattleThree', 'BattleThree'):
-        return "You can't skip this round."
-    boss.exitIntroduction()
-    boss.b_setState('PrepareBattleTwo')
+    if boss.state == 'BattleThree':
+        boss.b_setState('PrepareBattleFour')
+    elif boss.state == 'BattleTwo':
+        boss.b_setState('PrepareBattleThree')
+    else:
+        boss.b_setState('PrepareBattleTwo')
+    return 'Skipping the round...'
 
 
 @magicWord(category=CATEGORY_ADMINISTRATOR)
@@ -969,13 +953,15 @@ def killCEO():
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedBossbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
+    if boss.state in ('Victory', 'Reward', 'Epilogue'):
+        return "The C.E.O. has already been demoted!"
     if not boss:
-        return "You aren't in a CEO!"
+        return "You aren't in a C.E.O.!"
     boss.b_setState('Victory')
     return 'Killed CEO.'
 

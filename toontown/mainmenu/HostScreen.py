@@ -1,6 +1,5 @@
+from panda3d.core import Point3, TextNode
 from direct.gui.DirectGui import DirectFrame
-from panda3d.core import Point3
-from pandac.PandaModules import TextNode
 from toontown.toontowngui.TTLabel import TTLabel
 from direct.interval.IntervalGlobal import Func, Sequence
 from direct.interval.MetaInterval import Parallel
@@ -13,7 +12,6 @@ from toontown.toontowngui.TTCheckBox import TTCheckBox
 from direct.interval.FunctionInterval import Func, Wait
 from direct.interval.IntervalGlobal import LerpScaleInterval
 from direct.gui.DirectGui import DirectButton
-from pandac.PandaModules import Vec4
 from direct.fsm.FSM import FSM
 from toontown.mainmenu.PlayScreen import PlayScreen
 from toontown.mainmenu.HostStartScreen import HostStartScreen
@@ -207,17 +205,17 @@ class HostScreen(DirectFrame, FSM):
         CAMENDHPR = (250, -5, 0)
         CAMENDHPR2 = (280, 0, 0)
 
-        self.cameraPosInterval = camera.posInterval(2, Point3(CAMENDPOS), startPos=Point3(CAMSTARTPOS), blendType = 'easeIn')
-        self.cameraPosInterval2 = camera.posInterval(2, Point3(CAMENDPOS2), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
+        self.cameraPosInterval = camera.posInterval(1.3, Point3(CAMENDPOS), startPos=Point3(CAMSTARTPOS), blendType = 'easeIn')
+        self.cameraPosInterval2 = camera.posInterval(1.3, Point3(CAMENDPOS2), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
 
-        self.cameraHprInterval = camera.hprInterval(2, (CAMENDHPR), startHpr=(CAMSTARTHPR), blendType = 'easeIn')
-        self.cameraHprInterval2 = camera.hprInterval(2, (CAMENDHPR2), startHpr=(CAMENDHPR), blendType = 'easeOut')
+        self.cameraHprInterval = camera.hprInterval(1.3, (CAMENDHPR), startHpr=(CAMSTARTHPR), blendType = 'easeIn')
+        self.cameraHprInterval2 = camera.hprInterval(1.3, (CAMENDHPR2), startHpr=(CAMENDHPR), blendType = 'easeOut')
 
-        self.cameraPosInterval3 = camera.posInterval(2, Point3(CAMENDPOS), startPos=Point3(CAMENDPOS2), blendType = 'easeIn') 
-        self.cameraPosInterval4 = camera.posInterval(2, Point3(CAMSTARTPOS), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
+        self.cameraPosInterval3 = camera.posInterval(1.3, Point3(CAMENDPOS), startPos=Point3(CAMENDPOS2), blendType = 'easeIn')
+        self.cameraPosInterval4 = camera.posInterval(1.3, Point3(CAMSTARTPOS), startPos=Point3(CAMENDPOS), blendType = 'easeOut')
 
-        self.cameraHprInterval3 = camera.hprInterval(2, (CAMENDHPR), startHpr=(CAMENDHPR2), blendType = 'easeIn') 
-        self.cameraHprInterval4 = camera.hprInterval(2, (CAMSTARTHPR), startHpr=(CAMENDHPR), blendType = 'easeOut')
+        self.cameraHprInterval3 = camera.hprInterval(1.3, (CAMENDHPR), startHpr=(CAMENDHPR2), blendType = 'easeIn')
+        self.cameraHprInterval4 = camera.hprInterval(1.3, (CAMSTARTHPR), startHpr=(CAMENDHPR), blendType = 'easeOut')
 
         for elements in self.hostScreenElements:
             elements.hide()

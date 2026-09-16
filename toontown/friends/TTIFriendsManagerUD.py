@@ -1,4 +1,6 @@
+from panda3d.core import ConfigVariableBool, Datagram
 from direct.distributed.DistributedObjectGlobalUD import DistributedObjectGlobalUD
+from direct.distributed.MsgTypes import CLIENTAGENT_ADD_POST_REMOVE
 from direct.distributed.PyDatagram import *
 from direct.task import Task
 from direct.directnotify.DirectNotifyGlobal import directNotify
@@ -6,22 +8,24 @@ import string
 import random
 import hashlib
 import time
-import cPickle
+import pickle
 import zlib
 import hmac
 import base64
 
 
-key = '\x43\x6f\x6c\x64\x70\x6c\x61\x79\x57\x61\x73\x48\x65\x72\x65'
+key = b'\x43\x6f\x6c\x64\x70\x6c\x61\x79\x57\x61\x73\x48\x65\x72\x65'
 BAD_FIELDS = {'WishNameState', 'WishName', 'setPatchVersion', 'setAdminAccess', 'setGM', 'setDISLid',
               'setFriendsList', 'setPreviousAccess'}
 
 
 def fieldsIn(x):
-    return base64.b64encode(''.join([chr((ord(x[i]) + ord(key[i % len(key)])) % 256) for i in range(len(x))]))
+    return base64.b64encode(bytes((x[i] + key[i % len(key)]) % 256 for i in range(len(x))))
 
 
 from direct.fsm.FSM import FSM
+
+from toontown.web.ChatLog import WHISPER, chatLogOf
 
 # -- FSMS --
 class OperationFSM(FSM):
@@ -117,7 +121,7 @@ class RemoveFriendOperation(OperationFSM):
 
     def enterRetrieved(self, friendsList):
         newList = []
-        for i in xrange(len(friendsList)):
+        for i in range(len(friendsList)):
             if friendsList[i][0] == self.target:
                 continue
             newList.append(friendsList[i])
@@ -380,11 +384,11 @@ class TTIFriendsManagerUD(DistributedObjectGlobalUD):
                 return
 
             for fieldName in BAD_FIELDS:
-                if fieldName in fields.keys():
+                if fieldName in list(fields.keys()):
                     del fields[fieldName]
 
-            data = zlib.compress(fieldsIn(cPickle.dumps(fields, protocol=cPickle.HIGHEST_PROTOCOL)))
-            k = str(avId + self.doId)
+            data = zlib.compress(fieldsIn(pickle.dumps(fields, protocol=pickle.HIGHEST_PROTOCOL)))
+            k = str(avId + self.doId).encode('utf-8')
             sig = hmac.new(k, data, hashlib.sha1).hexdigest()
 
             self.sendUpdateToAvatarId(senderId, 'friendDetailsExtended', [data, sig, avId])
@@ -419,7 +423,7 @@ class TTIFriendsManagerUD(DistributedObjectGlobalUD):
         dgcleanup = self.dclass.aiFormatUpdate('goingOffline', self.doId, self.doId, self.air.ourChannel, [doId])
         dg = PyDatagram()
         dg.addServerHeader(channel, self.air.ourChannel, CLIENTAGENT_ADD_POST_REMOVE)
-        dg.addString(dgcleanup.getMessage())
+        dg.addBlob(bytes(dgcleanup))
         self.air.send(dg)
 
         chatMode = 0
@@ -466,7 +470,7 @@ class TTIFriendsManagerUD(DistributedObjectGlobalUD):
     # -- Teleport and Whispers --
     def routeTeleportQuery(self, toId):
         fromId = self.air.getAvatarIdFromSender()
-        if fromId in self.tpRequests.values():
+        if fromId in list(self.tpRequests.values()):
             return
         if toId in self.avId2IgnoredList:
             if fromId in self.avId2IgnoredList[toId]:
@@ -544,18 +548,22 @@ class TTIFriendsManagerUD(DistributedObjectGlobalUD):
                 return
         self.whisperRequests[fromId] = currStamp
         self.sendUpdateToAvatarId(toId, 'receiveTalkWhisper', [fromId, message])
-        if config.GetBool('want-chat-logging', False):
-            self.air.mongodb.chat.messages.insert_one(
-                {'type': 1, 'timestamp': int(time.time()),
-                 'sender': fromId, 'recipient': toId, 'location': [-1, -1],
-                 'message': message})
+
+        chatLog = chatLogOf(self.air)
+        if chatLog is not None:
+            # A whisper is heard by one Toon rather than a zone, so there is no
+            # location worth asking for.
+            chatLog.record(
+                WHISPER, fromId, chatLog.toonNameFor(fromId),
+                self.air.getAccountIdFromSender(), message,
+                recipientId=toId, recipientName=chatLog.toonNameFor(toId))
 
     # -- Secret Friends --
     def requestSecret(self):
         avId = self.air.getAvatarIdFromSender()
-        allowed = string.lowercase + string.digits
+        allowed = string.ascii_lowercase + string.digits
         secret = ''
-        for i in xrange(6):
+        for i in range(6):
             secret += random.choice(allowed)
             if i == 2:
                 secret += ' '
@@ -566,7 +574,7 @@ class TTIFriendsManagerUD(DistributedObjectGlobalUD):
         requester = self.air.getAvatarIdFromSender()
         owner = self.secret2avId.get(secret)
         
-        if not config.GetBool('want-true-friends', True):
+        if not ConfigVariableBool('want-true-friends', True).getValue():
             self.sendUpdateToAvatarId(requester, 'submitSecretResponse', [0, 0])
             return
 

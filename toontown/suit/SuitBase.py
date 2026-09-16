@@ -1,10 +1,8 @@
-import SuitDNA
-from SuitLegList import *
-import SuitTimings
+from . import SuitDNA
+from .SuitLegList import *
+from . import SuitTimings
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import *
-from pandac.PandaModules import *
-from pandac.PandaModules import Point3
 from toontown.battle import SuitBattleGlobals
 from toontown.toonbase import TTLocalizer
 
@@ -91,10 +89,10 @@ class SuitBase:
         return self.path
 
     def printPath(self):
-        print '%d points in path' % self.pathLength
-        for currPathPt in xrange(self.pathLength):
+        print('%d points in path' % self.pathLength)
+        for currPathPt in range(self.pathLength):
             indexVal = self.path.getPointIndex(currPathPt)
-            print '\t', self.sp.dnaStore.getSuitPointWithIndex(indexVal)
+            print('\t', self.sp.dnaStore.getSuitPointWithIndex(indexVal))
 
     def makeLegList(self):
         self.legList = SuitLegList(self.path, self.sp.dnaStore)

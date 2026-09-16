@@ -1,3 +1,8 @@
+# What the development distribution changes.
+#
+# general.prc loads first and holds everything the game does the same way
+# everywhere, so this file is a diff against it.
+
 # Distribution:
 distribution dev
 
@@ -9,14 +14,8 @@ model-path ../resources
 
 # Server:
 server-version dev
-accountdb-type developer
-access-level-clamp 400 400
-
-# MongoDB:
-mongodb-url mongodb://localhost/game
 
 # UberDOG:
-generate-root-object #t
 generate-global-object 4688 CentralLogger
 generate-global-object 4665 ClientServicesManager
 generate-global-object 4681 ChatAgent
@@ -26,70 +25,29 @@ generate-global-object 4687 PlayerFriendsManager
 generate-global-object 4666 TTIFriendsManager
 generate-global-object 4712 TTSpeedchatRelay
 generate-global-object 4683 DistributedDeliveryManager
+generate-global-object 4684 DistributedDataStoreManager
+generate-global-object 4691 DistributedPartyManager
 generate-global-object 4695 TTCodeRedemptionMgr
-generate-global-object 4477 GlobalPartyManager
-generate-global-object 4683 DistributedDeliveryManager
-# generate-global-object 4701 GuildManager
-# generate-global-object 4478 GlobalGroupTracker
-generate-global-object 4901 MegaInvasionManager
-generate-global-object 4950 ZoneManager
-
-# Web API:
-want-web-api #f
-web-api-endpoint https://localhost:8000/api/
-web-api-token invalid
+generate-global-object 4701 GuildManager
+generate-global-object 4478 GlobalGroupTracker
+# generate-global-object 4950 ZoneManager
 
 # DC file:
 dc-file astron/dclass/vanilla.dc
 
 # Core features:
 want-multiplayer #t
-want-pets #t
 want-parties #t
 want-achievements #f
-want-grouptracker #f
+want-grouptracker #t
 want-server-browser #f
-
-# Safe zones:
-want-safe-zones #t
-want-toontown-central #t
-want-donalds-dock #t
-want-daisys-garden #t
-want-minnies-melodyland #t
-want-the-burrrgh #t
-want-donalds-dreamland #t
-want-goofy-speedway #t
-want-outdoor-zone #t
-want-golf-zone #t
-want-resistance-grounds #f
-
-# Cog headquarters:
-want-cog-headquarters #t
 
 # Cog buildings:
 want-cogbuildings #t
-want-cogdominiums #t
-
-# Animated Props
-zero-pause-mult 1.0
-
-# Interactive Props
-randomize-interactive-idles #t
-interactive-prop-random-idles #t
-interactive-prop-info #f
-props-buff-battles #t
-prop-and-organic-bonus-stack #f
-prop-idle-pause-time 0.0
+want-cogdominiums #f
 
 # Cashbot boss:
-want-resistance-toonup #t
-want-resistance-restock #t
 want-resistance-dance #t
-
-# Trolley minigames:
-want-ttc-trolley #t
-want-photo-game #f
-want-travel-game #f
 
 # Chat:
 want-whitelist #f
@@ -98,13 +56,7 @@ want-blacklist #f
 # Double progression:
 want-double-progression #t
 
-# Holidays
-active-holidays 63, 64, 65, 66, 116
-
 # Developer options:
-force-skip-tutorial #t
-show-population #f
-want-instant-parties #t
 want-quest-verification #t
 want-heartbeat #f
 want-yin-yang #t

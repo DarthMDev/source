@@ -1,26 +1,16 @@
-from pandac.PandaModules import Quat
+from panda3d.core import NodePath, Quat
+from panda3d.ode import OdeJoint, OdeJointGroup, OdeSimpleSpace, OdeUtil, OdeWorld
 from direct.directnotify import DirectNotifyGlobal
-from direct.distributed.ClockDelta import globalClockDelta
-import sys
+from direct.showbase import DirectObject
 
-if sys.platform != 'android':
-    from panda3d.ode import OdeWorld, OdeSimpleSpace, OdeJointGroup, OdeUtil
-
-class MinigamePhysicsWorldBase:
+class MinigamePhysicsWorldBase(DirectObject.DirectObject):
     notify = DirectNotifyGlobal.directNotify.newCategory('MinigamePhysicsWorldBase')
 
     def __init__(self, canRender = 0):
         self.canRender = canRender
-        
-        if sys.platform != 'android':
-            self.world = OdeWorld()
-            self.space = OdeSimpleSpace()
-            self.contactgroup = OdeJointGroup()
-        else:
-            self.world = None
-            self.space = None
-            self.contactgroup = None
-        
+        self.world = OdeWorld()
+        self.space = OdeSimpleSpace()
+        self.contactgroup = OdeJointGroup()
         self.bodyList = []
         self.geomList = []
         self.massList = []
@@ -51,6 +41,10 @@ class MinigamePhysicsWorldBase:
         self.useQuickStep = False
         self.deterministic = True
         self.numStepsInSimulateTask = 0
+
+        self.collisionEventName = 'ode-collision-%d' % id(self)
+        self.space.setCollisionEvent(self.collisionEventName)
+        self.accept(self.collisionEventName, self.__collisionHandler)
 
     def delete(self):
         self.notify.debug('Max Collision Count was %s' % self.maxColCount)
@@ -102,9 +96,11 @@ class MinigamePhysicsWorldBase:
         self.world = None
         self.space = None
 
+        self.ignore(self.collisionEventName)
+
     def setupSimulation(self):
         if self.canRender:
-            for count in xrange(self.jointMarkerCount):
+            for count in range(self.jointMarkerCount):
                 testMarker = render.attachNewNode('Joint Marker')
                 ballmodel = loader.loadModel('phase_3/models/misc/sphere')
                 ballmodel.reparentTo(testMarker)
@@ -123,7 +119,6 @@ class MinigamePhysicsWorldBase:
         numSteps = int(self.DTA / self.DTAStep)
         if numSteps > 10:
             self.notify.warning('phyics steps = %d' % numSteps)
-        startTime = globalClock.getRealTime()
         while self.DTA >= self.DTAStep:
             if self.deterministic:
                 OdeUtil.randSetSeed(0)
@@ -141,15 +136,21 @@ class MinigamePhysicsWorldBase:
 
     def postStep(self):
         if self.showContacts and self.canRender:
-            for count in xrange(self.jointMarkerCount):
+            for count in range(self.jointMarkerCount):
                 pandaNodePathGeom = self.jointMarkers[count]
                 if count < self.colCount:
                     pandaNodePathGeom.setPos(self.space.getContactData(count * 3 + 0), self.space.getContactData(count * 3 + 1), self.space.getContactData(count * 3 + 2))
                 else:
                     pandaNodePathGeom.setPos(0.0, 0.0, -100.0)
 
+    def __collisionHandler(self, entry):
+        self.colEntries.append(entry)
+
     def simulate(self):
-        self.colCount = self.space.autoCollide()
+        self.colEntries = []
+        self.space.autoCollide()
+        eventMgr.doEvents()
+        self.colCount = len(self.colEntries)
         if self.maxColCount < self.colCount:
             self.maxColCount = self.colCount
             self.notify.debug('New Max Collision Count %s' % self.maxColCount)
@@ -171,11 +172,10 @@ class MinigamePhysicsWorldBase:
                 pandaNodePathGeom.setPos(odeBody.getPosition())
                 pandaNodePathGeom.setQuat(Quat(odeBody.getQuaternion()[0], odeBody.getQuaternion()[1], odeBody.getQuaternion()[2], odeBody.getQuaternion()[3]))
 
-    def getOrderedContacts(self, count):
-        c0 = self.space.getContactId(count, 0)
-        c1 = self.space.getContactId(count, 1)
+    def getOrderedContacts(self, entry):
+        c0 = self.space.getCollideId(entry.getGeom1())
+        c1 = self.space.getCollideId(entry.getGeom2())
         if c0 > c1:
-            chold = c1
-            c1 = c0
-            c0 = chold
-        return (c0, c1)
+            return c1, c0
+        else:
+            return c0, c1

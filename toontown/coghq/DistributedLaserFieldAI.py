@@ -1,3 +1,4 @@
+from panda3d.core import NodePath
 import random
 
 from direct.directnotify import DirectNotifyGlobal
@@ -89,8 +90,8 @@ class DistributedLaserFieldAI(BattleBlockerAI.BattleBlockerAI, NodePath, BasicEn
         fieldData = []
         fieldData.append(self.game.gridNumX)
         fieldData.append(self.game.gridNumY)
-        for column in xrange(0, self.game.gridNumX):
-            for row in xrange(0, self.game.gridNumY):
+        for column in range(0, self.game.gridNumX):
+            for row in range(0, self.game.gridNumY):
                 fieldData.append(self.game.gridData[column][row])
         return fieldData
 
@@ -143,13 +144,13 @@ class DistributedLaserFieldAI(BattleBlockerAI.BattleBlockerAI, NodePath, BasicEn
         self.playedSound = 1
 
     def setBattleFinished(self):
-        print 'battle Finished'
+        print('battle Finished')
         BattleBlockerAI.BattleBlockerAI.setBattleFinished(self)
         messenger.send(self.getOutputEventName(), [1])
         self.switchFire()
 
     def switchFire(self):
-        print 'switchFire'
+        print('switchFire')
         if self.switchId != 0:
             switch = self.level.getEntity(self.switchId)
             if switch:
@@ -198,5 +199,5 @@ class DistributedLaserFieldAI(BattleBlockerAI.BattleBlockerAI, NodePath, BasicEn
         self.hasShownSuits = 1
 
     def addSuit(self, suit):
-        print 'Adding Suit %s' % suit.doId
+        print('Adding Suit %s' % suit.doId)
         BattleBlockerAI.BattleBlockerAI.addSuit(self, suit)

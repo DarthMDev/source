@@ -1,29 +1,20 @@
+from panda3d.core import CollisionNode, CollisionSphere, ConfigVariableBool, NodePath, Point3, TextNode, Vec4
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from toontown.building.ElevatorConstants import *
 from toontown.building.ElevatorUtils import *
-from toontown.building import DistributedElevatorExt
-from toontown.building import DistributedElevator
 from toontown.toonbase import ToontownGlobals
-from direct.fsm import ClassicFSM
-from direct.fsm import State
-from direct.gui import DirectGui
-from toontown.hood import ZoneUtil
+from direct.gui.DirectGui import DirectButton
 from toontown.toonbase import TTLocalizer
-from toontown.toontowngui import TTDialog
 from direct.distributed import DistributedObject
-from direct.distributed import DistributedSmoothNode
 from direct.actor import Actor
 from direct.fsm.FSM import FSM
 from direct.showbase import PythonUtil
 from toontown.toonbase.ToontownTimer import ToontownTimer
 from toontown.racing.Kart import Kart
-from toontown.racing.KartShopGlobals import KartGlobals
+from toontown.racing.KartShopGlobals import EKartErrorCode, KartGlobals
 from toontown.racing import RaceGlobals
 from toontown.toontowngui.TTDialog import TTGlobalDialog
-from toontown.toontowngui.TeaserPanel import TeaserPanel
-if (__debug__):
-    import pdb
 
 class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedStartingBlock')
@@ -60,7 +51,6 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
             self.testLOD = False
         self.id = DistributedStartingBlock.id
         DistributedStartingBlock.id += 1
-        return
 
     def disable(self):
         FSM.cleanup(self)
@@ -74,7 +64,6 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
             self.holeActor.cleanup()
             self.holeActor = None
         DistributedObject.DistributedObject.disable(self)
-        return
 
     def delete(self):
         if hasattr(self, 'dialog'):
@@ -148,7 +137,7 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
             def handleEnterRequest(self = self):
                 self.ignore('stoppedAsleep')
                 if hasattr(self.dialog, 'doneStatus') and self.dialog.doneStatus == 'ok':
-                    self.d_requestEnter(base.cr.isPaid())
+                    self.d_requestEnter()
                 elif self.cr and not self.isDisabled():
                     self.cr.playGame.getPlace().setState('walk')
                 else:
@@ -173,9 +162,9 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
         self.notify.debugStateCall(self)
         self.sendUpdate('movieFinished', [])
 
-    def d_requestEnter(self, paid):
+    def d_requestEnter(self):
         self.notify.debugStateCall(self)
-        self.sendUpdate('requestEnter', [paid])
+        self.sendUpdate('requestEnter', [])
 
     def d_requestExit(self):
         self.notify.debugStateCall(self)
@@ -183,7 +172,7 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
         self.hideGui()
         self.sendUpdate('requestExit', [])
 
-    def rejectEnter(self, errCode):
+    def rejectEnter(self, errCode: EKartErrorCode):
         self.notify.debugStateCall(self)
 
         def handleTicketError(self = self):
@@ -194,41 +183,40 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
             self.cr.playGame.getPlace().setState('walk')
 
         doneEvent = 'errorCode|dialog'
-        if errCode == KartGlobals.ERROR_CODE.eTickets:
-            msg = TTLocalizer.StartingBlock_NotEnoughTickets
-            self.dialog = TTGlobalDialog(msg, doneEvent, 2)
-            self.dialog.accept(doneEvent, handleTicketError)
-            self.accept('stoppedAsleep', handleTicketError)
-        elif errCode == KartGlobals.ERROR_CODE.eBoardOver:
-            msg = TTLocalizer.StartingBlock_NoBoard
-            self.dialog = TTGlobalDialog(msg, doneEvent, 2)
-            self.dialog.accept(doneEvent, handleTicketError)
-            self.accept('stoppedAsleep', handleTicketError)
-        elif errCode == KartGlobals.ERROR_CODE.eNoKart:
-            msg = TTLocalizer.StartingBlock_NoKart
-            self.dialog = TTGlobalDialog(msg, doneEvent, 2)
-            self.dialog.accept(doneEvent, handleTicketError)
-            self.accept('stoppedAsleep', handleTicketError)
-        elif errCode == KartGlobals.ERROR_CODE.eOccupied:
-            msg = TTLocalizer.StartingBlock_Occupied
-            self.dialog = TTGlobalDialog(msg, doneEvent, 2)
-            self.dialog.accept(doneEvent, handleTicketError)
-            self.accept('stoppedAsleep', handleTicketError)
-        elif errCode == KartGlobals.ERROR_CODE.eTrackClosed:
-            msg = TTLocalizer.StartingBlock_TrackClosed
-            self.dialog = TTGlobalDialog(msg, doneEvent, 2)
-            self.dialog.accept(doneEvent, handleTicketError)
-            self.accept('stoppedAsleep', handleTicketError)
-        elif errCode == KartGlobals.ERROR_CODE.eUnpaid:
-            self.dialog = TeaserPanel(pageName='karting', doneFunc=handleTicketError)
-        else:
-            self.cr.playGame.getPlace().setState('walk')
+
+        match errCode:
+            case EKartErrorCode.NOT_ENOUGH_TICKETS:
+                msg = TTLocalizer.StartingBlock_NotEnoughTickets
+                self.dialog = TTGlobalDialog(msg, doneEvent, 2)
+                self.dialog.accept(doneEvent, handleTicketError)
+                self.accept('stoppedAsleep', handleTicketError)
+            case EKartErrorCode.BOARD_OVER:
+                msg = TTLocalizer.StartingBlock_NoBoard
+                self.dialog = TTGlobalDialog(msg, doneEvent, 2)
+                self.dialog.accept(doneEvent, handleTicketError)
+                self.accept('stoppedAsleep', handleTicketError)
+            case EKartErrorCode.NO_KART:
+                msg = TTLocalizer.StartingBlock_NoKart
+                self.dialog = TTGlobalDialog(msg, doneEvent, 2)
+                self.dialog.accept(doneEvent, handleTicketError)
+                self.accept('stoppedAsleep', handleTicketError)
+            case EKartErrorCode.OCCUPIED:
+                msg = TTLocalizer.StartingBlock_Occupied
+                self.dialog = TTGlobalDialog(msg, doneEvent, 2)
+                self.dialog.accept(doneEvent, handleTicketError)
+                self.accept('stoppedAsleep', handleTicketError)
+            case EKartErrorCode.TRACK_CLOSED:
+                msg = TTLocalizer.StartingBlock_TrackClosed
+                self.dialog = TTGlobalDialog(msg, doneEvent, 2)
+                self.dialog.accept(doneEvent, handleTicketError)
+                self.accept('stoppedAsleep', handleTicketError)
+            case _:
+                self.cr.playGame.getPlace().setState('walk')
 
     def finishMovie(self):
         if self.movieTrack:
             self.movieTrack.finish()
             self.movieTrack = None
-        return
 
     def setOccupied(self, avId):
         self.notify.debug('%d setOccupied: %d' % (self.doId, avId))
@@ -302,7 +290,6 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
                     self.dialog = TTGlobalDialog(msg, doneEvent, style=1)
                     self.dialog.accept(doneEvent, handleDialogOK)
                     self.accept('stoppedAsleep', handleDialogOK)
-        return
 
     def __avatarGone(self):
         self.notify.debugStateCall(self)
@@ -331,9 +318,26 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
         if hasattr(self, 'cancelButton'):
             return
         fishGui = loader.loadModel('phase_4/models/gui/fishingGui')
-        self.cancelButton = DirectGui.DirectButton(relief=None, scale=0.67, pos=(1.16, 0, -0.9), text=('', TTLocalizer.FishingExit, TTLocalizer.FishingExit), text_align=TextNode.ACenter, text_fg=Vec4(1, 1, 1, 1), text_shadow=Vec4(0, 0, 0, 1), text_pos=(0.0, -0.12), textMayChange=0, text_scale=0.1, image=(fishGui.find('**/exit_buttonUp'), fishGui.find('**/exit_buttonDown'), fishGui.find('**/exit_buttonRollover')), text_font=ToontownGlobals.getInterfaceFont(), command=self.d_requestExit)
+        self.cancelButton = DirectButton(
+            parent=base.a2dBottomRight,
+            relief=None,
+            scale=0.67,
+            pos=(-0.125, 0, 0.1),
+            text=('', TTLocalizer.FishingExit, TTLocalizer.FishingExit),
+            text_align=TextNode.ACenter,
+            text_fg=Vec4(1, 1, 1, 1),
+            text_shadow=Vec4(0, 0, 0, 1),
+            text_pos=(0.0, -0.12),
+            textMayChange=0,
+            text_scale=0.1,
+            image=(fishGui.find('**/exit_buttonUp'),
+                   fishGui.find('**/exit_buttonDown'),
+                   fishGui.find('**/exit_buttonRollover')),
+            text_font=ToontownGlobals.getInterfaceFont(),
+            command=self.d_requestExit
+        )
         self.cancelButton.hide()
-        return
+        fishGui.removeNode()
 
     def showGui(self):
         self.notify.debugStateCall(self)
@@ -494,7 +498,7 @@ class DistributedStartingBlock(DistributedObject.DistributedObject, FSM):
 
     def enterEnterMovie(self):
         self.notify.debug('%d enterEnterMovie: Entering the Enter Movie State.' % self.doId)
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             raceName = TTLocalizer.KartRace_RaceNames[self.kartPad.trackType]
             self.notify.info('QA-REGRESSION: KARTING: %s' % raceName)
         self.av.clearGoofyEffect(0.5)
@@ -624,7 +628,7 @@ class DistributedViewingBlock(DistributedStartingBlock):
             def handleEnterRequest(self = self):
                 self.ignore('stoppedAsleep')
                 if hasattr(self.dialog, 'doneStatus') and self.dialog.doneStatus == 'ok':
-                    self.d_requestEnter(base.cr.isPaid())
+                    self.d_requestEnter()
                 else:
                     self.cr.playGame.getPlace().setState('walk')
                 self.dialog.ignoreAll()
@@ -678,7 +682,7 @@ class DistributedViewingBlock(DistributedStartingBlock):
 
     def enterEnterMovie(self):
         self.notify.debug('%d enterEnterMovie: Entering the Enter Movie State.' % self.doId)
-        if base.config.GetBool('want-qa-regression', 0):
+        if ConfigVariableBool('want-qa-regression', False).getValue():
             raceName = TTLocalizer.KartRace_RaceNames[self.kartPad.trackType]
             self.notify.info('QA-REGRESSION: KARTING: %s' % raceName)
         pos = self.nodePath.getPos(render)

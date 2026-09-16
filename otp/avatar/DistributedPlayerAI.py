@@ -157,7 +157,7 @@ class DistributedPlayerAI(DistributedAvatarAI.DistributedAvatarAI, PlayerBase.Pl
         return self.platform
 
     def extendFriendsList(self, friendId, friendCode):
-        for i in xrange(len(self.friendsList)):
+        for i in range(len(self.friendsList)):
             friendPair = self.friendsList[i]
             if friendPair[0] == friendId:
                 self.friendsList[i] = (friendId, friendCode)
@@ -165,18 +165,18 @@ class DistributedPlayerAI(DistributedAvatarAI.DistributedAvatarAI, PlayerBase.Pl
 
         self.friendsList.append((friendId, friendCode))
 
-    @magicWord(category=CATEGORY_HOST, types=[str])
+    @magicWord(access=ACCESS_ADMINISTRATOR, types=[str])
     def system(message):
         """
         Broadcasts a message to the server.
         """
         # TODO: Make this go through the UberDOG, rather than the AI server.
-        for doId, do in simbase.air.doId2do.items():
+        for doId, do in list(simbase.air.doId2do.items()):
             if isinstance(do, DistributedPlayerAI):
                 if str(doId)[0] != str(simbase.air.districtId)[0]:
                     do.d_setSystemMessage(0, message)
 
-    @magicWord(category=CATEGORY_HOST, types=[str, str, int])
+    @magicWord(access=ACCESS_SYSTEM_ADMINISTRATOR, types=[str, str, int])
     def accessLevel(accessLevel, storage='PERSISTENT', showGM=1):
         """
         Modify the target's access level.
@@ -201,7 +201,7 @@ class DistributedPlayerAI(DistributedAvatarAI.DistributedAvatarAI, PlayerBase.Pl
             if accessLevel not in accessName2Id:
                 return 'Invalid access level!'
             accessLevel = accessName2Id[accessLevel]
-        if accessLevel not in accessName2Id.values():
+        if accessLevel not in list(accessName2Id.values()):
             return 'Invalid access level!'
         target = spellbook.getTarget()
         invoker = spellbook.getInvoker()

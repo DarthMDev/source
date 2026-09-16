@@ -1,12 +1,13 @@
+from panda3d.core import BoundingVolume, GeomNode, OmniBoundingVolume, Point3, VBase3, Vec3
 from direct.interval.IntervalGlobal import *
-from BattleBase import *
-from BattleProps import *
-from BattleSounds import *
-import MovieCamera
+from .BattleBase import *
+from .BattleProps import *
+from .BattleSounds import *
+from . import MovieCamera
 from direct.directnotify import DirectNotifyGlobal
-import MovieUtil
-import MovieNPCSOS
-from MovieUtil import calcAvgSuitPos
+from . import MovieUtil
+from . import MovieNPCSOS
+from .MovieUtil import calcAvgSuitPos
 from direct.showutil import Effects
 notify = DirectNotifyGlobal.directNotify.newCategory('MovieDrop')
 hitSoundFiles = ('AA_drop_flowerpot.ogg', 'AA_drop_sandbag.ogg', 'AA_drop_anvil.ogg', 'AA_drop_bigweight.ogg', 'AA_drop_safe.ogg', 'AA_drop_piano.ogg', 'AA_drop_boat.ogg')
@@ -59,16 +60,9 @@ def doDrops(drops):
                 else:
                     suitDropsDict[suitId] = [(drop, target)]
 
-    suitDrops = suitDropsDict.values()
+    suitDrops = list(suitDropsDict.values())
+    suitDrops.sort(key=lambda x: len(x))
 
-    def compFunc(a, b):
-        if len(a) > len(b):
-            return 1
-        elif len(a) < len(b):
-            return -1
-        return 0
-
-    suitDrops.sort(compFunc)
     delay = 0.0
     mtrack = Parallel(name='toplevel-drop')
     npcDrops = {}
@@ -164,7 +158,7 @@ def __doGroupDrops(groupDrops):
         numTargets = len(targets)
         closestTarget = -1
         nearestDistance = 100000.0
-        for i in xrange(numTargets):
+        for i in range(numTargets):
             suit = drop['target'][i]['suit']
             suitPos = suit.getPos(battle)
             displacement = Vec3(centerPos)
@@ -196,7 +190,7 @@ def __dropGroupObject(drop, delay, closestTarget, alreadyDodged, alreadyTeased):
     npcDrops = {}
     npcs = []
     returnedParallel = __dropObject(drop, delay, objName, level, alreadyDodged, alreadyTeased, npcs, target, npcDrops)
-    for i in xrange(len(drop['target'])):
+    for i in range(len(drop['target'])):
         target = drop['target'][i]
         suitTrack = __createSuitTrack(drop, delay, level, alreadyDodged, alreadyTeased, target, npcs)
         if suitTrack:

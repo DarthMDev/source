@@ -1,13 +1,13 @@
+from panda3d.direct import WaitInterval
+from panda3d.core import CollideMask, CollisionNode, CollisionSphere, NodePath, Point3
 from direct.showbase.DirectObject import DirectObject
 from direct.interval.MetaInterval import Parallel
 from direct.interval.LerpInterval import LerpPosInterval, LerpHprInterval
 from direct.showbase.RandomNumGen import RandomNumGen
-from pandac.PandaModules import Point3, WaitInterval
-from pandac.PandaModules import CollisionSphere, CollisionNode
 from toontown.suit import Suit
 from toontown.suit import SuitDNA
 from toontown.toonbase import ToontownGlobals
-import MazeGameGlobals
+from . import MazeGameGlobals
 
 class MazeSuit(DirectObject):
     COLL_SPHERE_NAME = 'MazeSuitSphere'
@@ -17,18 +17,12 @@ class MazeSuit(DirectObject):
     DIR_DOWN = 1
     DIR_LEFT = 2
     DIR_RIGHT = 3
-    oppositeDirections = [DIR_DOWN,
-     DIR_UP,
-     DIR_RIGHT,
-     DIR_LEFT]
-    directionHs = [0,
-     180,
-     90,
-     270]
+    oppositeDirections = [DIR_DOWN, DIR_UP, DIR_RIGHT, DIR_LEFT]
+    directionHs = [0, 180, 90, 270]
     DEFAULT_SPEED = 4.0
     SUIT_Z = 0.1
 
-    def __init__(self, serialNum, maze, randomNumGen, cellWalkPeriod, difficulty, suitDnaName = 'f', startTile = None, ticFreq = MazeGameGlobals.SUIT_TIC_FREQ, walkSameDirectionProb = MazeGameGlobals.WALK_SAME_DIRECTION_PROB, walkTurnAroundProb = MazeGameGlobals.WALK_TURN_AROUND_PROB, uniqueRandomNumGen = True, walkAnimName = None):
+    def __init__(self, serialNum, maze, randomNumGen, cellWalkPeriod, difficulty, suitDnaName = 'f', startTile = None, ticFreq = MazeGameGlobals.SUIT_TIC_FREQ,walkSameDirectionProb = MazeGameGlobals.WALK_SAME_DIRECTION_PROB, walkTurnAroundProb = MazeGameGlobals.WALK_TURN_AROUND_PROB, uniqueRandomNumGen = True, walkAnimName = None):
         self.serialNum = serialNum
         self.maze = maze
         if uniqueRandomNumGen:
@@ -54,13 +48,12 @@ class MazeSuit(DirectObject):
         self.ticPeriod = int(cellWalkPeriod)
         self.cellWalkDuration = float(self.ticPeriod) / float(self.ticFreq)
         self.turnDuration = 0.6 * self.cellWalkDuration
-        return
 
     def destroy(self):
         self.suit.delete()
 
     def uniqueName(self, str):
-        return str + `(self.serialNum)`
+        return str + repr((self.serialNum))
 
     def gameStart(self, gameStartTime):
         self.gameStartTime = gameStartTime
@@ -68,7 +61,7 @@ class MazeSuit(DirectObject):
         self.startWalkAnim()
         self.occupiedTiles = [(self.nextTX, self.nextTY)]
         n = 20
-        self.nextThinkTic = self.serialNum * self.ticFreq / n
+        self.nextThinkTic = self.serialNum * self.ticFreq // n
         self.fromPos = Point3(0, 0, 0)
         self.toPos = Point3(0, 0, 0)
         self.fromHpr = Point3(0, 0, 0)
@@ -189,7 +182,7 @@ class MazeSuit(DirectObject):
         if curTic < self.nextThinkTic:
             return []
         else:
-            r = range(self.nextThinkTic, curTic + 1, self.ticPeriod)
+            r = list(range(self.nextThinkTic, curTic + 1, self.ticPeriod))
             self.lastTicBeforeRender = r[-1]
             return r
 
@@ -231,14 +224,14 @@ class MazeSuit(DirectObject):
         curT = globalClock.getFrameTime() - startTime
         curTic = int(curT * float(ticFreq))
         suitUpdates = []
-        for i in xrange(len(suitList)):
+        for i in range(len(suitList)):
             updateTics = suitList[i].getThinkTimestampTics(curTic)
-            suitUpdates.extend(zip(updateTics, [i] * len(updateTics)))
+            suitUpdates.extend(list(zip(updateTics, [i] * len(updateTics))))
 
-        suitUpdates.sort(lambda a, b: a[0] - b[0])
+        suitUpdates.sort(key=lambda x: x[0])
         if len(suitUpdates) > 0:
             curTic = 0
-            for i in xrange(len(suitUpdates)):
+            for i in range(len(suitUpdates)):
                 update = suitUpdates[i]
                 tic = update[0]
                 suitIndex = update[1]
@@ -253,10 +246,10 @@ class MazeSuit(DirectObject):
                         j += 1
 
                 unwalkables = []
-                for si in xrange(suitIndex):
+                for si in range(suitIndex):
                     unwalkables.extend(suitList[si].occupiedTiles)
 
-                for si in xrange(suitIndex + 1, len(suitList)):
+                for si in range(suitIndex + 1, len(suitList)):
                     unwalkables.extend(suitList[si].occupiedTiles)
 
                 suit.think(curTic, curT, unwalkables)

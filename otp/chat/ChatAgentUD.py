@@ -1,3 +1,4 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify import DirectNotifyGlobal
 from direct.task import Task
 from direct.distributed.DistributedObjectGlobalUD import \
@@ -5,13 +6,18 @@ from direct.distributed.DistributedObjectGlobalUD import \
 
 from toontown.chat.TTWhiteList import TTWhiteList
 from otp.distributed import OtpDoGlobals
-from otp.chat.ChatGlobals import ChannelToType
-from toontown.chat.TTBlacklist import BLACKLIST, SEQUENCES
+from toontown.chat.TTBlacklist import SEQUENCES, containsBadWord
+from toontown.web.ChatLog import GUILD_CHANNEL, chatLogOf, kindForChannel
 import time
 
 
-class DummyWhiteList(TTWhiteList):
-    def isWord(*args):
+class DummyWhiteList:
+    """
+    Stands in for the whitelist when `want-whitelist` is off.
+    """
+    # This file was a hard startup requirement for the UberDOG even with `want-whitelist` is turned off...
+
+    def isWord(self, word):
         return True
 
 
@@ -21,15 +27,14 @@ class ChatAgentUD(DistributedObjectGlobalUD):
     def announceGenerate(self):
         DistributedObjectGlobalUD.announceGenerate(self)
 
-        self.wantWhiteList = config.GetBool('want-whitelist', True)
-        self.wantBlackList = config.GetBool('want-blacklist', True)
+        self.wantWhiteList = ConfigVariableBool('want-whitelist', True).getValue()
+        self.wantBlackList = ConfigVariableBool('want-blacklist', True).getValue()
 
         self.whiteList = DummyWhiteList()
         if self.wantWhiteList:
             self.whiteList = TTWhiteList()
 
         self.mutedDict = {}
-        self.accept('nameCheck', self.checkBadNames)
 
     def checkBadNames(self, toonName, nameCheck=False):
         isBadName = self.detectBadWords(toonName)
@@ -60,17 +65,21 @@ class ChatAgentUD(DistributedObjectGlobalUD):
 
         self.air.writeServerEvent('chat-said', senderId, message, message)
 
-        if config.GetBool('want-chat-logging', False):
-            def handleQueryObjectLocationResp(parentId, zoneId):
-                self.air.mongodb.chat.messages.insert_one(
-                    {'type': ChannelToType[channel],
-                     'timestamp': int(time.time()),
-                     'sender': senderId,
-                     'recipient': 0,
-                     'location': [parentId, zoneId],
-                     'message': message})
+        chatLog = chatLogOf(self.air)
+        if chatLog is not None:
+            event = chatLog.record(
+                kindForChannel(channel), senderId, name, accountId, message)
 
-            self.air.queryObjectLocation(senderId, handleQueryObjectLocationResp)
+            self.air.queryObjectLocation(
+                senderId,
+                lambda parentId, zoneId: chatLog.setLocation(
+                    event, parentId, zoneId))
+
+        if channel == GUILD_CHANNEL:
+            guildManager = self.air.globalObjects.get('GuildManager')
+            if guildManager is not None:
+                guildManager.sendGuildTalk(senderId, message)
+            return
 
         dclass = self.air.dclassesByName['DistributedAvatarUD']
         dg = dclass.aiFormatUpdate(
@@ -115,18 +124,7 @@ class ChatAgentUD(DistributedObjectGlobalUD):
             self.air.dbId, accountId, __handleRetrieve)
 
     def detectBadWords(self, message):
-        words = message.split()
-        for word in words:
-            if word.lower().strip(',.!?\'\"') in BLACKLIST or message.lower().strip(',.!?\'\"') in BLACKLIST:
-                return True
-
-            phrase = ''
-            for letter in word:
-                phrase += letter
-                if phrase.lower().strip(',.!?\'\"') in BLACKLIST:
-                    return True
-
-        return False
+        return containsBadWord(message)
 
     def lookForSequences(self, words):
         flaggedIndexes = []
@@ -144,7 +142,7 @@ class ChatAgentUD(DistributedObjectGlobalUD):
                     break
                 if cleanSlice != subseqStrings:
                     continue
-                flaggedIndexes.extend(range(currentIndex, currentIndex + rangeEnd))
+                flaggedIndexes.extend(list(range(currentIndex, currentIndex + rangeEnd)))
                 break
 
         return [(i, self.wantWhiteList) for i in flaggedIndexes]

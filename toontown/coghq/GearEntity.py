@@ -1,7 +1,7 @@
+from panda3d.core import Vec3
 from direct.interval.IntervalGlobal import *
 from otp.level import BasicEntities
-import MovingPlatform
-from pandac.PandaModules import Vec3
+from . import MovingPlatform
 
 class GearEntity(BasicEntities.NodePathEntity):
     ModelPaths = {'factory': 'phase_9/models/cogHQ/FactoryGearB',

@@ -1,8 +1,8 @@
-from direct.actor.Actor import Actor, CollisionNode, CollisionTube
+from panda3d.core import CollisionNode, CollisionTube, TextNode
+from direct.actor.Actor import Actor
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObject import DistributedObject
 # from direct.filter.CommonFilters import CommonFilters
-from panda3d.core import TextNode
 
 from toontown.safezone import JukeboxGlobals
 from toontown.toonbase import ToontownGlobals, SettingsGlobals

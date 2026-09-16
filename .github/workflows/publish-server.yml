@@ -1,0 +1,117 @@
+name: Publish server images
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 1.0.0)."
+        required: true
+        type: string
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+      image: ${{ steps.version.outputs.image }}
+    steps:
+      - id: version
+        shell: bash
+        run: |
+          VALUE="${{ inputs.version }}"
+          echo "value=${VALUE#v}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Build and push ${{ matrix.image }}
+    needs: version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The districts and the UberDOG run out of this one:
+          - image: server
+            file: Dockerfile
+            resources: true
+          # Ships the committed astrond binary; see docker/astron/Dockerfile:
+          - image: astron
+            file: docker/astron/Dockerfile
+            resources: false
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check out the build tools
+        shell: bash
+        env:
+          BUILD_TOOLS_TOKEN: ${{ secrets.BUILD_TOOLS_TOKEN }}
+        run: |
+          echo "::add-mask::$BUILD_TOOLS_TOKEN"
+
+          auth=$(printf 'oauth2:%s' "$BUILD_TOOLS_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+
+          git init -q tools
+          git -C tools remote add origin \
+            https://git.toontown.io/toontown-infinite/build-tools.git
+          git -C tools -c http.extraheader="Authorization: Basic $auth" \
+            fetch -q --depth 1 origin HEAD
+          git -C tools checkout -q FETCH_HEAD
+
+      - name: Check out the resources
+        if: matrix.resources
+        uses: actions/checkout@v5
+        with:
+          repository: TT-Infinite-Archive/resources
+          path: art
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v6
+        if: matrix.resources
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Assemble server resources
+        if: matrix.resources
+        run: |
+          pip install --disable-pip-version-check -r requirements.txt
+          tools/build-server-resources.sh art build/resources
+
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: useblacksmith/build-push-action@v2
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          build-args: |
+            SERVER_VERSION=${{ needs.version.outputs.value }}
+          tags: |
+            ${{ needs.version.outputs.image }}-${{ matrix.image }}:${{ needs.version.outputs.value }}
+            ${{ needs.version.outputs.image }}-${{ matrix.image }}:latest
+
+  deploy:
+    name: Deploy
+    needs: [version, publish]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      tag: ${{ needs.version.outputs.value }}
+    secrets: inherit

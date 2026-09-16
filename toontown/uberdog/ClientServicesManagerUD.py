@@ -1,10 +1,14 @@
-import semidbm
+from panda3d.core import ConfigVariableBool, ConfigVariableInt, ConfigVariableString, Connection, Datagram
 from direct.distributed.DistributedObjectGlobalUD import DistributedObjectGlobalUD
+from direct.distributed.MsgTypes import CLIENTAGENT_EJECT, CLIENTAGENT_OPEN_CHANNEL, CLIENTAGENT_SET_CLIENT_ID, CLIENTAGENT_SET_STATE, \
+    STATESERVER_OBJECT_DELETE_RAM, CLIENTAGENT_ADD_POST_REMOVE, STATESERVER_OBJECT_SET_OWNER, CLIENTAGENT_CLEAR_POST_REMOVES, CLIENTAGENT_CLOSE_CHANNEL, \
+    CLIENTAGENT_REMOVE_SESSION_OBJECT
 from direct.distributed.PyDatagram import *
 from direct.fsm.FSM import FSM
-from pandac.PandaModules import *
+from direct.task import Task
 from datetime import datetime
 import time
+import json
 import random
 import uuid
 import hashlib
@@ -15,6 +19,7 @@ from toontown.makeatoon.NameGenerator import NameGenerator
 from toontown.toon import ToonDNA
 from toontown.toonbase import TTLocalizer, ToontownGlobals
 from toontown.uberdog.ClientServicesManager import generateLookupTable, encodeHexString
+from toontown.web.AccountServiceClient import AccountServiceClient
 
 
 # Some constants for the operations we perform
@@ -23,13 +28,29 @@ NAME_SUBMITTED = 1
 NAME_SUBMISSION_ERROR = 2
 
 
-accountdbType = simbase.config.GetString('accountdb-type', 'developer')
+# Flags the webserver is allowed to set
+WEBSITE_FLAGS = {
+    'districtPage': True,
+}
+
+SERVER_FLAGS_PATH = 'api/game/server-flags'
+SERVER_FLAGS_REFRESH = 300
+
+
+accountdbType = ConfigVariableString('accountdb-type', 'developer').getValue()
 
 
 # --- ACCOUNT DATABASES ---
-# These classes make up the available account databases for Toontown Infinite.
-# DeveloperAccountDB is a special database that accepts a username, and assigns
-# each user with 400 access automatically upon login.
+# These classes make up the available account databases for Toontown Infinite,
+# selected by accountdb-type:
+#
+#   developer   LocalAccountDB -- running the client straight from source.
+#   offline     LocalAccountDB -- a server somebody hosts for themselves.
+#   production  WebAccountDB   -- the official server; the website owns
+#                                 accounts and the launcher's launch token is
+#                                 the only credential.
+#
+# developer and offline are the same database, differing only in accessLevel
 
 class AccountDB:
     notify = directNotify.newCategory('AccountDB')
@@ -37,10 +58,14 @@ class AccountDB:
     def __init__(self, csm):
         self.csm = csm
 
-    def submitNameRequest(self, avId, name, callback, errback):
+    def submitNameRequest(self, userId, avId, name, callback, errback):
+        """
+        Hand a custom name over for review.
+        """
         callback(NAME_APPROVED)
 
-    def isNameAcceptable(self, name, callback, errback):
+    def submitGuildNameRequest(self, userId, guildId, avId, name, resubmit,
+                               callback, errback):
         callback(True)
 
     def login(self, username, password, pepper, callback):
@@ -50,15 +75,16 @@ class AccountDB:
         pass  # Inheritors should override this.
 
     def hashedPassword(self, password, salt, pepper):
-        return hashlib.sha512(password + salt + pepper).hexdigest()
+        combinedPassword = password + salt + pepper
+        return hashlib.sha512(combinedPassword.encode('utf-8')).hexdigest()
 
 
-class DeveloperAccountDB(AccountDB):
-    notify = directNotify.newCategory('DeveloperAccountDB')
+class LocalAccountDB(AccountDB):
+    notify = directNotify.newCategory('LocalAccountDB')
 
-    def __init__(self, csm):
+    def __init__(self, csm, accessLevel):
         AccountDB.__init__(self, csm)
-        self.accessLevel = 400
+        self.accessLevel = accessLevel
         self.csm.air.dbAstronCursor.objects.create_index([('fields.ACCOUNT_ID', 1)])
 
     def lookupUserId(self, userId):
@@ -106,57 +132,128 @@ class DeveloperAccountDB(AccountDB):
         return dict
 
 
-class ProductionDB(AccountDB):
-    notify = directNotify.newCategory('ProductionDB')
+class WebAccountDB(AccountDB):
+    """
+    Accounts owned by the website.
+    """
+
+    notify = directNotify.newCategory('WebAccountDB')
+
+    VERIFY_PATH = 'api/game/verify-token'
+    NAME_PATH = 'api/game/name-submission'
+    GUILD_NAME_PATH = 'api/game/guild-name-submission'
 
     def __init__(self, csm):
         AccountDB.__init__(self, csm)
-        self.accessLevel = 100
         self.csm.air.dbAstronCursor.objects.create_index([('fields.ACCOUNT_ID', 1)])
 
-    def lookupUserId(self, userId):
-        document = self.csm.air.dbAstronCursor.objects.find_one({'fields.ACCOUNT_ID': userId})
-        dict = {'userId': userId, 'success': True}
+        url = ConfigVariableString('account-service-url', 'http://localhost:4321').getValue()
+        secret = ConfigVariableString('account-service-secret', '').getValue()
 
-        if not document or 'dclass' not in document or document['dclass'] != 'Account':
-            dict['accessLevel'] = self.accessLevel
-            dict['accountId'] = 0
+        if not secret:
+            self.notify.warning(
+                'account-service-secret is unset; no launch token can be redeemed.')
+
+        self.service = AccountServiceClient(url, secret)
+
+    def accountIdForUser(self, userId):
+        document = self.csm.air.dbAstronCursor.objects.find_one(
+            {'fields.ACCOUNT_ID': str(userId)})
+
+        if not document or document.get('dclass') != 'Account':
+            return 0
+
+        return document['_id']
+
+    def loginToken(self, token, callback):
+        self.service.post(
+            self.VERIFY_PATH, {'token': token},
+            lambda response: self.handleVerify(response, callback),
+            lambda status: self.handleVerifyFailure(status, callback))
+
+    def handleVerify(self, response, callback):
+        userId = response.get('userId')
+
+        if not userId:
+            # A 200 with no user means the website answered but had nothing to
+            # vouch for, aka, a rejection, not an outage
+            self.notify.warning('Account service returned no user for a token.')
+            callback({'success': False,
+                      'error': ToontownGlobals.CSM_LOGIN_ERROR_TOKEN_INVALID})
+            return
+
+        callback({
+            'success': True,
+            'userId': userId,
+            'username': response.get('username') or userId,
+            'accessLevel': response.get('accessLevel', 0),
+            'accountId': self.accountIdForUser(userId),
+            'banned': bool(response.get('banned')),
+            'banReason': response.get('banReason')
+        })
+
+    def submitNameRequest(self, userId, avId, name, callback, errback):
+        """
+        Hand the name to the Toon Council's queue.
+        """
+        self.service.post(
+            self.NAME_PATH,
+            {'toonId': str(avId), 'name': name, 'accountId': str(userId)},
+            lambda response: self.handleNameResponse(response, callback, errback),
+            errback)
+
+    def handleNameResponse(self, response, callback, errback):
+        status = response.get('status')
+
+        if status == 'approved':
+            callback(NAME_APPROVED)
+        elif status == 'pending':
+            callback(NAME_SUBMITTED)
         else:
-            dict['accessLevel'] = document['fields']['ACCESS_LEVEL']
-            dict['accountId'] = document['_id']
+            # A 200 we don't understand is a version skew, not a rejection
+            self.notify.warning(
+                'Name review returned an unknown status: %s' % status)
+            errback(None)
 
-        return dict
+    def submitGuildNameRequest(self, userId, guildId, avId, name, resubmit,
+                               callback, errback):
+        self.service.post(
+            self.GUILD_NAME_PATH,
+            {'guildId': str(guildId), 'toonId': str(avId), 'name': name,
+             'accountId': str(userId), 'resubmit': bool(resubmit)},
+            lambda response: self.handleGuildNameResponse(response, callback, errback),
+            errback)
 
-    def login(self, username, password, pepper, callback):
-        document = self.csm.air.dbAstronCursor.objects.find_one({'fields.USERNAME': username})
-        dict = {}
-        if not document or 'dclass' not in document or document['dclass'] != 'Account':
-            dict['error'] = ToontownGlobals.CSM_LOGIN_ERROR_CREDENTIALS_INVALID
-        elif document['fields']['PASSWORD'] == self.hashedPassword(password, document['fields']['SALT'], pepper):
-            dict['success'] = True
+    def handleGuildNameResponse(self, response, callback, errback):
+        status = response.get('status')
+
+        if status in ('pending', 'decided'):
+            callback(False)
         else:
-            dict['error'] = ToontownGlobals.CSM_LOGIN_ERROR_CREDENTIALS_INVALID
-        callback(dict)
-        return dict
+            self.notify.warning(
+                'Guild name review returned an unknown status: %s' % status)
+            errback(None)
 
-    def lookupUsername(self, username):
-        document = self.csm.air.dbAstronCursor.objects.find_one({'fields.USERNAME': username})
-        dict = {'username': username, 'success': True}
-
-        if not document or 'dclass' not in document or document['dclass'] != 'Account':
-            dict['accessLevel'] = self.accessLevel
-            dict['accountId'] = 0
+    def handleVerifyFailure(self, status, callback):
+        # 401 is the ordinary case which is expired, already used, or was never real
+        # 
+        # Every other status is our problem, not the player's: a 503 means the website has
+        # ACCOUNT_SERVICE_SECRET not configured
+        # 
+        # 400 means we sent it nothing
+        #
+        # 401 means mismatched secret
+        if status == 401:
+            self.notify.warning('Account service refused a launch token.')
+            error = ToontownGlobals.CSM_LOGIN_ERROR_TOKEN_INVALID
         else:
-            dict['accessLevel'] = document['fields']['ACCESS_LEVEL']
-            dict['accountId'] = document['_id']
-            dict['userId'] = document['fields']['ACCOUNT_ID']
+            self.notify.warning(
+                'Account service failed with status %s -- check '
+                'account-service-url and account-service-secret.' % status)
+            error = ToontownGlobals.CSM_LOGIN_ERROR_ACCOUNT_SERVER
 
-        return dict
+        callback({'success': False, 'error': error})
 
-    def lookup(self, username, callback):
-        dict = self.lookupUsername(username)
-        callback(dict)
-        return dict
 
 
 # --- FSMs ---
@@ -178,9 +275,9 @@ class OperationFSM(FSM):
 
     def enterOff(self):
         if self.TARGET_CONNECTION:
-            del self.csm.connection2fsm[self.target]
+            self.csm.connection2fsm.pop(self.target, None)
         else:
-            del self.csm.account2fsm[self.target]
+            self.csm.account2fsm.pop(self.target, None)
 
 
 class LoginAccountFSM(OperationFSM):
@@ -346,11 +443,62 @@ class LoginAccountFSM(OperationFSM):
 
         # We're done.
         self.csm.air.writeServerEvent('accountLogin', self.target, self.accountId, self.username)
-        self.csm.sendUpdateToChannel(self.target, 'acceptLogin', [int(time.time())])
+        self.csm.sendUpdateToChannel(
+            self.target, 'acceptLogin',
+            [int(time.time()), self.csm.encodedServerFlags()])
         self.demand('Off')
 
     def __hashedPassword(self, salt):
-        return hashlib.sha512(self.password + salt + self.pepper).hexdigest()
+        combinedPassword = self.password + salt + self.pepper
+        return hashlib.sha512(combinedPassword.encode('utf-8')).hexdigest()
+
+
+class LoginTokenFSM(LoginAccountFSM):
+    """
+    Logging in with a launch token instead of a password.
+    After identifying the account, the rest works like the password login path,
+    but authentication is verified by the website instead of a password hashed in Mongo!
+    """
+    notify = directNotify.newCategory('LoginTokenFSM')
+
+    def enterStart(self, token):
+        self.token = token
+        self.demand('VerifyToken')
+
+    def enterVerifyToken(self):
+        self.csm.accountDB.loginToken(self.token, self.__handleToken)
+
+    def __handleToken(self, result):
+        if not result.get('success'):
+            self.csm.air.writeServerEvent('launchTokenRejected', self.target)
+            self.csm.sendUpdateToChannel(
+                self.target, 'loginError',
+                [result.get('error', ToontownGlobals.CSM_LOGIN_ERROR_TOKEN_INVALID)])
+            self.demand('Off')
+            return
+
+        if result.get('banned'):
+            # Re-checked at redemption time, so a ban that landed after the
+            # launcher got its token still lands here
+            self.csm.air.writeServerEvent('bannedAccountLogin', self.target,
+                                          result.get('userId'))
+            self.demand('Kill', result.get('banReason')
+                        or 'This account has been banned.')
+            return
+
+        self.username = result.get('username', '')
+        self.userId = result.get('userId', 0)
+        self.accountId = result.get('accountId', 0)
+        self.accessLevel = result.get('accessLevel', 0)
+
+        # Web accounts don't have passwords, so set a random value that can't be guessed
+        self.password = uuid.uuid4().hex
+
+        if self.accountId:
+            self.demand('RetrieveAccount')
+        else:
+            self.demand('CreateAccount')
+
 
 class CreateAvatarFSM(OperationFSM):
     notify = directNotify.newCategory('CreateAvatarFSM')
@@ -403,7 +551,7 @@ class CreateAvatarFSM(OperationFSM):
         animalType = TTLocalizer.AnimalToSpecies[dna.getAnimal()]
         name = ' '.join((colorString, animalType))
         toonFields = {
-            'setPatchVersion': (config.GetInt('toon-patch-version', 0),),
+            'setPatchVersion': (ConfigVariableInt('toon-patch-version', 0).getValue(),),
             'setName': (name,),
             'WishNameState': ('OPEN',),
             'WishName': ('',),
@@ -442,7 +590,8 @@ class CreateAvatarFSM(OperationFSM):
             return
 
         # Otherwise, we're done!
-        self.csm.air.writeServerEvent('avatarCreated', self.avId, self.target, self.dna.encode('hex'), self.index)
+        self.csm.air.writeServerEvent('avatarCreated', self.avId, self.target, self.dna.hex(), self.index)
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'createAvatarResp', [self.avId])
         self.demand('Off')
 
@@ -463,14 +612,14 @@ class AvatarOperationFSM(OperationFSM):
         self.account = fields
 
         # Check if the server might be locked:
-        if config.GetBool('want-unlock-timer', False):
+        if ConfigVariableBool('want-unlock-timer', False).getValue():
             # Get the unlock time:
-            dt = datetime.strptime(config.GetString('unlock-time', ''), '%a %b %d %H:%M:%S %Y')
+            dt = datetime.strptime(ConfigVariableString('unlock-time', '').getValue(), '%a %b %d %H:%M:%S %Y')
             ts = int(time.mktime(dt.timetuple()))
 
             # Check if the client should be locked out:
             if time.time() < ts and self.account['ACCESS_LEVEL'] < 175:
-                self.csm.sendUpdateToAccountId(self.target, 'lockClient', [ts, config.GetString('unlock-text', '')])
+                self.csm.sendUpdateToAccountId(self.target, 'lockClient', [ts, ConfigVariableString('unlock-text', '').getValue()])
                 self.demand('Off')
                 return
 
@@ -519,7 +668,7 @@ class GetAvatarsFSM(AvatarOperationFSM):
     def enterSendAvatars(self):
         potentialAvs = []
 
-        for avId, fields in self.avatarFields.items():
+        for avId, fields in list(self.avatarFields.items()):
             index = self.avList.index(avId)
             wishNameState = fields.get('WishNameState', [''])[0]
             name = fields['setName'][0]
@@ -529,6 +678,10 @@ class GetAvatarsFSM(AvatarOperationFSM):
             else:
                 guildId = fields['setGuildId'][0]
 
+            lastHoodId = fields['setLastHood'][0]
+            if lastHoodId == 0:
+                lastHoodId = 2000
+
             nameState = 0
 
             if wishNameState == 'OPEN':
@@ -537,12 +690,14 @@ class GetAvatarsFSM(AvatarOperationFSM):
                 nameState = 2
             elif wishNameState == 'APPROVED':
                 nameState = 3
+                name = fields.get('WishName', [''])[0] or name
             elif wishNameState == 'REJECTED':
                 nameState = 4
 
             potentialAvs.append([avId, name, fields['setDNAString'][0],
-                                 index, nameState, guildId])
+                                 index, nameState, guildId, lastHoodId])
 
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'setAvatars', [potentialAvs])
         self.demand('Off')
 
@@ -668,10 +823,21 @@ class SetNameTypedFSM(AvatarOperationFSM):
 
     def enterJudgeName(self):
         chatAgent = self.csm.air.getGlobalObject('ChatAgent')
-        badName = chatAgent.checkBadNames(self.name, nameCheck=True)
-        if badName:
-            self.csm.sendUpdateToAccountId(self.target, 'setNameTypedResp', [self.avId, 0])
-        else:
+        if chatAgent.checkBadNames(self.name, nameCheck=True):
+            # Caught by our own filter, so nobody needs to read it.
+            self.__respond(0)
+            return
+
+        if not self.avId:
+            self.__respond(1)
+            return
+
+        self.csm.accountDB.submitNameRequest(
+            self.account['ACCOUNT_ID'], self.avId, self.name,
+            self.__handleNameReviewed, self.__handleNameReviewFailed)
+
+    def __handleNameReviewed(self, result):
+        if result == NAME_APPROVED:
             self.csm.air.dbInterface.updateObject(
                 self.csm.air.dbId,
                 self.avId,
@@ -679,7 +845,26 @@ class SetNameTypedFSM(AvatarOperationFSM):
                 {'WishNameState': ('APPROVED',),
                  'WishName': (self.name,),
                  'setName': (self.name,)})
-            self.csm.sendUpdateToAccountId(self.target, 'setNameTypedResp', [self.avId, 1])
+            self.csm.syncToons(self.target)
+        else:
+            self.csm.air.dbInterface.updateObject(
+                self.csm.air.dbId,
+                self.avId,
+                self.csm.air.dclassesByName['DistributedToonUD'],
+                {'WishNameState': ('PENDING',),
+                 'WishName': (self.name,)})
+        self.__respond(1)
+
+    def __handleNameReviewFailed(self, status):
+        # The review service is unreachable. Turning the name down would be a
+        # lie, so the player is asked to try again
+        self.notify.warning(
+            'Could not submit a name for review (status %s).' % status)
+        self.__respond(0)
+
+    def __respond(self, status):
+        self.csm.sendUpdateToAccountId(
+            self.target, 'setNameTypedResp', [self.avId, status])
         self.demand('Off')
 
 
@@ -740,6 +925,7 @@ class SetNamePatternFSM(AvatarOperationFSM):
              'setName': (name,)})
 
         self.csm.air.writeServerEvent('avatarNamed', self.avId, name)
+        self.csm.syncToons(self.target)
         self.csm.sendUpdateToAccountId(self.target, 'setNamePatternResp', [self.avId, 1])
         self.demand('Off')
 
@@ -860,9 +1046,9 @@ class LoadAvatarFSM(AvatarOperationFSM):
         datagram.addChannel(self.target<<32 | self.avId)
         self.csm.air.send(datagram)
 
-        # Tell the Managers as well:
-        globalPartyMgr = self.csm.air.getGlobalObject('GlobalPartyManager')
-        globalPartyMgr.avatarJoined(self.avId)
+        # Tell the Managers that we are online
+        messenger.send('avatarOnline', [self.avId])
+
         guildManager = self.csm.air.getGlobalObject('GuildManager')
         guildManager.toonOnline(
             self.avId, self.avatar.get('setGuildId', [0])[0])
@@ -887,7 +1073,7 @@ class LoadAvatarFSM(AvatarOperationFSM):
             channel,
             self.csm.air.ourChannel,
             CLIENTAGENT_ADD_POST_REMOVE)
-        datagram.addString(datagramCleanup.getMessage())
+        datagram.addBlob(bytes(datagramCleanup))
         self.csm.air.send(datagram)
 
         # Activate the avatar on the DBSS:
@@ -917,6 +1103,9 @@ class LoadAvatarFSM(AvatarOperationFSM):
             CLIENTAGENT_OPEN_CHANNEL)
         datagram.addChannel(self.csm.GetPuppetConnectionChannel(self.avId))
         self.csm.air.send(datagram)
+
+        # Now set the avatar as the client's session object
+        self.csm.air.clientAddSessionObject(channel, self.avId)
 
         # Now set their sender channel to represent their account affiliation:
         datagram = PyDatagram()
@@ -977,6 +1166,15 @@ class UnloadAvatarFSM(OperationFSM):
         datagram.addChannel(self.target<<32)
         self.csm.air.send(datagram)
 
+        # Reset session object:
+        datagram = PyDatagram()
+        datagram.addServerHeader(
+        channel,
+        self.csm.air.ourChannel,
+        CLIENTAGENT_REMOVE_SESSION_OBJECT)
+        datagram.addUint32(self.avId)
+        self.csm.air.send(datagram)
+
         # Unload avatar object:
         datagram = PyDatagram()
         datagram.addServerHeader(
@@ -1027,11 +1225,70 @@ class ClientServicesManagerUD(DistributedObjectGlobalUD):
 
         # Instantiate our account DB interface:
         if accountdbType == 'developer':
-            self.accountDB = DeveloperAccountDB(self)
+            self.accountDB = LocalAccountDB(self, accessLevel=ACCESS_SYSTEM_ADMINISTRATOR)
+        elif accountdbType == 'offline':
+            self.accountDB = LocalAccountDB(self, accessLevel=100)
         elif accountdbType == 'production':
-            self.accountDB = ProductionDB(self)
+            self.accountDB = WebAccountDB(self)
         else:
             self.notify.error('Invalid accountdb-type: ' + accountdbType)
+
+        self.serverFlags = dict(WEBSITE_FLAGS)
+        self.refreshServerFlags()
+
+    # --- SERVER FLAGS ---
+    def refreshServerFlags(self, task=None):
+        """
+        Re-reads the website's flag set. Flags are only looked at when a client
+        logs in.
+        """
+        service = getattr(self.accountDB, 'service', None)
+
+        if service is None:
+            # No website behind this server, so the defaults stand.
+            return Task.done
+
+        service.get(SERVER_FLAGS_PATH,
+                    self.__handleServerFlags, self.__handleServerFlagsError)
+
+        taskMgr.doMethodLater(SERVER_FLAGS_REFRESH, self.refreshServerFlags,
+                              'refreshServerFlags')
+        return Task.done
+
+    def __handleServerFlags(self, body):
+        flags = (body or {}).get('flags') or {}
+
+        for name in WEBSITE_FLAGS:
+            if name in flags:
+                self.serverFlags[name] = bool(flags[name])
+
+    def __handleServerFlagsError(self, status):
+        self.notify.warning('Could not read the website\'s server flags; '
+                            'keeping %r.' % self.serverFlags)
+
+    def encodedServerFlags(self):
+        """
+        The flag set handed to a client at login.
+        """
+        flags = dict(self.serverFlags)
+
+        flags['official'] = accountdbType == 'production'
+
+        return json.dumps(flags)
+
+    def syncToons(self, accountId):
+        gateway = getattr(self.air, 'gateway', None)
+        if gateway is not None:
+            gateway.toonRoster.sync(accountId)
+
+    def recordRequest(self, connId):
+        now = time.time()
+
+        for otherId, stamp in list(self.connection2Timestamp.items()):
+            if now - stamp > self.REQUEST_DELAY:
+                del self.connection2Timestamp[otherId]
+
+        self.connection2Timestamp[connId] = now
 
     def killConnection(self, connId, reason):
         datagram = PyDatagram()
@@ -1080,7 +1337,7 @@ class ClientServicesManagerUD(DistributedObjectGlobalUD):
     def requestAuthToken(self, mac_addr, ip_addr):
         sender = self.air.getMsgSender()
 
-        self.air.sendNetEvent('banCheck', [sender, mac_addr, ip_addr], channels=[OtpDoGlobals.MESSENGER_CHANNEL_AI])
+        self.air.sendNetEvent('banCheck', [sender, mac_addr, ip_addr])
         self.acceptOnce('banCheckResponse-%s' % sender, self.handleResponse)
 
     def handleResponse(self, sender, isBanned, banLength):
@@ -1095,7 +1352,7 @@ class ClientServicesManagerUD(DistributedObjectGlobalUD):
             self.air.send(datagram)
             return
 
-        authToken = ''.join([hex(random.randint(0, 254)) for _ in xrange(25)])
+        authToken = ''.join([hex(random.randint(0, 254)) for _ in range(25)])
 
         lookupTable = generateLookupTable(authToken[::2])
         self.authTokens[sender] = encodeHexString(lookupTable, authToken)
@@ -1129,9 +1386,31 @@ class ClientServicesManagerUD(DistributedObjectGlobalUD):
                 self.sendUpdateToChannel(sender, 'loginError', [ToontownGlobals.CSM_LOGIN_ERROR_TOO_FAST])
                 return
 
-        self.connection2Timestamp[sender] = time.time()
+        self.recordRequest(sender)
         self.connection2fsm[sender] = LoginAccountFSM(self, sender)
         self.connection2fsm[sender].request('Start', username, password)
+
+    def loginToken(self, token):
+        sender = self.air.getMsgSender()
+
+        if sender >> 32:
+            self.killConnection(sender, 'Client is already logged in.')
+            return
+
+        if sender in self.connection2fsm:
+            self.killConnectionFSM(sender)
+            return
+
+        if sender in self.connection2Timestamp:
+            if time.time() - self.connection2Timestamp[sender] <= self.REQUEST_DELAY:
+                self.sendUpdateToChannel(
+                    sender, 'loginError',
+                    [ToontownGlobals.CSM_LOGIN_ERROR_TOO_FAST])
+                return
+
+        self.recordRequest(sender)
+        self.connection2fsm[sender] = LoginTokenFSM(self, sender)
+        self.connection2fsm[sender].request('Start', token)
 
     def requestAvatars(self):
         self.notify.debug('Received avatar list request from %d' % (self.air.getMsgSender()))

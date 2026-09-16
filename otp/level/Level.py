@@ -1,8 +1,6 @@
 from direct.directnotify import DirectNotifyGlobal
-import string
-import LevelConstants
-from direct.showbase.PythonUtil import lineInfo, uniqueElements
-import types
+from . import LevelConstants
+from direct.showbase.PythonUtil import uniqueElements
 
 class Level:
     notify = DirectNotifyGlobal.directNotify.newCategory('Level')
@@ -10,7 +8,6 @@ class Level:
     def __init__(self):
         self.levelSpec = None
         self.initialized = 0
-        return
 
     def initializeLevel(self, levelId, levelSpec, scenarioIndex):
         self.levelId = levelId
@@ -22,7 +19,7 @@ class Level:
         self.entranceId2entity = {}
         self.entId2createCallbacks = {}
         self.createdEntIds = []
-        self.nonlocalEntIds = {}
+        self.notlocalEntIds = {}
         self.nothingEntIds = {}
         self.entityCreator = self.createEntityCreator()
         self.entType2ids = self.levelSpec.getEntType2ids(self.levelSpec.getAllEntIds())
@@ -52,7 +49,7 @@ class Level:
             del self.levelSpec
         self.initialized = 0
         del self.createdEntIds
-        del self.nonlocalEntIds
+        del self.notlocalEntIds
         del self.nothingEntIds
         if hasattr(self, 'entities'):
             del self.entities
@@ -61,7 +58,7 @@ class Level:
             del self.levelSpec
 
     def createEntityCreator(self):
-        Level.notify.error('concrete Level class must override %s' % lineInfo()[2])
+        Level.notify.error('concrete Level class must override createEntityCreator')
 
     def createAllEntities(self, priorityTypes = None):
         if priorityTypes is None:
@@ -79,7 +76,7 @@ class Level:
         self.onLevelPostCreate()
 
     def destroyAllEntities(self):
-        self.nonlocalEntIds = {}
+        self.notlocalEntIds = {}
         self.nothingEntIds = {}
         if not uniqueElements(self.createdEntIds):
             Level.notify.warning('%s: self.createdEntIds is not unique: %s' % (getattr(self, 'doId', None), self.createdEntIds))
@@ -91,8 +88,6 @@ class Level:
                 entity.destroy()
             else:
                 Level.notify.error('trying to destroy entity %s, but it is already gone' % entId)
-
-        return
 
     def createAllEntitiesOfType(self, entType):
         self.onEntityTypePreCreate(entType)
@@ -106,9 +101,9 @@ class Level:
         Level.notify.debug('creating %s %s' % (spec['type'], entId))
         entity = self.entityCreator.createEntity(entId)
         announce = False
-        if entity is 'nonlocal':
-            self.nonlocalEntIds[entId] = None
-        elif entity is 'nothing':
+        if entity == 'notlocal':
+            self.notlocalEntIds[entId] = None
+        elif entity == 'nothing':
             self.nothingEntIds[entId] = None
             announce = True
         else:
@@ -121,7 +116,7 @@ class Level:
     def initializeEntity(self, entity):
         entId = entity.entId
         spec = self.levelSpec.getEntitySpec(entId)
-        for key, value in spec.items():
+        for key, value in list(spec.items()):
             if key in ('type', 'name', 'comment'):
                 continue
             entity.setAttribInit(key, value)
@@ -253,6 +248,6 @@ class Level:
                 entity.destroy()
             elif entId in self.nothingEntIds:
                 del self.nothingEntIds[entId]
-            elif entId in self.nonlocalEntIds:
-                del self.nonlocalEntIds[entId]
+            elif entId in self.notlocalEntIds:
+                del self.notlocalEntIds[entId]
             self.entType2ids[self.getEntityType(entId)].remove(entId)

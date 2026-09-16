@@ -1,28 +1,35 @@
-from panda3d.core import ConfigVariableList
+import time
+from panda3d.core import ConfigVariableBool, ConfigVariableList, ConfigVariableString, MultiplexStream, Notify, StreamWriter
 
 from otp.distributed.DistributedDirectoryAI import DistributedDirectoryAI
 from toontown.distributed.ToontownInternalRepository import \
     ToontownInternalRepository
 from otp.distributed import OtpDoGlobals
 
-if config.GetBool('want-rpc-server', False):
+if ConfigVariableBool('want-rpc-server', False).getValue():
     from toontown.rpc.ToontownRPCServer import ToontownRPCServer
     from toontown.rpc.ToontownRPCHandler import ToontownRPCHandler
 
+if ConfigVariableBool('want-game-gateway', False).getValue():
+    from toontown.web.GameGateway import GameGateway
+
+from toontown.parties.ToontownTimeManager import ToontownTimeManager
+from toontown.server import Readiness
 
 class ToontownUberRepository(ToontownInternalRepository):
-    def __init__(self, baseChannel, serverId):
+    def __init__(self, baseChannel, serverId, gateway=None):
         ToontownInternalRepository.__init__(
             self, baseChannel, serverId, dcSuffix='UD')
 
         self.rpcServer = None
+        self._pendingGatewaySocket = gateway
+        self.gateway = None
         self.globalObjects = {}
         self.remoteGlobalObjects = {}
 
         self.notify.setInfo(True)
 
         # Logging
-        from panda3d.core import MultiplexStream, Notify, StreamWriter
         from direct.directnotify import Notifier
         self.nout = MultiplexStream()
         Notify.ptr().setOstreamPtr(self.nout, 0)
@@ -33,16 +40,18 @@ class ToontownUberRepository(ToontownInternalRepository):
         ToontownInternalRepository.handleConnected(self)
         self.registerForChannel(OtpDoGlobals.MESSENGER_CHANNEL_UD)
 
-        if config.GetBool('generate-root-object', False):
+        if ConfigVariableBool('generate-root-object', False).getValue():
             rootObj = DistributedDirectoryAI(self)
             rootObj.generateWithRequiredAndId(self.getGameDoId(), 0, 0)
 
-        if config.GetBool('want-rpc-server', False):
-            endpoint = config.GetString(
-                'rpc-server-endpoint', 'http://localhost:8080/')
+        if ConfigVariableBool('want-rpc-server', False).getValue():
+            endpoint = ConfigVariableString(
+                'rpc-server-endpoint', 'http://localhost:8080/').getValue()
             self.rpcServer = ToontownRPCServer(
                 endpoint, ToontownRPCHandler(self))
             self.rpcServer.start(useTaskChain=True)
+
+        self.toontownTimeManager = ToontownTimeManager(time.time(), time.time(), globalClock.getRealTime())
 
         globalObjectDefs = ConfigVariableList('generate-global-object')
         for globalObjectDef in globalObjectDefs:
@@ -51,12 +60,19 @@ class ToontownUberRepository(ToontownInternalRepository):
             self.notify.info('Creating %s(%d)...' % (dcname, doId))
             self.globalObjects[dcname] = self.generateGlobalObject(doId, dcname)
 
-        for dcname, doId in OtpDoGlobals.dcname2doId.items():
+        for dcname, doId in list(OtpDoGlobals.dcname2doId.items()):
             if dcname not in self.globalObjects:
                 self.remoteGlobalObjects[dcname] = \
                     RemoteGlobalObject(self, dcname, doId)
 
+        # Last, so the globals its commands reach are already active
+        if self._pendingGatewaySocket is not None:
+            self.gateway = GameGateway(self, socket=self._pendingGatewaySocket)
+        elif ConfigVariableBool('want-game-gateway', False).getValue():
+            self.gateway = GameGateway(self)
+
         self.notify.info('Done.')
+        Readiness.markReady()
 
     def getGlobalObject(self, dcname):
         if dcname in self.globalObjects:

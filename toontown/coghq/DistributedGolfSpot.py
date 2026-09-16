@@ -1,5 +1,6 @@
+from panda3d.direct import SmoothMover
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableDouble, NodePath, Point3, TextNode, VBase4
 import math
-from pandac.PandaModules import Point3, CollisionSphere, CollisionNode, CollisionHandlerEvent, TextNode, VBase4, SmoothMover, NodePath, BitMask32
 from direct.fsm import FSM
 from direct.distributed import DistributedObject
 from direct.distributed.ClockDelta import globalClockDelta
@@ -21,8 +22,8 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
     toonGolfOffsetPos = Point3(-2, 0, -GolfGlobals.GOLF_BALL_RADIUS)
     toonGolfOffsetHpr = Point3(-90, 0, 0)
     rotateSpeed = 20
-    golfPowerSpeed = base.config.GetDouble('golf-power-speed', 3)
-    golfPowerExponent = base.config.GetDouble('golf-power-exponent', 0.75)
+    golfPowerSpeed = ConfigVariableDouble('golf-power-speed', 3).getValue()
+    golfPowerExponent = ConfigVariableDouble('golf-power-exponent', 0.75).getValue()
 
     def __init__(self, cr):
         DistributedObject.DistributedObject.__init__(self, cr)
@@ -35,8 +36,6 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         self.golfSpotSmoother.setSmoothMode(SmoothMover.SMOn)
         self.smoothStarted = 0
         self.__broadcastPeriod = 0.2
-        if self.index > len(self.positions):
-            self.notify.error('Invalid index %d' % index)
         self.fadeTrack = None
         self.setupPowerBar()
         self.aimStart = None
@@ -56,7 +55,6 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         self.releaseTrack = None
         self.grabTrack = None
         self.restoreScaleTrack = None
-        return
 
     def setBossCogId(self, bossCogId):
         self.bossCogId = bossCogId
@@ -74,7 +72,6 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         DistributedObject.DistributedObject.delete(self)
         self.ignoreAll()
         self.boss = None
-        return
 
     def announceGenerate(self):
         DistributedObject.DistributedObject.announceGenerate(self)
@@ -116,7 +113,7 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         if self.releaseTrack:
             self.releaseTrack.finish()
             self.releaseTrack = None
-        flyTracks = self.flyBallTracks.values()
+        flyTracks = list(self.flyBallTracks.values())
         for track in flyTracks:
             track.finish()
 
@@ -294,7 +291,7 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
          gui.find('**/CloseBtn_UP')), relief=None, scale=2, text=TTLocalizer.BossbotGolfSpotLeave, text_scale=0.04, text_pos=(0, -0.07), text_fg=VBase4(1, 1, 1, 1), pos=(1.05, 0, -0.82), command=self.__exitGolfSpot)
         self.accept('escape', self.__exitGolfSpot)
         self.accept(base.JUMP, self.__controlPressed)
-        self.accept('control-up', self.__controlReleased)
+        self.accept(base.JUMP + '-up', self.__controlReleased)
         self.accept('InputState-forward', self.__upArrow)
         self.accept('InputState-reverse', self.__downArrow)
         self.accept('InputState-turnLeft', self.__leftArrow)
@@ -314,7 +311,7 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         self.__cleanupGolfSpotAdvice()
         self.ignore('escape')
         self.ignore(base.JUMP)
-        self.ignore('control-up')
+        self.ignore(base.JUMP + '-up')
         self.ignore('InputState-forward')
         self.ignore('InputState-reverse')
         self.ignore('InputState-turnLeft')
@@ -458,7 +455,7 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
 
     def __updateBallPower(self, task):
         if not self.powerBar:
-            print '### no power bar!!!'
+            print('### no power bar!!!')
             return task.done
         newPower = self.__getBallPower(globalClock.getFrameTime())
         self.power = newPower
@@ -671,7 +668,7 @@ class DistributedGolfSpot(DistributedObject.DistributedObject, FSM.FSM):
         return self.__flyBallBubble
 
     def __flyBallHit(self, entry):
-        print entry
+        print(entry)
 
     def flyBallFinishedFlying(self, sequence):
         if sequence in self.flyBallTracks:

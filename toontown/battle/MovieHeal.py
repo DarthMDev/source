@@ -1,16 +1,17 @@
+from panda3d.core import GeomNode, NodePath, Point3, VBase4, Vec3
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 from direct.task import Task
 import random
 
-from BattleBase import *
-import BattleParticles
-from BattleProps import *
-from BattleSounds import *
-import HealJokes
-import MovieCamera
-import MovieNPCSOS
-import MovieUtil
+from .BattleBase import *
+from . import BattleParticles
+from .BattleProps import *
+from .BattleSounds import *
+from . import HealJokes
+from . import MovieCamera
+from . import MovieNPCSOS
+from . import MovieUtil
 from toontown.chat.ChatGlobals import *
 from toontown.effects import Splash
 from toontown.toon import NPCToons

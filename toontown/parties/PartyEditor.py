@@ -1,6 +1,5 @@
+from panda3d.core import Point3
 import time
-from sets import Set
-from pandac.PandaModules import Vec3, Vec4, Point3, TextNode, VBase4
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel, DirectScrolledList, DirectCheckButton
 from direct.gui import DirectGuiGlobals
 from direct.showbase.DirectObject import DirectObject
@@ -14,7 +13,7 @@ from toontown.parties import PartyUtils
 from toontown.parties.PartyEditorGrid import PartyEditorGrid
 from toontown.parties.PartyEditorListElement import PartyEditorListElement
 
-class PartyEditor(DirectObject, FSM):
+class PartyEditor(FSM, DirectObject):
     notify = directNotify.newCategory('PartyEditor')
 
     def __init__(self, partyPlanner, parent):
@@ -33,7 +32,6 @@ class PartyEditor(DirectObject, FSM):
         self.initElementList()
         self.initPartyClock()
         self.initTrashCan()
-        return
 
     def initElementList(self):
         self.activityIconsModel = loader.loadModel('phase_4/models/parties/eventSignIcons')
@@ -58,13 +56,13 @@ class PartyEditor(DirectObject, FSM):
             else:
                 pele = PartyEditorListElement(self, activityId)
                 self.elementList.addItem(pele)
-                if activityId == PartyGlobals.ActivityIds.PartyClock:
+                if activityId == PartyGlobals.EActivityId.PartyClock:
                     self.partyClockElement = pele
 
-        for decorationId in PartyGlobals.DecorationIds:
-            if not isVictory and decorationId in PartyGlobals.VictoryPartyDecorationIds or not isWinter and decorationId in PartyGlobals.WinterPartyDecorationIds or not isValentine and decorationId in PartyGlobals.ValentinePartyDecorationIds:
+        for decorationId in PartyGlobals.EDecorationId:
+            if not isVictory and decorationId in PartyGlobals.VictoryPartyEDecorationId or not isWinter and decorationId in PartyGlobals.WinterPartyEDecorationId or not isValentine and decorationId in PartyGlobals.ValentinePartyEDecorationId:
                 pass
-            elif isVictory and decorationId in PartyGlobals.VictoryPartyReplacementDecorationIds or isValentine and decorationId in PartyGlobals.ValentinePartyReplacementDecorationIds:
+            elif isVictory and decorationId in PartyGlobals.VictoryPartyReplacementEDecorationId or isValentine and decorationId in PartyGlobals.ValentinePartyReplacementEDecorationId:
                 pass
             elif decorationId in PartyGlobals.TTIUnreleasedDecor:
                 pass
@@ -173,13 +171,13 @@ class PartyEditor(DirectObject, FSM):
 
     def getMutuallyExclusiveActivities(self):
         currentActivities = self.partyEditorGrid.getActivitiesOnGrid()
-        actSet = Set([])
+        actSet = set()
         for act in currentActivities:
             actSet.add(act[0])
 
         result = None
         for mutuallyExclusiveTuples in PartyGlobals.MutuallyExclusiveActivities:
-            mutSet = Set(mutuallyExclusiveTuples)
+            mutSet = set(mutuallyExclusiveTuples)
             inter = mutSet.intersection(actSet)
             if len(inter) > 1:
                 result = inter

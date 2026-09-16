@@ -13,6 +13,10 @@ def isCogHQZone(zoneId):
     return zoneId >= 10000 and zoneId <= 19000
 
 
+def isCountryClubInteriorZone(zoneId):
+    return zoneId in (BossbotCountryClubIntA, BossbotCountryClubIntB, BossbotCountryClubIntC)
+
+
 def isMintInteriorZone(zoneId):
     return zoneId in (CashbotMintIntA, CashbotMintIntB, CashbotMintIntC)
 
@@ -217,7 +221,7 @@ def overrideOff():
     return
 
 
-def getWakeInfo(hoodId = None, zoneId = None):
+def getWakeInfo(hoodId=None, zoneId=None):
     wakeWaterHeight = 0
     showWake = 0
     try:
@@ -226,18 +230,15 @@ def getWakeInfo(hoodId = None, zoneId = None):
         if zoneId is None:
             zoneId = base.cr.playGame.getPlace().getZoneId()
         canonicalZoneId = getCanonicalZoneId(zoneId)
-        if canonicalZoneId == DonaldsDock:
-            wakeWaterHeight = DDWakeWaterHeight
-            showWake = 1
-        elif canonicalZoneId == ToontownCentral:
-            wakeWaterHeight = TTWakeWaterHeight
-            showWake = 1
-        elif canonicalZoneId == OutdoorZone:
-            wakeWaterHeight = OZWakeWaterHeight
+        if canonicalZoneId in ZoneIdToWakeHeight:
+            wakeWaterHeight = ZoneIdToWakeHeight[canonicalZoneId]
             showWake = 1
         elif hoodId == MyEstate:
             wakeWaterHeight = EstateWakeWaterHeight
             showWake = 1
+        else:
+            showWake = 0
+            wakeWaterHeight = -9999
     except AttributeError:
         pass
 

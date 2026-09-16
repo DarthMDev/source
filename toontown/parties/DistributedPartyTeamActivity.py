@@ -1,3 +1,4 @@
+from panda3d.core import ConfigVariableDouble
 from direct.distributed.ClockDelta import globalClockDelta
 from toontown.toonbase import TTLocalizer
 from toontown.parties import PartyGlobals
@@ -9,7 +10,7 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
     notify = directNotify.newCategory('DistributedPartyTeamActivity')
 
     def __init__(self, cr, activityId, startDelay = PartyGlobals.TeamActivityStartDelay, balanceTeams = False):
-        DistributedPartyActivity.__init__(self, cr, activityId, PartyGlobals.ActivityTypes.GuestInitiated, wantRewardGui=True)
+        DistributedPartyActivity.__init__(self, cr, activityId, PartyGlobals.EActivityType.GUEST_INITIATED, wantRewardGui=True)
         self.notify.debug('__init__')
         self.toonIds = ([], [])
         self.isLocalToonPlaying = False
@@ -19,7 +20,7 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
         self._maxPlayersPerTeam = 0
         self._minPlayersPerTeam = 0
         self._duration = 0
-        self._startDelay = base.config.GetFloat('party-team-activity-start-delay', startDelay)
+        self._startDelay = ConfigVariableDouble('party-team-activity-start-delay', startDelay).getValue()
         self._willBalanceTeams = balanceTeams
         self._currentStatus = ''
         return
@@ -86,14 +87,14 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
     def joinRequestDenied(self, reason):
         DistributedPartyActivity.joinRequestDenied(self, reason)
         self.notify.debug('joinRequestDenied')
-        if reason == PartyGlobals.DenialReasons.Full:
+        if reason == PartyGlobals.EDenialReason.FULL:
             self.showMessage(TTLocalizer.PartyTeamActivityTeamFull)
-        elif reason == PartyGlobals.DenialReasons.Default:
+        elif reason == PartyGlobals.EDenialReason.DEFAULT:
             self.showMessage(TTLocalizer.PartyTeamActivityJoinDenied % self.getTitle())
 
     def exitRequestDenied(self, reason):
         DistributedPartyActivity.exitRequestDenied(self, reason)
-        if reason == PartyGlobals.DenialReasons.Default:
+        if reason == PartyGlobals.EDenialReason.DEFAULT:
             self.showMessage(TTLocalizer.PartyTeamActivityExitDenied % self.getTitle())
         if self.isLocalToonPlaying and (self.isState('WaitToStart') or self.isState('WaitForEnough')):
             self.teamActivityGui.enableExitButton()
@@ -107,9 +108,9 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
 
     def switchTeamRequestDenied(self, reason):
         self.notify.debug('switchTeamRequestDenied')
-        if reason == PartyGlobals.DenialReasons.Full:
+        if reason == PartyGlobals.EDenialReason.FULL:
             self.showMessage(TTLocalizer.PartyTeamActivityTeamFull, endState='activity')
-        elif reason == PartyGlobals.DenialReasons.Default:
+        elif reason == PartyGlobals.EDenialReason.DEFAULT:
             self.showMessage(TTLocalizer.PartyTeamActivitySwitchDenied, endState='activity')
         if self.isLocalToonPlaying and (self.isState('WaitToStart') or self.isState('WaitForEnough')) and self._canSwitchTeams:
             self.teamActivityGui.enableSwitchButton()
@@ -207,7 +208,7 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
             switchers = list(set(oldLeftTeam) & set(newRightTeam)) + list(set(oldRightTeam) & set(newLeftTeam))
         else:
             switchers = []
-        for i in xrange(len(PartyGlobals.TeamActivityTeams)):
+        for i in range(len(PartyGlobals.ETeamActivityTeam)):
             persistentToons = set(oldToonIds[i]) & set(newToonIds[i])
             for toonId in persistentToons:
                 if oldToonIds[i].index(toonId) != newToonIds[i].index(toonId):
@@ -240,7 +241,7 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
         return len(self.toonIds[team])
 
     def getTeam(self, toonId):
-        for i in xrange(len(PartyGlobals.TeamActivityTeams)):
+        for i in range(len(PartyGlobals.ETeamActivityTeam)):
             if self.toonIds[i].count(toonId) > 0:
                 return i
         else:
@@ -258,12 +259,12 @@ class DistributedPartyTeamActivity(DistributedPartyActivity):
     def _joinLeftTeam(self, collEntry):
         if self.isLocalToonInActivity():
             return
-        self.d_toonJoinRequest(PartyGlobals.TeamActivityTeams.LeftTeam)
+        self.d_toonJoinRequest(PartyGlobals.ETeamActivityTeam.LeftTeam)
 
     def _joinRightTeam(self, collEntry):
         if self.isLocalToonInActivity():
             return
-        self.d_toonJoinRequest(PartyGlobals.TeamActivityTeams.RightTeam)
+        self.d_toonJoinRequest(PartyGlobals.ETeamActivityTeam.RightTeam)
 
     def showWaitToStartCountdown(self):
         if self.waitToStartTimestamp is None:

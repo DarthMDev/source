@@ -1,7 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, Plane, PlaneNode, Point3, TextNode, Vec3, Vec4
 from toontown.toonbase.ToontownGlobals import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.showbase import DirectObject
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import StateData
@@ -160,7 +159,7 @@ class TownBattleSOSPanel(DirectFrame, StateData.StateData):
 
     def __updateScrollList(self):
         newFriends = []
-        battlePets = base.config.GetBool('want-pets-in-battle', 1)
+        battlePets = ConfigVariableBool('want-pets-in-battle', True).getValue()
         if base.wantPets and battlePets == 1 and base.localAvatar.hasPet():
             newFriends.append((base.localAvatar.getPetId(), 0))
         if not self.bldg or self.factoryToonIdList is not None:
@@ -174,7 +173,7 @@ class TownBattleSOSPanel(DirectFrame, StateData.StateData):
                     if not base.cr.playerFriendsManager.askAvatarKnownElseWhere(avatarId):
                         newFriends.append((avatarId, 0))
 
-        for friendPair in self.friends.keys():
+        for friendPair in list(self.friends.keys()):
             if friendPair not in newFriends:
                 friendButton = self.friends[friendPair]
                 self.scrollList.removeItem(friendButton)
@@ -193,7 +192,7 @@ class TownBattleSOSPanel(DirectFrame, StateData.StateData):
 
     def __updateNPCFriendsPanel(self):
         self.NPCFriends = {}
-        for friend, count in base.localAvatar.NPCFriendsDict.items():
+        for friend, count in list(base.localAvatar.NPCFriendsDict.items()):
             track = NPCToons.getNPCTrack(friend)
             if track == ToontownBattleGlobals.LURE_TRACK and self.canLure == 0 or track == ToontownBattleGlobals.TRAP_TRACK and self.canTrap == 0:
                 self.NPCFriends[friend] = 0

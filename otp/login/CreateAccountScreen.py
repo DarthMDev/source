@@ -1,13 +1,12 @@
-from pandac.PandaModules import *
+from panda3d.core import TextNode, Vec4
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.fsm import StateData
 from otp.otpgui import OTPDialog
 from direct.fsm import ClassicFSM
 from direct.fsm import State
 from direct.directnotify import DirectNotifyGlobal
 from otp.otpbase import OTPLocalizer
-import GuiScreen
+from . import GuiScreen
 from otp.otpbase import OTPGlobals
 from direct.distributed.MsgTypes import *
 from direct.gui.DirectGuiGlobals import NO_FADE_SORT_INDEX

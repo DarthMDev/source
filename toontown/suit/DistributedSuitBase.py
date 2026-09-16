@@ -1,20 +1,23 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerFloor, CollisionNode, CollisionRay, ConfigVariable, ConfigVariableBool, ConfigVariableInt, GeomNode, NodePath, Point3, TextNode, TransparencyAttrib, VBase4, Vec3, Vec4
 import random
 from direct.controls.ControlManager import CollisionHandlerRayStart
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.task import Task
-from panda3d.core import *
 
-import Suit
-import SuitBase
-import SuitDialog
-import SuitTimings
+from . import Suit
+from . import SuitBase
+from . import SuitDialog
+from . import SuitTimings
 from otp.avatar import DistributedAvatar
 from otp.otpbase import OTPGlobals
 from toontown.battle import BattleProps
 from toontown.toonbase import TTLocalizer, ToontownGlobals
 from toontown.chat.ChatGlobals import CFSpeech, CFTimeout
+from toontown.suit import SuitBuffGlobals
+from toontown.collectibles import CollectibleGlobals, CollectibleInventoryGlobals
+
 
 
 class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBase.SuitBase):
@@ -165,7 +168,7 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
             self.propInSound = loader.loadSfx('phase_5/audio/sfx/ENC_propeller_in.ogg')
         if self.propOutSound == None:
             self.propOutSound = loader.loadSfx('phase_5/audio/sfx/ENC_propeller_out.ogg')
-        if base.config.GetBool('want-new-cogs', 0):
+        if ConfigVariableBool('want-new-cogs', False).getValue():
             head = self.find('**/to_head')
             if head.isEmpty():
                 head = self.find('**/joint_head')
@@ -174,7 +177,6 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
         if head.isEmpty():
             head = self.getGeomNode().find('**/to_head')
         self.prop.reparentTo(head)
-        return
 
     def detachPropeller(self):
         if self.prop:
@@ -185,7 +187,6 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
             self.propInSound = None
         if self.propOutSound:
             self.propOutSound = None
-        return
 
     def beginSupaFlyMove(self, pos, moveIn, trackName, walkAfterLanding=True, neutralAfterLanding=False, geomNode=False):
         skyPos = Point3(pos)
@@ -311,7 +312,7 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
     def makePathTrack(self, nodePath, posPoints, velocity, name):
         track = Sequence(name=name)
         nodePath.setPos(posPoints[0])
-        for pointIndex in xrange(len(posPoints) - 1):
+        for pointIndex in range(len(posPoints) - 1):
             startPoint = posPoints[pointIndex]
             endPoint = posPoints[pointIndex + 1]
             track.append(Func(nodePath.headsUp, endPoint[0], endPoint[1], endPoint[2]))
@@ -395,7 +396,7 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
                 if number < 0:
                     self.HpTextGenerator.setText(str(number))
 
-                    if config.GetBool('silly-surge-text', True) and random.randrange(0, 100) < config.GetInt('silly-surge-chance', 10):
+                    if ConfigVariableBool('silly-surge-text', True).getValue() and random.randrange(0, 100) < ConfigVariableInt('silly-surge-chance', 100).getValue() and bonus == 2 and self.interactivePropTrackBonus > -1 and self.interactivePropTrackBonus == attackTrack:
                         self.sillySurgeText = True
                         absNumber = int(abs(number) / 10)
 
@@ -403,8 +404,7 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
                             self.HpTextGenerator.setText(str(number) + '\n' + TTLocalizer.SillySurgeTerms[absNumber])
                         else:
                             self.HpTextGenerator.setText(str(number) + '\n' + random.choice(TTLocalizer.SillySurgeTerms))
-
-                    if self.interactivePropTrackBonus > -1 and self.interactivePropTrackBonus == attackTrack:
+                    elif self.interactivePropTrackBonus > -1 and self.interactivePropTrackBonus == attackTrack:
                         self.sillySurgeText = True
 
                         if attackTrack in TTLocalizer.InteractivePropTrackBonusTerms:
@@ -440,7 +440,12 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
 
                 self.hpText.setPos(0, 0, self.height / 2)
                 color[3] = 0
-                Sequence(self.hpText.posInterval(1.0, Point3(0, 0, self.height + 1.5), blendType='easeOut'), Wait(0.85), self.hpText.colorInterval(0.1, Vec4(*color), 0.1), Func(self.hideHpText)).start()
+                Sequence(
+                    self.hpText.posInterval(1.0, Point3(0, 0, self.height + 1.5), blendType='easeOut'),
+                    Wait(0.85),
+                    self.hpText.colorScaleInterval(0.1, Vec4(*color), 0.1),
+                    Func(self.hideHpText)
+                ).start()
 
     def hideHpText(self):
         DistributedAvatar.DistributedAvatar.hideHpText(self)
@@ -488,7 +493,7 @@ class DistributedSuitBase(DistributedAvatar.DistributedAvatar, Suit.Suit, SuitBa
             text = TTLocalizer.SuitBaseNameWithLevel % {
                 'name': name,
                 'dept': self.getStyleDept(),
-                'level':self.getActualLevel()
+                'level': self.getActualLevel()
             }
         self.setDisplayName(text)
 

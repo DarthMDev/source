@@ -1,4 +1,5 @@
-from SpecImports import *
+from panda3d.core import Point3
+from .SpecImports import *
 from toontown.toonbase import ToontownGlobals
 CogParent = 10000
 MidCogParent = 10022

@@ -1,6 +1,6 @@
+from panda3d.core import CardMaker, NodePath, Texture, TransparencyAttrib, Vec4
 from direct.gui.DirectGui import *
 from direct.fsm import FSM
-from pandac.PandaModules import *
 from direct.interval.IntervalGlobal import *
 
 from toontown.toonbase import ToontownGlobals
@@ -11,7 +11,6 @@ class ChineseTutorial(DirectFrame, FSM.FSM):
     def __init__(self, doneFunction, doneEvent=None, callback=None):
         FSM.FSM.__init__(self, 'ChineseTutorial')
         self.doneFunction = doneFunction
-        base.localAvatar.startSleepWatch(self.handleQuit)
         self.doneEvent = doneEvent
         self.callback = callback
         self.setStateArray(['Page1', 'Page2', 'Quit'])
@@ -137,13 +136,13 @@ class CheckersTutorial(DirectFrame, FSM.FSM):
     def __init__(self, doneFunction, doneEvent=None, callback=None):
         FSM.FSM.__init__(self, 'CheckersTutorial')
         self.doneFunction = doneFunction
-        base.localAvatar.startSleepWatch(self.handleQuit)
         self.doneEvent = doneEvent
         self.callback = callback
         self.setStateArray(['Page1',
                             'Page2',
                             'Page3',
                             'Quit'])
+        base.localAvatar.startSleepWatch(self.handleQuit)
         DirectFrame.__init__(self, pos=(-0.7, 0.0, 0.0), image_color=ToontownGlobals.GlobalDialogColor,
                              image_scale=(1.0, 1.5, 1.0), text='', text_scale=0.06)
         self.accept('stoppedAsleep', self.handleQuit)
@@ -284,13 +283,13 @@ class FindFourTutorial(DirectFrame, FSM.FSM):
     def __init__(self, doneFunction, doneEvent=None, callback=None):
         FSM.FSM.__init__(self, 'FindFourTutorial')
         self.doneFunction = doneFunction
-        base.localAvatar.startSleepWatch(self.handleQuit)
         self.doneEvent = doneEvent
         self.callback = callback
         self.setStateArray(['Page1',
                             'Page2',
                             'Page3',
                             'Quit'])
+        base.localAvatar.startSleepWatch(self.handleQuit)
         DirectFrame.__init__(self, pos=(-0.7, 0.0, 0.0), image_color=ToontownGlobals.GlobalDialogColor,
                              image_scale=(1.0, 1.5, 1.0), text='', text_scale=0.06)
         self.accept('stoppedAsleep', self.handleQuit)

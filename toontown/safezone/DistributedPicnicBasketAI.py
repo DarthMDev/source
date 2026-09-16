@@ -1,4 +1,5 @@
-from TrolleyConstants import *
+from panda3d.core import ConfigVariableDouble
+from .TrolleyConstants import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedObjectAI
 from direct.distributed.ClockDelta import *
@@ -27,7 +28,7 @@ class DistributedPicnicBasketAI(DistributedObjectAI.DistributedObjectAI):
         self.seed = RandomNumGen.randHash(globalClock.getRealTime())
         self.accepting = 0
         self.numPlayersExiting = 0
-        self.picnicCountdownTime = simbase.config.GetFloat('picnic-countdown-time', ToontownGlobals.PICNIC_COUNTDOWN_TIME)
+        self.picnicCountdownTime = ConfigVariableDouble('picnic-countdown-time', ToontownGlobals.PICNIC_COUNTDOWN_TIME).getValue()
         self.fsm = ClassicFSM.ClassicFSM(
             'DistributedPicnicBasketAI',
             [
@@ -43,12 +44,12 @@ class DistributedPicnicBasketAI(DistributedObjectAI.DistributedObjectAI):
         DistributedObjectAI.DistributedObjectAI.delete(self)
 
     def findAvailableSeat(self):
-        for i in xrange(len(self.seats)):
+        for i in range(len(self.seats)):
             if self.seats[i] is None:
                 return i
 
     def findAvatar(self, avId):
-        for i in xrange(len(self.seats)):
+        for i in range(len(self.seats)):
             if self.seats[i] == avId:
                 return i
 
@@ -190,7 +191,7 @@ class DistributedPicnicBasketAI(DistributedObjectAI.DistributedObjectAI):
     def enterOff(self):
         self.accepting = 0
         if hasattr(self, 'doId'):
-            for seatIndex in xrange(4):
+            for seatIndex in range(4):
                 taskMgr.remove(self.uniqueName('clearEmpty-' + str(seatIndex)))
 
     def exitOff(self):
@@ -226,7 +227,7 @@ class DistributedPicnicBasketAI(DistributedObjectAI.DistributedObjectAI):
     def timeToGoTask(self, task):
         self.accepting = 0
         if self.countFullSeats() > 0:
-            for x in xrange(len(self.seats)):
+            for x in range(len(self.seats)):
                 if self.seats[x] is not None:
                     self.sendUpdateToAvatarId(self.seats[x], 'setPicnicDone', [])
                     self.acceptExiter(self.seats[x])

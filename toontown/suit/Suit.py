@@ -1,18 +1,14 @@
+from panda3d.core import CollideMask, ColorBlendAttrib, ConfigVariable, ConfigVariableBool, GeomNode, NodePath, Point3, Texture, Vec4
 from direct.actor import Actor
 from otp.avatar import Avatar
-import SuitDNA
+from . import SuitDNA
 from toontown.toonbase import ToontownGlobals
-from pandac.PandaModules import *
 from toontown.battle import SuitBattleGlobals
 from toontown.nametag import NametagGlobals
 from direct.task.Task import Task
 from toontown.battle import BattleProps
 from toontown.toonbase import TTLocalizer, SettingsGlobals
-from pandac.PandaModules import VirtualFileMountHTTP, VirtualFileSystem, Filename, DSearchPath
-from direct.showbase import AppRunnerGlobal
 from toontown.nametag import NametagGroup
-import string
-import os
 from toontown.suit import SuitGlobals
 
 aSize = 6.06
@@ -156,7 +152,7 @@ bw = (('finger-wag', 'fingerwag', 5),
  ('magic1', 'magic1', 5),
  ('throw-object', 'throw-object', 5),
  ('throw-paper', 'throw-paper', 5))
-if not base.config.GetBool('want-new-cogs', 0):
+if not ConfigVariableBool('want-new-cogs', False).getValue():
     ModelDict = {'a': ('/models/char/suitA-', 4),
      'b': ('/models/char/suitB-', 4),
      'c': ('/models/char/suitC-', 3.5)}
@@ -184,7 +180,7 @@ PreloadModels = (
 )
 
 def preload():
-    print 'Preloading Cog models...'
+    print('Preloading Cog models...')
 
     for modelPath in PreloadModels:
         preloader.loadModel(modelPath)
@@ -222,7 +218,7 @@ def loadSuitAnims(suit, flag = 1):
             animList = ()
 
     else:
-        print 'Invalid suit name: ', suit
+        print('Invalid suit name: ', suit)
         return -1
     for anim in animList:
         phase = 'phase_' + str(anim[2])
@@ -435,10 +431,10 @@ class Suit(Avatar.Avatar):
         self.loseActor = None
         self.isSkeleton = 0
 
-        # if dna.name in SuitGlobals.suitProperties:
-            # if base.cr.newsManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_DAY):
-                # self.generateAprilFoolsDNA()
-                # return
+        if dna.name in SuitGlobals.suitProperties:
+            if base.cr.newsManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_COSTUMES):
+                self.generateAprilFoolsDNA()
+                return
 
         self.scale = SuitGlobals.suitProperties[dna.name][SuitGlobals.SCALE_INDEX]
         self.handColor = SuitGlobals.suitProperties[dna.name][SuitGlobals.HAND_COLOR_INDEX]
@@ -632,7 +628,7 @@ class Suit(Avatar.Avatar):
         headModel = NodePath('cog_head')
         preloader.getModel(filepath).copyTo(headModel)
         headReferences = headModel.findAllMatches('**/' + headType)
-        for i in xrange(0, headReferences.getNumPaths()):
+        for i in range(0, headReferences.getNumPaths()):
             headPart = self.instance(headReferences.getPath(i), 'modelRoot', 'joint_head')
             if self.headTexture:
                 headTex = loader.loadTexture('phase_' + str(phase) + '/maps/' + self.headTexture)
@@ -758,7 +754,7 @@ class Suit(Avatar.Avatar):
 
     def updateHealthColor(self, condition):
         parts = self.findAllMatches('*')
-        for thingIndex in xrange(0, parts.getNumPaths()):
+        for thingIndex in range(0, parts.getNumPaths()):
             thing = parts[thingIndex]
             if thing.getName() not in ('joint_attachMeter', 'joint_nameTag', 'def_nameTag', 'nametag3d'):
                 thing.clearColorScale()
@@ -794,7 +790,6 @@ class Suit(Avatar.Avatar):
         if self.healthCondition == 4 or self.healthCondition == 5:
             taskMgr.remove(self.uniqueName('blink-task'))
         self.healthCondition = 0
-        return
 
     def getLoseActor(self):
         if self.loseActor == None:
@@ -816,7 +811,7 @@ class Suit(Avatar.Avatar):
                     print('Setting suit clothes..')
                     self.setSuitClothes(self.loseActor)
             else:
-                loseModel = 'phase_5/models/char/cog' + string.upper(self.style.body) + '_robot-lose-mod'
+                loseModel = 'phase_5/models/char/cog' + self.style.body.upper() + '_robot-lose-mod'
                 filePrefix, phase = TutorialModelDict[self.style.body]
                 loseAnim = 'phase_' + str(phase) + filePrefix + 'lose'
                 self.loseActor = Actor.Actor(loseModel, {'lose': loseAnim})
@@ -839,10 +834,9 @@ class Suit(Avatar.Avatar):
             self.notify.debug('cleanupLoseActor() - got one')
             self.loseActor.cleanup()
         self.loseActor = None
-        return
 
     def makeSkeleton(self, wantNameInfo=True):
-        model = 'phase_5/models/char/cog' + string.upper(self.style.body) + '_robot-zero'
+        model = 'phase_5/models/char/cog' + self.style.body.upper() + '_robot-zero'
         anims = self.generateAnimDict()
         anim = self.getCurrentAnim()
         dropShadow = self.dropShadow
@@ -857,7 +851,7 @@ class Suit(Avatar.Avatar):
         self.generateCorporateTie()
         self.setHeight(self.height)
         parts = self.findAllMatches('**/pPlane*')
-        for partNum in xrange(0, parts.getNumPaths()):
+        for partNum in range(0, parts.getNumPaths()):
             bb = parts.getPath(partNum)
             bb.setTwoSided(1)
 
@@ -885,7 +879,7 @@ class Suit(Avatar.Avatar):
             modelRoot = self
         self.isVirtual = 1
         parts = self.findAllMatches('*')
-        for thingIndex in xrange(0, parts.getNumPaths()):
+        for thingIndex in range(0, parts.getNumPaths()):
             thing = parts[thingIndex]
             if thing.getName() not in ('joint_attachMeter', 'joint_nameTag', 'def_nameTag', 'nametag3d'):
                 if healthColored:

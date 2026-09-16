@@ -1,4 +1,4 @@
-from panda3d.core import TextNode, Vec4, loadPrcFileData, WindowProperties
+from panda3d.core import ConfigVariableBool, FrameRateMeter, TextNode, WindowProperties
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.gui.DirectGui import DirectFrame, DirectButton, DGG
@@ -17,8 +17,8 @@ class OptionsTabPage(DirectFrame):
     notify = directNotify.newCategory('OptionsTabPage')
     DisplaySettingsTaskName = 'save-display-settings'
     DisplaySettingsDelay = 60
-    ChangeDisplaySettings = base.config.GetBool('change-display-settings', 1)
-    ChangeDisplayAPI = base.config.GetBool('change-display-api', 0)
+    ChangeDisplaySettings = ConfigVariableBool('change-display-settings', True).getValue()
+    ChangeDisplayAPI = ConfigVariableBool('change-display-api', False).getValue()
     VideoState = 0
     SoundState = 1
     GameplayState = 2
@@ -107,6 +107,7 @@ class OptionsTabPage(DirectFrame):
             pos = (-0.40, 0, rightYBase + 0.1),
             text = TTLocalizer.OptionsPageVideo
         )
+        base.getSmallestResolution()
         self.screenSizes = list(ToontownGlobals.CommonDisplayResolutions[base.calcRatio])
         self.resIndex = self.getResIndex()
         self.resolutionLabel = TTLabel.TTLabel(parent = self.rightFrame, text = TTLocalizer.DisplaySettingsResolution, pos = (-0.33, 0, 0.35))
@@ -211,9 +212,30 @@ class OptionsTabPage(DirectFrame):
             text_fg = ColorGlobals.CRed,
             text = '* %s' % TTLocalizer.OptionsPageRequiresRestart
         )
+        self.changedAntiAliasing = False
+        self.antiAliasingCheckbox = TTCheckBox.TTCheckBox(
+            parent = self.rightFrame,
+            pos = (-0.42, 0, -0.49),
+            checked = settings.get(SettingsGlobals.AntiAliasing, True),
+            command = self.__doToggleAntiAliasing
+        )
+        self.antiAliasingLabel = TTLabel.TTLabel(
+            parent = self.rightFrame,
+            pos = (-0.36, 0.0, -0.50),
+            text_align = TextNode.ALeft,
+            text = TTLocalizer.OptionsPageAntiAliasing
+        )
+        self.antiAliasingRequiresRestartLabel = TTLabel.TTLabel(
+            parent = self.rightFrame,
+            pos = (-0.08, 0.0, -0.51),
+            text_align = TextNode.ALeft,
+            text_fg = ColorGlobals.CRed,
+            text = '*'
+        )
         self.requiresRestart = False
         self.animationSmoothingRequiresRestartLabel.hide()
         self.vsyncRequiresRestartLabel.hide()
+        self.antiAliasingRequiresRestartLabel.hide()
         self.requiresRestartLabel.hide()
 
         # -- Sound
@@ -283,6 +305,21 @@ class OptionsTabPage(DirectFrame):
             pos = (rightXBase - 0.05, 0, rightYBase - textRowHeight * row),
             checked = base.wantClassicMusic,
             command = self.__doToggleClassicMusic
+        )
+        
+        # Surface related footsteps
+        row += 1
+        self.newFootstepsLabel = TTLabel.TTLabel(
+            parent=self.rightFrame,
+            pos=(rightXBase, 0, rightYBase - 0.0125 - textRowHeight * row),
+            text=TTLocalizer.OptionsPageSurfaceFootsteps,
+            text_align=TextNode.ALeft,
+        )
+        self.newFootstepsCheckBox = TTCheckBox.TTCheckBox(
+            parent=self.rightFrame,
+            pos=(rightXBase - 0.05, 0, rightYBase - textRowHeight * row),
+            checked=settings.get(SettingsGlobals.NewFootsteps, True),
+            command=self.__doToggleNewFootsteps
         )
 
         # -- Social
@@ -390,24 +427,34 @@ class OptionsTabPage(DirectFrame):
                 command = self.__doToggleWantFriends
             )
 
-            if (base.isHosting or base.wantSinglePlayer):
-                text = TTLocalizer.OptionsDisconnect
+            if base.cr.isProductionServer():
+                self.exitButton = TTButton.TTButton(
+                    parent = self,
+                    buttonScale = 1.15,
+                    text = TTLocalizer.OptionsPageExitToontown,
+                    pos = (-0.45, 0, -0.53),
+                    command = self.__handleExitToToonSelectShowWithConfirm
+                )
+                self.toonselectButton = None
             else:
-                text = TTLocalizer.OptionsLeaveServer
-            self.exitButton = TTButton.TTButton(
-                parent = self,
-                buttonScale = 1.15,
-                text = text,
-                pos = (-0.45, 0, -0.53),
-                command = self.__handleExitServerShowWithConfirm
-            )
-            self.toonselectButton = TTButton.TTButton(
-                parent = self,
-                buttonScale = 1.15,
-                text = TTLocalizer.OptionsReturnToToonSelect,
-                pos = (-0.45, 0, -0.33),
-                command = self.__handleExitToToonSelectShowWithConfirm
-            )
+                if (base.isHosting or base.wantSinglePlayer):
+                    text = TTLocalizer.OptionsDisconnect
+                else:
+                    text = TTLocalizer.OptionsLeaveServer
+                self.exitButton = TTButton.TTButton(
+                    parent = self,
+                    buttonScale = 1.15,
+                    text = text,
+                    pos = (-0.45, 0, -0.53),
+                    command = self.__handleExitServerShowWithConfirm
+                )
+                self.toonselectButton = TTButton.TTButton(
+                    parent = self,
+                    buttonScale = 1.15,
+                    text = TTLocalizer.OptionsReturnToToonSelect,
+                    pos = (-0.45, 0, -0.33),
+                    command = self.__handleExitToToonSelectShowWithConfirm
+                )
 
         # -- Gameplay
 
@@ -480,10 +527,12 @@ class OptionsTabPage(DirectFrame):
         self.updateSpeedChatStyle()
         if self._parent.book.safeMode:
             self.exitButton.hide()
-            self.toonselectButton.hide()
+            if self.toonselectButton is not None:
+                self.toonselectButton.hide()
         else:
             self.exitButton.show()
-            self.toonselectButton.show()
+            if self.toonselectButton is not None:
+                self.toonselectButton.show()
 
     def exit(self):
         self.ignore('confirmDone')
@@ -506,8 +555,9 @@ class OptionsTabPage(DirectFrame):
         self.displaySettings = None
         if self.hasAvatar:
             self.exitButton.destroy()
-            self.toonselectButton.destroy()
             del self.exitButton
+            if self.toonselectButton is not None:
+                self.toonselectButton.destroy()
             del self.toonselectButton
             self.speedChatStyleText.exit()
             self.speedChatStyleText.destroy()
@@ -556,10 +606,14 @@ class OptionsTabPage(DirectFrame):
         self.vsyncLabel.show()
         self.animationSmoothingLabel.show()
         self.animationSmoothingCheckBox.show()
+        self.antiAliasingLabel.show()
+        self.antiAliasingCheckbox.show()
         if self.changedVsync:
             self.vsyncRequiresRestartLabel.show()
         if self.changedAnimationSmoothing:
             self.animationSmoothingRequiresRestartLabel.show()
+        if self.changedAntiAliasing:
+            self.antiAliasingRequiresRestartLabel.show()
         if self.requiresRestart:
             self.requiresRestartLabel.show()
 
@@ -579,9 +633,12 @@ class OptionsTabPage(DirectFrame):
         self.vsyncLabel.hide()
         self.animationSmoothingLabel.hide()
         self.animationSmoothingCheckBox.hide()
+        self.antiAliasingLabel.hide()
+        self.antiAliasingCheckbox.hide()
         self.requiresRestartLabel.hide()
         self.vsyncRequiresRestartLabel.hide()
         self.animationSmoothingRequiresRestartLabel.hide()
+        self.antiAliasingRequiresRestartLabel.hide()
 
     def showSoundGui(self):
         self.volumeTitle.show()
@@ -593,6 +650,8 @@ class OptionsTabPage(DirectFrame):
         self.soundSlider.show()
         self.classicMusicCheckBox.show()
         self.classicMusicLabel.show()
+        self.newFootstepsCheckBox.show()
+        self.newFootstepsLabel.show()
 
     def hideSoundGui(self):
         self.volumeTitle.hide()
@@ -604,6 +663,9 @@ class OptionsTabPage(DirectFrame):
         self.soundSlider.hide()
         self.classicMusicCheckBox.hide()
         self.classicMusicLabel.hide()
+        self.newFootstepsCheckBox.hide()
+        self.newFootstepsLabel.hide()
+
 
     def showGameplayGui(self):
         self.controlsTitle.show()
@@ -711,6 +773,10 @@ class OptionsTabPage(DirectFrame):
             settings[SettingsGlobals.ClassicMusic] = True
             base.wantClassicMusic = True
 
+    def __doToggleNewFootsteps(self):
+        messenger.send(EventGlobals.WakeUp)
+        settings[SettingsGlobals.NewFootsteps] = not settings.get(SettingsGlobals.NewFootsteps, True)
+
     def __doToggleVSync(self):
         messenger.send(EventGlobals.WakeUp)
         flag = not settings.get(SettingsGlobals.VSync, False)
@@ -737,6 +803,15 @@ class OptionsTabPage(DirectFrame):
         self.requiresRestartLabel.show()
         self.requiresRestart = True
         self.changedAnimationSmoothing = True
+
+    def __doToggleAntiAliasing(self):
+        messenger.send(EventGlobals.WakeUp)
+        flag = not settings.get(SettingsGlobals.AntiAliasing, True)
+        settings[SettingsGlobals.AntiAliasing] = flag
+        self.antiAliasingRequiresRestartLabel.show()
+        self.requiresRestartLabel.show()
+        self.requiresRestart = True
+        self.changedAntiAliasing = True
 
     def __doToggleSfx(self):
         messenger.send(EventGlobals.WakeUp)
@@ -811,6 +886,7 @@ class OptionsTabPage(DirectFrame):
             base.localAvatar.controlManager.reload()
             base.localAvatar.chatMgr.reloadWASD()
             base.localAvatar.controlManager.disable()
+        messenger.send('controlsRemapped')
 
     def __doToggleDoorInteract(self):
         messenger.send(EventGlobals.WakeUp)
@@ -1044,9 +1120,14 @@ class OptionsTabPage(DirectFrame):
         self.accept('confirmDone', self.__handleConfirm)
 
     def __handleExitToToonSelectShowWithConfirm(self):
+        if base.cr.isProductionServer():
+            # Live calls this button Exit Toontown, so it asks the way it used to.
+            message = TTLocalizer.OptionsPageExitConfirm
+        else:
+            message = TTLocalizer.PickAToonConfirm
         self.confirm = TTDialog.TTGlobalDialog(
             doneEvent = 'confirmDone',
-            message = TTLocalizer.PickAToonConfirm,
+            message = message,
             style = TTDialog.TwoChoice)
         self.confirm.show()
         self._parent.doneStatus = {'mode': 'exit',

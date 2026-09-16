@@ -1,5 +1,5 @@
-from panda3d.core import BamFile, NodePath, StringStream, decompressString
-import DNANode
+from panda3d.core import BamFile, NodePath, StringStream, compressString
+from . import DNANode
 
 class DNASignBaseline(DNANode.DNANode):
     COMPONENT_CODE = 6
@@ -10,9 +10,7 @@ class DNASignBaseline(DNANode.DNANode):
 
     def makeFromDGI(self, dgi):
         DNANode.DNANode.makeFromDGI(self, dgi)
-        self.data = dgi.getString()
-        if len(self.data):
-            self.data = decompressString(self.data)
+        self.data = dgi.extractBytes(dgi.getUint32())
 
     def traverse(self, nodePath, dnaStorage):
         node = nodePath.attachNewNode('baseline', 0)

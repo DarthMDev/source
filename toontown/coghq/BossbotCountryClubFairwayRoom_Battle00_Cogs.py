@@ -1,4 +1,5 @@
-from SpecImports import *
+from panda3d.core import Point3
+from .SpecImports import *
 from toontown.toonbase import ToontownGlobals
 CogParent = 110200
 BattleCellId = 0

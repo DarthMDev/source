@@ -1,5 +1,6 @@
-import DNAProp
-from DNAUtil import *
+from panda3d.core import ModelNode
+from . import DNAProp
+from .DNAUtil import *
 
 class DNAAnimProp(DNAProp.DNAProp):
     COMPONENT_CODE = 14

@@ -1,3 +1,4 @@
+from panda3d.core import Texture
 from direct.showbase.PythonUtil import contains, lerp
 from direct.distributed import DistributedObjectAI
 from direct.directnotify import DirectNotifyGlobal
@@ -106,7 +107,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
         self.traitList = traitList
 
     def __generateDistTraitFuncs(self):
-        for i in xrange(PetTraits.PetTraits.NumTraits):
+        for i in range(PetTraits.PetTraits.NumTraits):
             traitName = PetTraits.getTraitNames()[i]
             getterName = self.getSetterName(traitName, 'get')
             b_setterName = self.getSetterName(traitName, 'b_set')
@@ -318,7 +319,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
         self.d_setTrickAptitudes(aptitudes)
 
     def d_setTrickAptitudes(self, aptitudes):
-        while len(aptitudes) < len(PetTricks.Tricks) - 1:
+        while len(aptitudes) < len(PetTricks.ETrick) - 1:
             aptitudes.append(0.0)
 
         self.sendUpdate('setTrickAptitudes', [aptitudes])
@@ -326,7 +327,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
     def setTrickAptitudes(self, aptitudes, local = 0):
         if not local:
             DistributedPetProxyAI.notify.debug('setTrickAptitudes: %s' % aptitudes)
-        while len(self.trickAptitudes) < len(PetTricks.Tricks) - 1:
+        while len(self.trickAptitudes) < len(PetTricks.ETrick) - 1:
             self.trickAptitudes.append(0.0)
 
         self.trickAptitudes = aptitudes
@@ -352,8 +353,8 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
     def generate(self):
         DistributedObjectAI.DistributedObjectAI.generate(self)
         self.traits = PetTraits.PetTraits(self.traitSeed, self.safeZone)
-        print self.traits.traits
-        for i in xrange(len(self.traitList)):
+        print(self.traits.traits)
+        for i in range(len(self.traitList)):
             value = self.traitList[i]
             if value == 0.0:
                 traitName = PetTraits.getTraitNames()[i]
@@ -366,7 +367,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
                 self.__dict__[setterName](traitValue)
 
         self.mood = PetMood.PetMood(self)
-        for mood, value in self.requiredMoodComponents.items():
+        for mood, value in list(self.requiredMoodComponents.items()):
             self.mood.setComponent(mood, value, announce=0)
 
         self.requiredMoodComponents = {}
@@ -403,11 +404,11 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
             self.setMoodComponent(component, lerp(curVal, 1.0, factor))
 
     def addToMoods(self, mood2delta):
-        for mood, delta in mood2delta.items():
+        for mood, delta in list(mood2delta.items()):
             self.addToMood(mood, delta)
 
     def lerpMoods(self, mood2factor):
-        for mood, factor in mood2factor.items():
+        for mood, factor in list(mood2factor.items()):
             self.lerpMood(mood, factor)
 
     def isContented(self):
@@ -430,7 +431,7 @@ class DistributedPetProxyAI(DistributedObjectAI.DistributedObjectAI):
 
     def _handleDidTrick(self, trickId):
         DistributedPetProxyAI.notify.debug('_handleDidTrick: %s' % trickId)
-        if trickId == PetTricks.Tricks.BALK:
+        if trickId == PetTricks.ETrick.BALK:
             return
         aptitude = self.getTrickAptitude(trickId)
         self.setTrickAptitude(trickId, aptitude + PetTricks.AptitudeIncrementDidTrick)

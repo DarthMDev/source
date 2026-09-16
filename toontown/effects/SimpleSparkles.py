@@ -1,8 +1,9 @@
-from pandac.PandaModules import *
+from panda3d.physics import BaseParticleEmitter, BaseParticleRenderer, LinearVectorForce
+from panda3d.core import ColorBlendAttrib, Point3, Vec3, Vec4
 from direct.interval.IntervalGlobal import *
 from direct.particles import ParticleEffect, Particles, ForceGroup
-from EffectController import EffectController
-from PooledEffect import PooledEffect
+from .EffectController import EffectController
+from .PooledEffect import PooledEffect
 import random
 
 class SimpleSparkles(PooledEffect, EffectController):

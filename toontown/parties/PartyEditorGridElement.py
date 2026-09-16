@@ -1,4 +1,4 @@
-from pandac.PandaModules import Vec3, Vec4, Point3, TextNode, VBase4, NodePath
+from panda3d.core import NodePath, Point3
 from direct.gui.DirectGui import DirectFrame, DirectButton, DirectLabel, DirectScrolledList, DirectCheckButton
 from direct.gui import DirectGuiGlobals
 from direct.showbase import DirectObject
@@ -19,14 +19,14 @@ class PartyEditorGridElement(DirectButton):
         self.isDecoration = isDecoration
         self.checkSoldOutAndPaidStatusAndAffordability = checkSoldOutAndPaidStatusAndAffordability
         if self.isDecoration:
-            self.name = TTLocalizer.PartyDecorationNameDict[self.id]['editor']
+            self._name = TTLocalizer.PartyDecorationNameDict[self.id]['editor']
             colorList = ((1.0, 1.0, 1.0, 1.0),
              (0.0, 0.0, 1.0, 1.0),
              (0.0, 1.0, 1.0, 1.0),
              (0.5, 0.5, 0.5, 1.0))
             self.geom = self.partyEditor.partyPlanner.gui.find('**/%s' % PartyGlobals.DecorationInformationDict[self.id]['gridAsset'])
         else:
-            self.name = TTLocalizer.PartyActivityNameDict[self.id]['editor']
+            self._name = TTLocalizer.PartyActivityNameDict[self.id]['editor']
             colorList = ((1.0, 1.0, 1.0, 1.0),
              (0.0, 1.0, 0.0, 1.0),
              (1.0, 1.0, 0.0, 1.0),
@@ -42,15 +42,15 @@ class PartyEditorGridElement(DirectButton):
         self.defineoptions(kw, optiondefs)
         DirectButton.__init__(self, self.partyEditor._parent)
         self.initialiseoptions(PartyEditorGridElement)
-        self.setName('%sGridElement' % self.name)
+        self.setName('%sGridElement' % self._name)
         self.bind(DirectGuiGlobals.B1PRESS, self.clicked)
         self.bind(DirectGuiGlobals.B1RELEASE, self.released)
         self.bind(DirectGuiGlobals.ENTER, self.mouseEnter)
         self.bind(DirectGuiGlobals.EXIT, self.mouseExit)
-        self.uprightNodePath = NodePath('%sUpright' % self.name)
+        self.uprightNodePath = NodePath('%sUpright' % self._name)
         self.uprightNodePath.reparentTo(self)
         rollOverZOffset = self.getGridSize()[1] / 30.0
-        self.rolloverTitle = DirectLabel(relief=None, parent=self.uprightNodePath, pos=Point3(0.0, 0.0, rollOverZOffset), text=self.name, text_fg=(1.0, 1.0, 1.0, 1.0), text_shadow=(0.0, 0.0, 0.0, 1.0), text_scale=0.075)
+        self.rolloverTitle = DirectLabel(relief=None, parent=self.uprightNodePath, pos=Point3(0.0, 0.0, rollOverZOffset), text=self._name, text_fg=(1.0, 1.0, 1.0, 1.0), text_shadow=(0.0, 0.0, 0.0, 1.0), text_scale=0.075)
         self.rolloverTitle.stash()
         self.stash()
         self.overValidSquare = False
@@ -67,7 +67,7 @@ class PartyEditorGridElement(DirectButton):
             r = 270.0
         elif r == 270.0:
             r = 90.0
-        if self.id == PartyGlobals.ActivityIds.PartyCannon:
+        if self.id == PartyGlobals.EActivityId.PartyCannon:
             return PartyUtils.convertDegreesToPartyGrid(r + 180.0)
         return PartyUtils.convertDegreesToPartyGrid(r)
 
@@ -84,11 +84,11 @@ class PartyEditorGridElement(DirectButton):
          self.getCorrectRotation())
 
     def attach(self, mouseEvent):
-        PartyEditorGridElement.notify.debug('attached grid element %s' % self.name)
-        taskMgr.remove('gridElementDragTask%s' % self.name)
+        PartyEditorGridElement.notify.debug('attached grid element %s' % self._name)
+        taskMgr.remove('gridElementDragTask%s' % self._name)
         vWidget2render2d = self.getPos(render2d)
         vMouse2render2d = Point3(mouseEvent.getMouse()[0], 0, mouseEvent.getMouse()[1])
-        taskMgr.add(self.elementDragTask, 'gridElementDragTask%s' % self.name)
+        taskMgr.add(self.elementDragTask, 'gridElementDragTask%s' % self._name)
         self.unstash()
         self.rolloverTitle.unstash()
         self.uprightNodePath.reparentTo(self)
@@ -108,7 +108,7 @@ class PartyEditorGridElement(DirectButton):
                     if self.mouseOverTrash:
                         self.setOverTrash(False)
                     return Task.cont
-            if self.id != PartyGlobals.ActivityIds.PartyClock and newPos[0] > PartyGlobals.PartyEditorTrashBounds[0][0] and newPos[0] < PartyGlobals.PartyEditorTrashBounds[1][0] and newPos[2] < PartyGlobals.PartyEditorTrashBounds[0][1] and newPos[2] > PartyGlobals.PartyEditorTrashBounds[1][1]:
+            if self.id != PartyGlobals.EActivityId.PartyClock and newPos[0] > PartyGlobals.PartyEditorTrashBounds[0][0] and newPos[0] < PartyGlobals.PartyEditorTrashBounds[1][0] and newPos[2] < PartyGlobals.PartyEditorTrashBounds[0][1] and newPos[2] > PartyGlobals.PartyEditorTrashBounds[1][1]:
                 if not self.mouseOverTrash:
                     self.setOverTrash(True)
             elif self.mouseOverTrash:
@@ -170,7 +170,7 @@ class PartyEditorGridElement(DirectButton):
             gridPos.setX(gridPos[0] + PartyGlobals.PartyEditorGridSquareSize[0] / 2.0)
         if self.getGridSize()[1] % 2 == 0:
             gridPos.setZ(gridPos[2] + PartyGlobals.PartyEditorGridSquareSize[1] / 2.0)
-        if self.id != PartyGlobals.ActivityIds.PartyFireworks:
+        if self.id != PartyGlobals.EActivityId.PartyFireworks:
             if gridPos[0] > PartyGlobals.PartyEditorGridCenter[0] + PartyGlobals.PartyEditorGridRotateThreshold:
                 self.setR(90.0)
                 self.uprightNodePath.setR(-90.0)
@@ -198,7 +198,7 @@ class PartyEditorGridElement(DirectButton):
         return self.partyEditor.partyEditorGrid.getGridSquare(x, y)
 
     def detach(self, mouseEvent):
-        taskMgr.remove('gridElementDragTask%s' % self.name)
+        taskMgr.remove('gridElementDragTask%s' % self._name)
         self.rolloverTitle.stash()
         if self.overValidSquare:
             self.partyEditor.partyEditorGrid.registerNewElement(self, self.centerGridSquare, self.getGridSize())
@@ -237,14 +237,14 @@ class PartyEditorGridElement(DirectButton):
         return
 
     def clicked(self, mouseEvent):
-        PartyEditorGridElement.notify.debug('clicked grid element %s' % self.name)
+        PartyEditorGridElement.notify.debug('clicked grid element %s' % self._name)
         if self.centerGridSquare is not None:
             self.attach(mouseEvent)
             self.partyEditor.partyEditorGrid.removeElement(self.centerGridSquare, self.getGridSize())
         return
 
     def released(self, mouseEvent):
-        PartyEditorGridElement.notify.debug('released grid element %s' % self.name)
+        PartyEditorGridElement.notify.debug('released grid element %s' % self._name)
         self.detach(mouseEvent)
 
     def mouseEnter(self, mouseEvent):

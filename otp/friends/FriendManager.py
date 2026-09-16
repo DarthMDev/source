@@ -1,4 +1,3 @@
-from pandac.PandaModules import *
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
 from otp.otpbase import OTPGlobals
@@ -37,13 +36,15 @@ class FriendManager(DistributedObject.DistributedObject):
         return
 
     def disable(self):
-        base.cr.friendManager = None
+        if base.cr.friendManager is self:
+            base.cr.friendManager = None
         DistributedObject.DistributedObject.disable(self)
         return
 
     def delete(self):
         self.gameSpecificFunction = None
-        base.cr.friendManager = None
+        if base.cr.friendManager is self:
+            base.cr.friendManager = None
         DistributedObject.DistributedObject.delete(self)
         return
 

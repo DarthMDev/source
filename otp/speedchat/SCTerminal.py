@@ -1,6 +1,6 @@
-from SCElement import SCElement
-from SCObject import SCObject
-from SCMenu import SCMenu
+from .SCElement import SCElement
+from .SCObject import SCObject
+from .SCMenu import SCMenu
 from direct.fsm.StatePush import StateVar, FunctionCall
 from direct.showbase.DirectObject import DirectObject
 from otp.avatar import Emote
@@ -19,7 +19,6 @@ class SCTerminal(SCElement):
         self.__numCharges = -1
         self._handleWhisperModeSV = StateVar(False)
         self._handleWhisperModeFC = None
-        return
 
     def destroy(self):
         self._handleWhisperModeSV.set(False)
@@ -75,7 +74,7 @@ class SCTerminal(SCElement):
 
     def setCharges(self, nCharges):
         self.__numCharges = nCharges
-        if nCharges is 0:
+        if nCharges == 0:
             self.setDisabled(True)
 
     def isDisabled(self):
@@ -127,7 +126,7 @@ class SCTerminal(SCElement):
     def updateEmoteIcon(self):
         if hasattr(self, 'button'):
             self.lastEmoteIconColor = self.getEmoteIconColor()
-            for i in xrange(self.button['numStates']):
+            for i in range(self.button['numStates']):
                 self.button['image%s_image' % i].setColorScale(*self.lastEmoteIconColor)
 
         else:
@@ -162,7 +161,7 @@ class SCTerminal(SCElement):
             self.ignore(Emote.globalEmote.EmoteEnableStateChanged)
 
     def getDisplayText(self):
-        if self.getCharges() is not -1:
+        if self.getCharges() != -1:
             return self.text + ' (%s)' % self.getCharges()
         else:
             return self.text

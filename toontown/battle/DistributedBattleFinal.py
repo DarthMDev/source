@@ -1,14 +1,14 @@
+from panda3d.core import VBase3
 from direct.actor import Actor
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import State
 from direct.interval.IntervalGlobal import *
-from pandac.PandaModules import *
 import random
 
-from BattleBase import *
-import DistributedBattleBase
-import MovieUtil
-import SuitBattleGlobals
+from .BattleBase import *
+from . import DistributedBattleBase
+from . import MovieUtil
+from . import SuitBattleGlobals
 from toontown.distributed import DelayDelete
 from toontown.nametag import NametagGlobals
 from toontown.suit import Suit

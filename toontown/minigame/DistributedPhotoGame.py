@@ -1,7 +1,7 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionRay, CollisionSphere, CollisionTraverser, ConfigVariable, ConfigVariableBool, DisplayRegion, Fog, GeomNode, LensNode, NodePath, PerspectiveLens, Point3, Quat, Texture, TransparencyAttrib, Vec3, Vec4
 from direct.directnotify import DirectNotifyGlobal
-from pandac.PandaModules import *
 from toontown.toonbase.ToonBaseGlobal import *
-from DistributedMinigame import *
+from .DistributedMinigame import *
 from direct.distributed.ClockDelta import *
 from direct.interval.IntervalGlobal import *
 from direct.fsm import ClassicFSM, State
@@ -11,9 +11,8 @@ from toontown.toonbase import ToontownTimer
 from direct.task.Task import Task
 import math
 from toontown.toon import ToonHead
-import PhotoGameGlobals
+from . import PhotoGameGlobals
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import TTLocalizer
 from toontown.golf import BuildGeometry
 from toontown.toon import Toon
@@ -56,11 +55,11 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedPhotoGame')
     font = ToontownGlobals.getToonFont()
     LOCAL_PHOTO_MOVE_TASK = 'localPhotoMoveTask'
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
     INTRO_TASK_NAME = 'PhotoGameIntro'
     INTRO_TASK_NAME_CAMERA_LERP = 'PhotoGameIntroCamera'
 
@@ -134,7 +133,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         self.tripodModel = loader.loadModel('phase_4/models/minigames/toon_cannon')
         self.filmPanel = DirectLabel(parent=hidden, relief=None, pos=(-0.23, -1.2, -0.55), scale=0.65, text=str(self.filmCount), text_scale=0.2, text_fg=(0.95, 0.95, 0, 1), text_pos=(0.08, -0.15), text_font=ToontownGlobals.getSignFont(), image=self.filmImage, image_scale=Point3(1.0, 0.0, 0.85))
         self.filmPanelTitle = DirectLabel(parent=self.filmPanel, relief=None, pos=(0.08, 0, 0.04), scale=0.08, text=TTLocalizer.PhotoGameFilm, text_fg=(0.95, 0.95, 0, 1), text_shadow=(0, 0, 0, 1))
-        self.music = base.loadMusic('phase_4/audio/bgm/MG_cannon_game.ogg')
+        self.music = base.loader.loadMusic('phase_4/audio/bgm/MG_cannon_game.ogg')
         self.sndPhotoMove = loader.loadSfx('phase_4/audio/sfx/MG_cannon_adjust.ogg')
         self.sndPhotoFire = loader.loadSfx('phase_4/audio/sfx/MG_cannon_fire_alt.ogg')
         self.sndWin = loader.loadSfx('phase_4/audio/sfx/MG_win.ogg')
@@ -294,10 +293,10 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         self.queue = CollisionHandlerQueue()
         self.traverser = CollisionTraverser('traverser name')
         self.rayArray = []
-        vRange = (GOODROWS - BADROWS) / 2
-        for row in xrange(-(GOODROWS / 2), GOODROWS / 2 + 1):
-            for column in xrange(-(GOODROWS / 2), GOODROWS / 2 + 1):
-                goodRange = range(-((GOODROWS - BADROWS) / 2), (GOODROWS - BADROWS) / 2 + 1)
+        vRange = (GOODROWS - BADROWS) // 2
+        for row in range(-(GOODROWS // 2), GOODROWS // 2 + 1):
+            for column in range(-(GOODROWS // 2), GOODROWS // 2 + 1):
+                goodRange = list(range(-((GOODROWS - BADROWS) // 2), (GOODROWS - BADROWS) // 2 + 1))
                 rayQuality = 'g'
                 if row not in goodRange or column not in goodRange:
                     rayQuality = 'l'
@@ -411,7 +410,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         distDict = {}
         hitDict = {}
         centerDict = {}
-        for i in xrange(self.queue.getNumEntries()):
+        for i in range(self.queue.getNumEntries()):
             entry = self.queue.getEntry(i)
             object = None
             objectIndex = None
@@ -728,7 +727,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         self.scenery.append(self.photoRoot)
         random.seed(time.time())
         namegen = NameGenerator.NameGenerator()
-        for pathIndex in xrange(len(self.data['PATHS'])):
+        for pathIndex in range(len(self.data['PATHS'])):
             path = self.data['PATHS'][pathIndex]
             subject = Toon.Toon()
             gender = random.choice(['m', 'f'])
@@ -888,7 +887,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         DistributedMinigame.setGameStart(self, timestamp)
         self.__stopIntro()
         self.__putCameraOnTripod()
-        if not base.config.GetBool('endless-cannon-game', 0):
+        if not ConfigVariableBool('endless-cannon-game', False).getValue():
             self.timer.show()
             self.timer.countdown(self.data['TIME'], self.__gameTimerExpired)
         self.filmPanel.reparentTo(base.a2dTopRight)
@@ -988,7 +987,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
     def printAD(self):
         for assignment in self.assignmentDataDict:
             data = self.assignmentDataDict[assignment]
-            print 'Key:%s\nData:%s\n' % (str(assignment), data)
+            print('Key:%s\nData:%s\n' % (str(assignment), data))
 
     def updateScorePanel(self):
         teamScore = 0.0
@@ -1016,7 +1015,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
             starList = self.starDict[data[1]]
             starParent = self.starParentDict[data[1]]
             score = int(data[2])
-            for index in xrange(NUMSTARS):
+            for index in range(NUMSTARS):
                 if index < score:
                     starList[index].show()
                 else:
@@ -1055,7 +1054,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         starImage = loader.loadModel('phase_4/models/minigames/photogame_star')
         starParent = model.attachNewNode('star parent')
         self.starDict[model] = []
-        for index in xrange(NUMSTARS):
+        for index in range(NUMSTARS):
             star = DirectLabel(parent=starParent, image=starImage, image_color=(1, 1, 1, 1), image_scale=Point3(STARSIZE, 0.0, STARSIZE), relief=None)
             star.setX(STARSIZE * -0.5 * float(NUMSTARS) + float(index + 0.5) * STARSIZE)
             star.setZ(-0.05 - STARSIZE)
@@ -1588,7 +1587,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
 
     def makeDictionaries(self, dnaStore):
         self.nodeList = []
-        for i in xrange(dnaStore.getNumDNAVisGroups()):
+        for i in range(dnaStore.getNumDNAVisGroups()):
             groupFullName = dnaStore.getDNAVisGroupName(i)
             groupName = base.cr.hoodMgr.extractGroupName(groupFullName)
             groupNode = self.scene.find('**/' + groupFullName)
@@ -1613,7 +1612,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
         for i in nodeList:
             animPropNodes = i.findAllMatches('**/animated_prop_*')
             numAnimPropNodes = animPropNodes.getNumPaths()
-            for j in xrange(numAnimPropNodes):
+            for j in range(numAnimPropNodes):
                 animPropNode = animPropNodes.getPath(j)
                 if animPropNode.getName().startswith('animated_prop_generic'):
                     className = 'GenericAnimatedProp'
@@ -1628,7 +1627,7 @@ class DistributedPhotoGame(DistributedMinigame, PhotoGameBase.PhotoGameBase):
 
             interactivePropNodes = i.findAllMatches('**/interactive_prop_*')
             numInteractivePropNodes = interactivePropNodes.getNumPaths()
-            for j in xrange(numInteractivePropNodes):
+            for j in range(numInteractivePropNodes):
                 interactivePropNode = interactivePropNodes.getPath(j)
                 className = 'GenericAnimatedProp'
                 symbols = {}

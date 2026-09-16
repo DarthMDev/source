@@ -1,11 +1,11 @@
 from direct.distributed.ClockDelta import globalClockDelta
 from toontown.toonbase import TTLocalizer
-from DistCogdoGame import DistCogdoGame
+from .DistCogdoGame import DistCogdoGame
 from toontown.cogdominium.DistCogdoMazeGameBase import DistCogdoMazeGameBase
-from CogdoMazeGame import CogdoMazeGame
-from CogdoMaze import CogdoMazeFactory
-import CogdoMazeGameGlobals
-import CogdoMazeGameGlobals as Globals
+from .CogdoMazeGame import CogdoMazeGame
+from .CogdoMaze import CogdoMazeFactory
+from . import CogdoMazeGameGlobals
+from . import CogdoMazeGameGlobals as Globals
 
 class DistCogdoMazeGame(DistCogdoGame, DistCogdoMazeGameBase):
     notify = directNotify.newCategory('DistCogdoMazeGame')
@@ -43,7 +43,7 @@ class DistCogdoMazeGame(DistCogdoGame, DistCogdoMazeGameBase):
         bossCode = None
         if self._numSuits[0] > 0:
             bossCode = ''
-            for u in xrange(self._numSuits[0]):
+            for u in range(self._numSuits[0]):
                 bossCode += '%X' % self.randomNumGen.randint(0, 15)
 
         self.game.load(mazeFactory, self._numSuits, bossCode)
@@ -208,17 +208,17 @@ class DistCogdoMazeGame(DistCogdoGame, DistCogdoMazeGameBase):
     def doAction(self, action, data, networkTime):
         if not self._gameInProgress():
             return
-        if action == Globals.GameActions.RevealDoor:
+        if action == Globals.EGameAction.REVEAL_DOOR:
             self.game.toonRevealsDoor(data)
-        elif action == Globals.GameActions.EnterDoor:
+        elif action == Globals.EGameAction.ENTER_DOOR:
             self.game.toonEntersDoor(data)
-        elif action == Globals.GameActions.OpenDoor:
+        elif action == Globals.EGameAction.OPEN_DOOR:
             timeLeft = Globals.SecondsUntilGameEnds - globalClockDelta.localElapsedTime(networkTime)
             self.game.openDoor(timeLeft)
-        elif action == Globals.GameActions.Countdown:
+        elif action == Globals.EGameAction.COUNTDOWN:
             countdownTimeLeft = Globals.SecondsUntilTimeout
             self.game.countdown(countdownTimeLeft)
-        elif action == Globals.GameActions.TimeAlert:
+        elif action == Globals.EGameAction.TIME_ALERT:
             self.game.timeAlert()
 
     def setToonSad(self, toonId):

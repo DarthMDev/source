@@ -1,8 +1,7 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, TextEncoder, TextNode, VBase4, Vec4
 from toontown.toonbase.ToontownGlobals import *
 from direct.task.TaskManagerGlobal import *
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.distributed.ToontownMsgTypes import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.gui import OnscreenText
@@ -10,11 +9,10 @@ from otp.avatar import Avatar
 from otp.chat import ChatManager
 from direct.fsm import StateData
 from direct.fsm import ClassicFSM, State
-from direct.fsm import State
 from toontown.toontowngui import TTDialog
 import re
 from toontown.toonbase import TTLocalizer
-import NameGenerator
+from . import NameGenerator
 import random
 from otp.distributed import PotentialAvatar
 from otp.namepanel import NameCheck
@@ -24,7 +22,6 @@ from direct.showbase import PythonUtil
 from toontown.toon import NPCToons
 from direct.task import Task
 from toontown.makeatoon.TTPickANamePattern import TTPickANamePattern
-from pandac.PandaModules import TextEncoder
 from toontown.toon import ToonDNA
 from direct.gui.DirectGuiGlobals import NO_FADE_SORT_INDEX
 MAX_NAME_WIDTH = TTLocalizer.NSmaxNameWidth
@@ -156,7 +153,7 @@ class NameShop(StateData.StateData):
                 k = self.allFirsts.index('Von')
                 self.allFirsts[k] = 'von'
             except:
-                print "NameShop: Couldn't find von"
+                print("NameShop: Couldn't find von")
 
             if not self.addedGenderSpecific:
                 nameShopGui = loader.loadModel('phase_3/models/gui/tt_m_gui_mat_nameShop')
@@ -462,7 +459,7 @@ class NameShop(StateData.StateData):
         self.approvalDialog.buttonList[0].setPos(0, 0, -.3)
         self.approvalDialog.buttonList[1].setPos(0, 0, -.43)
         self.approvalDialog['image_scale'] = (0.8, 1, 0.77)
-        for x in xrange(0, 2):
+        for x in range(0, 2):
             self.approvalDialog.buttonList[x]['text_pos'] = (0, -.01)
             self.approvalDialog.buttonList[x]['text_scale'] = (0.04, 0.05999)
             self.approvalDialog.buttonList[x].setScale(1.2, 1, 1)
@@ -479,7 +476,7 @@ class NameShop(StateData.StateData):
             try:
                 x.show()
             except:
-                print 'NameShop: Tried to show already removed object'
+                print('NameShop: Tried to show already removed object')
 
         if base.cr.productName in ['DE', 'BR']:
             self.typeANameButton.hide()
@@ -494,7 +491,7 @@ class NameShop(StateData.StateData):
             try:
                 x.hide()
             except:
-                print 'NameShop: Tried to hide already removed object'
+                print('NameShop: Tried to hide already removed object')
 
     def uberdestroy(self, guiObjectsToDestroy):
         self.notify.debug('uberdestroy %s' % str(guiObjectsToDestroy))
@@ -503,7 +500,7 @@ class NameShop(StateData.StateData):
                 x.destroy()
                 del x
             except:
-                print 'NameShop: Tried to destroy already removed object'
+                print('NameShop: Tried to destroy already removed object')
 
     def getNameIndices(self):
         return self.nameIndices
@@ -537,11 +534,10 @@ class NameShop(StateData.StateData):
     def _checkNpcNames(self, name):
 
         def match(npcName, name = name):
-            name = TextEncoder().encodeWtext(name)
             name = name.strip()
             return TextEncoder.upper(npcName) == TextEncoder.upper(name)
 
-        for npcId in NPCToons.NPCToonDict.keys():
+        for npcId in list(NPCToons.NPCToonDict.keys()):
             npcName = NPCToons.NPCToonDict[npcId][1]
             if match(npcName):
                 self.notify.info('name matches NPC name "%s"' % npcName)
@@ -563,7 +559,7 @@ class NameShop(StateData.StateData):
         if self.fsm.getCurrentState().getName() == 'TypeAName':
             self.__typedAName()
         else:
-            self.__isFirstTime()
+            self.promptTutorial()
 
     def __handleSkipTutorial(self):
         self.__createAvatar(skipTutorial=True)
@@ -669,16 +665,16 @@ class NameShop(StateData.StateData):
             self.nameIndices[0] = self.nameGen.returnUniqueID(uberReturn[3], 0)
             self.nameFlags[0] = 1
         except:
-            print 'NameShop : Should have found title, uh oh!'
-            print uberReturn
+            print('NameShop : Should have found title, uh oh!')
+            print(uberReturn)
 
         try:
             self.firstIndex = self.allFirsts.index(uberReturn[4])
             self.nameIndices[1] = self.nameGen.returnUniqueID(uberReturn[4], 1)
             self.nameFlags[1] = 1
         except:
-            print 'NameShop : Should have found first name, uh oh!'
-            print uberReturn
+            print('NameShop : Should have found first name, uh oh!')
+            print(uberReturn)
 
         try:
             self.prefixIndex = self.allPrefixes.index(uberReturn[5])
@@ -690,8 +686,8 @@ class NameShop(StateData.StateData):
             else:
                 self.nameFlags[3] = 0
         except:
-            print 'NameShop : Some part of last name not found, uh oh!'
-            print uberReturn
+            print('NameShop : Some part of last name not found, uh oh!')
+            print(uberReturn)
 
         self.updateCheckBoxes()
         self.updateLists()
@@ -762,10 +758,7 @@ class NameShop(StateData.StateData):
     def __typedAName(self, *args):
         self.notify.debug('__typedAName')
         self.nameEntry['focus'] = 0
-        name = self.nameEntry.get()
-        name = TextEncoder().decodeText(name)
-        name = name.strip()
-        name = TextEncoder().encodeWtext(name)
+        name = self.nameEntry.get().strip()
         self.nameEntry.enterText(name)
         problem = self.nameIsValid(self.nameEntry.get())
         if problem:
@@ -788,7 +781,7 @@ class NameShop(StateData.StateData):
         if value:
             self.nameAction = 2
             if not self.makeAToon.warp:
-                self.__isFirstTime()
+                self.promptTutorial()
             else:
                 self.serverCreateAvatar()
         else:
@@ -885,7 +878,7 @@ class NameShop(StateData.StateData):
             self.fsm.request('PickAName')
             flags = [pattern[0] != -1, pattern[1] != -1, pattern[2] != -1]
             names = []
-            for i in xrange(len(pattern)):
+            for i in range(len(pattern)):
                 if pattern[i] != -1:
                     names.append(pnp.getNamePartString(self.toon.style.gender, i, pattern[i]))
                 else:
@@ -995,16 +988,7 @@ class NameShop(StateData.StateData):
         self.notify.debug('ParentPos = %.2f %.2f %.2f' % (parentPos[0], parentPos[1], parentPos[2]))
 
     def storeSkipTutorialRequest(self):
-        if base.forceSkipTutorial:
-            base.cr.skipTutorialRequest = True
-        else:
-            base.cr.skipTutorialRequest = self.requestingSkipTutorial
-
-    def __isFirstTime(self):
-        if not self.makeAToon.nameList or self.makeAToon.warp:
-            self.__createAvatar()
-        else:
-            self.promptTutorial()
+        base.cr.skipTutorialRequest = self.requestingSkipTutorial
 
     def promptTutorial(self):
         self.promptTutorialDialog = TTDialog.TTDialog(parent=aspect2dp, text=TTLocalizer.PromptTutorial, text_scale=0.06, text_align=TextNode.ACenter, text_wordwrap=22, command=self.__openTutorialDialog, fadeScreen=0.5, style=TTDialog.TwoChoice, buttonTextList=[TTLocalizer.MakeAToonEnterTutorial, TTLocalizer.MakeAToonSkipTutorial], button_text_scale=0.06, buttonPadSF=5.5, sortOrder=NO_FADE_SORT_INDEX)
@@ -1013,12 +997,12 @@ class NameShop(StateData.StateData):
     def __openTutorialDialog(self, choice = 0):
         if choice == 1:
             self.notify.debug('enterTutorial')
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: ENTERTUTORIAL: Enter Tutorial')
             self.__createAvatar()
         else:
             self.notify.debug('skipTutorial')
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: SKIPTUTORIAL: Skip Tutorial')
             self.__handleSkipTutorial()
         self.promptTutorialDialog.destroy()

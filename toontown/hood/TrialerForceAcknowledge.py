@@ -1,6 +1,5 @@
-from pandac.PandaModules import *
 from toontown.toonbase import TTLocalizer
-import ZoneUtil
+from . import ZoneUtil
 from toontown.toonbase import ToontownGlobals
 
 

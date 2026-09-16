@@ -1,5 +1,4 @@
-from pandac.PandaModules import *
-import CatalogItem
+from . import CatalogItem
 from toontown.toonbase import ToontownGlobals
 from otp.otpbase import OTPLocalizer
 from toontown.toonbase import TTLocalizer
@@ -51,7 +50,7 @@ class CatalogChatItem(CatalogItem.CatalogItem):
         return 'CatalogChatItem(%s%s)' % (self.customIndex, self.formatOptionalData(store))
 
     def compareTo(self, other):
-        return self.customIndex - other.customIndex
+        return self.customIndex == other.customIndex
 
     def getHashContents(self):
         return self.customIndex
@@ -85,7 +84,7 @@ class CatalogChatItem(CatalogItem.CatalogItem):
     def showMessagePicker(self, phone, callback):
         self.phone = phone
         self.callback = callback
-        import CatalogChatItemPicker
+        from . import CatalogChatItemPicker
         self.messagePicker = CatalogChatItemPicker.CatalogChatItemPicker(self.__handlePickerDone, self.customIndex)
         self.messagePicker.show()
 
@@ -93,12 +92,12 @@ class CatalogChatItem(CatalogItem.CatalogItem):
         self.mailbox = mailbox
         self.callback = callback
         self.index = index
-        import CatalogChatItemPicker
+        from . import CatalogChatItemPicker
         self.messagePicker = CatalogChatItemPicker.CatalogChatItemPicker(self.__handlePickerOnAccept, self.customIndex)
         self.messagePicker.show()
 
     def __handlePickerOnAccept(self, status, pickedMessage = None):
-        print 'Picker Status%s' % status
+        print('Picker Status%s' % status)
         if status == 'pick':
             self.mailbox.acceptItem(self, self.index, self.callback, pickedMessage)
         else:
@@ -108,7 +107,6 @@ class CatalogChatItem(CatalogItem.CatalogItem):
         del self.messagePicker
         del self.callback
         del self.mailbox
-        return
 
     def __handlePickerDone(self, status, pickedMessage = None):
         if status == 'pick':
@@ -132,7 +130,7 @@ class CatalogChatItem(CatalogItem.CatalogItem):
 
 
 def getChatRange(fromIndex, toIndex, *otherRanges):
-    list = []
+    items = []
     froms = [fromIndex]
     tos = [toIndex]
     i = 0
@@ -144,6 +142,6 @@ def getChatRange(fromIndex, toIndex, *otherRanges):
     for chatId in OTPLocalizer.CustomSCStrings.keys():
         for fromIndex, toIndex in zip(froms, tos):
             if chatId >= fromIndex and chatId <= toIndex:
-                list.append(CatalogChatItem(chatId))
+                items.append(CatalogChatItem(chatId))
 
-    return list
+    return items

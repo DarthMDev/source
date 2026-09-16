@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import Vec4
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase.ToontownBattleGlobals import *
 from direct.directnotify import DirectNotifyGlobal
@@ -6,7 +6,6 @@ import string
 from toontown.toon import LaffMeter
 from toontown.battle import BattleBase
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from toontown.toonbase import TTLocalizer
 
 class TownBattleToonPanel(DirectFrame):
@@ -124,7 +123,7 @@ class TownBattleToonPanel(DirectFrame):
 
     def determineWhichText(self, numTargets, targetIndex, localNum, index):
         returnStr = ''
-        targetList = range(numTargets)
+        targetList = list(range(numTargets))
         targetList.reverse()
         for i in targetList:
             if targetIndex == -1:

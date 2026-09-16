@@ -1,20 +1,20 @@
+from panda3d.core import ConfigVariableBool, ConfigVariableString, TextNode, Vec4
 from otp.chat.ChatInputWhiteListFrame import ChatInputWhiteListFrame
 from otp.chat import ChatGlobals
 from otp.otpbase import OTPLocalizer
 from toontown.chat.TTWhiteList import TTWhiteList
-from direct.showbase import DirectObject
 from otp.otpbase import OTPGlobals
-import sys
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 
 from direct.directnotify import DirectNotifyGlobal
-from toontown.toonbase import ToontownGlobals
+from toontown.toonbase import ToontownGlobals, TTLocalizer
 
 class TTChatInputWhiteList(ChatInputWhiteListFrame):
     notify = DirectNotifyGlobal.directNotify.newCategory('TTChatInputWhiteList')
-    TFToggleKey = base.config.GetString('true-friend-toggle-key', 'alt')
+    TFToggleKey = ConfigVariableString('true-friend-toggle-key', 'alt').getValue()
     TFToggleKeyUp = TFToggleKey + '-up'
+    ChannelShortcuts = (('/a ', ChatGlobals.AllModifier), ('/all ', ChatGlobals.AllModifier),
+                        ('/g ', ChatGlobals.GuildModifier), ('/guild ', ChatGlobals.GuildModifier))
 
     def __init__(self, parent = None, **kw):
         entryOptions = {'parent': self,
@@ -52,17 +52,18 @@ class TTChatInputWhiteList(ChatInputWhiteListFrame):
         self.chatEntry.bind(DGG.OVERFLOW, self.chatOverflow)
         self.chatEntry.bind(DGG.TYPE, self.typeCallback)
         self.trueFriendChat = 0
-        if base.wantGuilds:
-            self.channelLabel = OnscreenText(parent=self.chatFrame,
-                                             text='',
-                                             scale=0.055,
-                                             align=TextNode.ACenter,
-                                             font=OTPGlobals.getInterfaceFont(),
-                                             fg=(1.0, 1.0, 0.0, 1.0),
-                                             pos=(0.02, -0.225, 0.0))
-        if base.config.GetBool('whisper-to-nearby-true-friends', 1):
+        self.channelPlaceholder = OnscreenText(parent=self.chatEntry,
+                                               text='',
+                                               scale=1.0,
+                                               align=TextNode.ALeft,
+                                               font=OTPGlobals.getInterfaceFont(),
+                                               fg=(0.0, 0.0, 0.0, 0.35),
+                                               wordwrap=8.6,
+                                               mayChange=True)
+        self.channelPlaceholder.hide()
+        self.chatEntry.bind(DGG.ERASE, self.eraseCallback)
+        if ConfigVariableBool('whisper-to-nearby-true-friends', True).getValue():
             self.accept(self.TFToggleKey, self.shiftPressed)
-        return
 
     def shiftPressed(self):
         self.ignore(self.TFToggleKey)
@@ -89,6 +90,8 @@ class TTChatInputWhiteList(ChatInputWhiteListFrame):
             if self.typeGrabbed:
                 return
             self.applyFilter(extraArgs)
+            self.checkChannelShortcut()
+            self.updateChannelPlaceholder()
             if localAvatar.chatMgr.chatInputWhiteList.isActive():
                 return
             else:
@@ -106,10 +109,9 @@ class TTChatInputWhiteList(ChatInputWhiteListFrame):
     def delete(self):
         base.whiteList = None
         ChatInputWhiteListFrame.delete(self)
-        return
 
     def sendChat(self, text, overflow = False):
-        if self.typeGrabbed:
+        if self.typeGrabbed or not self.isActive():
             return
         else:
             ChatInputWhiteListFrame.sendChat(self, self.chatEntry.get())
@@ -139,7 +141,6 @@ class TTChatInputWhiteList(ChatInputWhiteListFrame):
             avatarUnderstandable = av.isUnderstandable()
         if avatarUnderstandable and online:
             base.talkAssistant.sendWhisperTalk(text, avatarId)
-        return
 
     def chatButtonPressed(self):
         if self.okayToSubmit:
@@ -151,12 +152,45 @@ class TTChatInputWhiteList(ChatInputWhiteListFrame):
         self.requestMode('Off')
         localAvatar.chatMgr.fsm.request('mainMenu')
 
+    def eraseCallback(self, extraArgs):
+        self.applyFilter(extraArgs)
+        self.updateChannelPlaceholder()
+
+    def isInGuild(self):
+        return base.wantGuilds and base.cr.guildManager.guild is not None
+
+    def checkChannelShortcut(self):
+        if not self.isInGuild() or self.receiverId:
+            return
+
+        text = self.chatEntry.get(plain=True)
+        for shortcut, modifier in self.ChannelShortcuts:
+            if text.startswith(shortcut):
+                base.talkAssistant.channel = ChatGlobals.Modifiers.index(modifier)
+                self.chatEntry.set(text[len(shortcut):])
+                self.applyFilter(None)
+                self.chatEntry.guiItem.setCursorPosition(self.chatEntry.guiItem.getNumCharacters())
+                return
+
+    def updateChannelPlaceholder(self):
+        if not self.isInGuild():
+            base.talkAssistant.channel = ChatGlobals.Modifiers.index(ChatGlobals.AllModifier)
+            self.channelPlaceholder.hide()
+            return
+
+        if self.receiverId or self.trueFriendChat or self.chatEntry.get(plain=True):
+            self.channelPlaceholder.hide()
+            return
+
+        if ChatGlobals.Modifiers[base.talkAssistant.channel] == ChatGlobals.GuildModifier:
+            self.channelPlaceholder.setText(TTLocalizer.ChatPlaceholderGuild)
+        else:
+            self.channelPlaceholder.setText(TTLocalizer.ChatPlaceholderAll)
+        self.channelPlaceholder.show()
+
     def activate(self):
         ChatInputWhiteListFrame.activate(self)
-        if base.wantGuilds:
-            channel = base.talkAssistant.channel
-            channelName = ChatGlobals.Modifiers[channel].upper()
-            self.channelLabel['text'] = 'Talking in %s chat' % channelName
+        self.updateChannelPlaceholder()
 
     def enterAllChat(self):
         ChatInputWhiteListFrame.enterAllChat(self)

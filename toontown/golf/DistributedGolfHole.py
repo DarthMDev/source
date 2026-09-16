@@ -1,10 +1,8 @@
+from panda3d.ode import OdeRayGeom
+from panda3d.direct import WaitInterval
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionSegment, CollisionSphere, CollisionTraverser, ConfigVariable, ConfigVariableBool, ConfigVariableDouble, Mat3, NodePath, Point3, Quat, TextNode, TransparencyAttrib, VBase4, Vec3, Vec4, deg2Rad
 import math
-import random
-import time
-from pandac.PandaModules import TextNode, BitMask32, Point3, Vec3, Vec4, deg2Rad, Mat3, NodePath, VBase4, CollisionTraverser, CollisionSegment, CollisionNode, CollisionHandlerQueue
-from direct.distributed import DistributedObject
-from direct.directnotify import DirectNotifyGlobal
-from otp.otpbase import OTPGlobals
+from direct.directnotify.DirectNotifyGlobal import directNotify
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownTimer
@@ -22,8 +20,6 @@ from toontown.golf import GolfHoleBase
 from toontown.distributed import DelayDelete
 import sys
 
-if sys.platform != 'android':
-    from panda3d.ode import OdeRayGeom
 
 class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, GolfHoleBase.GolfHoleBase):
     defaultTransitions = {'Off': ['Cleanup', 'ChooseTee', 'WatchTee'],
@@ -60,10 +56,10 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
      'Cleanup': ['Off']}
     id = 0
     notify = directNotify.newCategory('DistributedGolfHole')
-    unlimitedAimTime = base.config.GetBool('unlimited-aim-time', 0)
-    unlimitedTeeTime = base.config.GetBool('unlimited-tee-time', 0)
-    golfPowerSpeed = base.config.GetDouble('golf-power-speed', 3)
-    golfPowerExponent = base.config.GetDouble('golf-power-exponent', 0.75)
+    unlimitedAimTime = ConfigVariableBool('unlimited-aim-time', False).getValue()
+    unlimitedTeeTime = ConfigVariableBool('unlimited-tee-time', False).getValue()
+    golfPowerSpeed = ConfigVariableDouble('golf-power-speed', 3).getValue()
+    golfPowerExponent = ConfigVariableDouble('golf-power-exponent', 0.75).getValue()
     DefaultCamP = -16
     MaxCamP = -90
 
@@ -292,7 +288,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
             curNodePath = self.hardSurfaceNodePath.find('**/locator%d' % locatorNum)
 
     def loadBlockers(self):
-        loadAll = base.config.GetBool('golf-all-blockers', 0)
+        loadAll = ConfigVariableBool('golf-all-blockers', False).getValue()
         self.createLocatorDict()
         self.blockerNums = self.holeInfo['blockers']
         for locatorNum in self.locDict:
@@ -316,7 +312,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
         self.crowdBuildupSfx = []
         self.crowdApplauseSfx = []
         self.crowdMissSfx = []
-        for i in xrange(4):
+        for i in range(4):
             self.crowdBuildupSfx.append(loader.loadSfx('phase_6/audio/sfx/Golf_Crowd_Buildup.ogg'))
             self.crowdApplauseSfx.append(loader.loadSfx('phase_6/audio/sfx/Golf_Crowd_Applause.ogg'))
             self.crowdMissSfx.append(loader.loadSfx('phase_6/audio/sfx/Golf_Crowd_Miss.ogg'))
@@ -358,7 +354,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
         base.camera.setHpr(self.camHprBallFollow)
         if self.holeBottomNodePath.isEmpty():
             holePositions = self.holePositions
-            for index in xrange(len(holePositions)):
+            for index in range(len(holePositions)):
                 holePos = holePositions[index]
                 targetNodePathGeom, t1, t2 = BuildGeometry.addCircleGeom(self.targets, 16, 1)
                 targetNodePathGeom.setPos(holePos)
@@ -1295,7 +1291,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
             self.currentGolferActive = True
             if avId in self.ballDict:
                 self.ballDict[avId]['golfBallOdeGeom'].setCollideBits(BitMask32(16777215))
-                self.ballDict[avId]['golfBallOdeGeom'].setCategoryBits(BitMask32(4278190080L))
+                self.ballDict[avId]['golfBallOdeGeom'].setCategoryBits(BitMask32(4278190080))
         else:
             self.currentGolferActive = False
 
@@ -1405,7 +1401,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
 
     def __updateGolfPower(self, task):
         if not self.powerBar:
-            print '### no power bar!!!'
+            print('### no power bar!!!')
             return Task.done
         newPower = self.__getGolfPower(globalClock.getFrameTime())
         self.power = newPower
@@ -1529,7 +1525,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
         cameraAnimFullPath = path + cameraName
         try:
             self.flyOverActor = Actor.Actor(camModelFullPath, {'camera': cameraAnimFullPath})
-        except StandardError:
+        except Exception:
             self.notify.debug("Couldn't find flyover %s" % camModelFullPath)
             return False
 
@@ -1539,7 +1535,7 @@ class DistributedGolfHole(DistributedPhysicsWorld.DistributedPhysicsWorld, FSM, 
         flyOverJoint = self.flyOverActor.find('**/camera1')
         children = flyOverJoint.getChildren()
         numChild = children.getNumPaths()
-        for i in xrange(numChild):
+        for i in range(numChild):
             childNodePath = children.getPath(i)
             childNodePath.removeNode()
 

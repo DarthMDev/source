@@ -1,5 +1,4 @@
-from pandac.PandaModules import *
-from pandac.PandaModules import *
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerFloor, CollisionNode, CollisionRay, NodePath, Point3, Texture, VBase4
 from direct.interval.IntervalGlobal import *
 from direct.showbase.PythonUtil import *
 from direct.directnotify import DirectNotifyGlobal
@@ -75,11 +74,13 @@ class DistributedPet(DistributedSmoothNode.DistributedSmoothNode, Pet.Pet, PetBa
             return 1
         if len(category) > 0:
             category = '-' + category
-        onScreenDebug.add('%s%s-%s' % (self.getDisplayPrefix(), category, key), value)
+        if __debug__:
+            onScreenDebug.add('%s%s-%s' % (self.getDisplayPrefix(), category, key), value)
         return 1
 
     def clearDisplay(self):
-        onScreenDebug.removeAllWithPrefix(self.getDisplayPrefix())
+        if __debug__:
+            onScreenDebug.removeAllWithPrefix(self.getDisplayPrefix())
         return 1
 
     def moodComponentChanged(self, components = []):
@@ -108,7 +109,7 @@ class DistributedPet(DistributedSmoothNode.DistributedSmoothNode, Pet.Pet, PetBa
         self.safeZone = safeZone
 
     def __generateDistTraitFuncs(self):
-        for i in xrange(PetTraits.PetTraits.NumTraits):
+        for i in range(PetTraits.PetTraits.NumTraits):
             traitName = PetTraits.getTraitNames()[i]
             setterName = self.getSetterName(traitName)
 
@@ -191,7 +192,7 @@ class DistributedPet(DistributedSmoothNode.DistributedSmoothNode, Pet.Pet, PetBa
             if self.trickIval is not None and self.trickIval.isPlaying():
                 self.trickIval.finish()
             self.trickIval = PetTricks.getTrickIval(self, trickId)
-            if trickId == PetTricks.Tricks.BALK:
+            if trickId == PetTricks.ETrick.BALK:
                 mood = self.getDominantMood()
                 self.trickIval = Parallel(self.trickIval, Sequence(Func(self.handleMoodChange, 'confusion'), Wait(1.0), Func(self.handleMoodChange, mood)))
             self.trickIval.start(globalClockDelta.localElapsedTime(timestamp))
@@ -207,7 +208,7 @@ class DistributedPet(DistributedSmoothNode.DistributedSmoothNode, Pet.Pet, PetBa
             Pet.Pet.setName(self, self.petName)
         self.traits = PetTraits.PetTraits(self.traitSeed, self.safeZone)
         self.mood = PetMood.PetMood(self)
-        for mood, value in self.requiredMoodComponents.items():
+        for mood, value in list(self.requiredMoodComponents.items()):
             self.mood.setComponent(mood, value, announce=0)
 
         self.requiredMoodComponents = {}
@@ -471,7 +472,7 @@ class DistributedPet(DistributedSmoothNode.DistributedSmoothNode, Pet.Pet, PetBa
             self.movieTrack.start()
 
         if mode == PetConstants.PET_MOVIE_SCRATCH:
-            self.movieTrack = Sequence(Func(self._petMovieStart, av), Func(self.holdPetDownForMovie), Parallel(self.getInteractIval(self.Interactions.SCRATCH), av.getScratchPetIval(), SoundInterval(self.petSfx)), Func(self.releasePetFromHoldDown), self._getPetMovieCompleteIval(av))
+            self.movieTrack = Sequence(Func(self._petMovieStart, av), Func(self.holdPetDownForMovie), Parallel(Sequence(ActorInterval(self, 'toPet'), ActorInterval(self, 'pet'), ActorInterval(self, 'fromPet')), av.getScratchPetIval(), SoundInterval(self.petSfx)), Func(self.releasePetFromHoldDown), self._getPetMovieCompleteIval(av))
             self.movieTrack.start()
 
         if mode == PetConstants.PET_MOVIE_FEED:

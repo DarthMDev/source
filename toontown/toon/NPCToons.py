@@ -1,14 +1,12 @@
-from pandac.PandaModules import *
-import random
-import string
-import sys, os
+from panda3d.core import ConfigVariableBool, ConfigVariableList, Point3
 
-import ToonDNA
+from . import ToonDNA
 from toontown.hood import ZoneUtil
 from toontown.nametag import NametagGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownBattleGlobals
 from toontown.toonbase import ToontownGlobals
+from toontown.toonbase import SettingsGlobals
 
 
 QUEST_MOVIE_CLEAR = 0
@@ -83,22 +81,22 @@ def getRandomDNA(seed, gender):
 
 
 def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
-    import DistributedNPCToonAI
-    import DistributedNPCClerkAI
-    import DistributedNPCTailorAI
-    import DistributedNPCBlockerAI
-    import DistributedNPCFishermanAI
-    import DistributedNPCPetclerkAI
-    import DistributedNPCKartClerkAI
-    import DistributedNPCPartyPersonAI
-    import DistributedNPCSpecialQuestGiverAI
-    import DistributedNPCFlippyInToonHallAI
-    import DistributedNPCScientistAI
-    import DistributedSmartNPCAI
-    import DistributedNPCBankerAI
-    import DistributedNPCYinAI
-    import DistributedNPCYangAI
-    import DistributedNPCLowdenClearAI
+    from . import DistributedNPCToonAI
+    from . import DistributedNPCClerkAI
+    from . import DistributedNPCTailorAI
+    from . import DistributedNPCBlockerAI
+    from . import DistributedNPCFishermanAI
+    from . import DistributedNPCPetclerkAI
+    from . import DistributedNPCKartClerkAI
+    from . import DistributedNPCPartyPersonAI
+    from . import DistributedNPCSpecialQuestGiverAI
+    from . import DistributedNPCFlippyInToonHallAI
+    from . import DistributedNPCScientistAI
+    from . import DistributedSmartNPCAI
+    from . import DistributedNPCBankerAI
+    from . import DistributedNPCYinAI
+    from . import DistributedNPCYangAI
+    from . import DistributedNPCLowdenClearAI
     canonicalZoneId, name, dnaType, gender, protected, type = desc
     if type == NPC_REGULAR:
         npc = DistributedNPCToonAI.DistributedNPCToonAI(air, npcId, questCallback=questCallback)
@@ -135,10 +133,10 @@ def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
         if simbase.wantYinYang:
             npc = DistributedNPCYangAI.DistributedNPCYangAI(air, npcId)
     elif type == NPC_RESISTANCE:
-        if simbase.wantGuilds:
+        if air.wantGuilds:
             npc = DistributedNPCLowdenClearAI.DistributedNPCLowdenClearAI(air, npcId)
     else:
-        print 'createNPC() error!!!'
+        print('createNPC() error!!!')
 
     npc.setName(name)
     dna = ToonDNA.ToonDNA()
@@ -170,8 +168,8 @@ def createNpcsInZone(air, zoneId):
     for npcId in npcIdList:
         while npcIdList.count(npcId) > 1:
             npcIdList.remove(npcId)
-    for i in xrange(len(npcIdList)):
-        npcId = npcIdList[i]
+    typeCounters = {}
+    for npcId in npcIdList:
         npcDesc = NPCToonDict.get(npcId)
         if npcDesc[5] == NPC_FISHERMAN:
             if not air.wantFishing:
@@ -180,14 +178,16 @@ def createNpcsInZone(air, zoneId):
             if not air.wantParties:
                 continue
         if npcDesc[5] == NPC_SMART:
-            if not config.GetBool('want-talkative-tyler', False):
+            if not ConfigVariableBool('want-talkative-tyler', False).getValue():
                 continue
-        npcs.append(createNPC(air, npcId, npcDesc, zoneId, posIndex=i))
+        posIndex = typeCounters.get(npcDesc[5], 0)
+        typeCounters[npcDesc[5]] = posIndex + 1
+        npcs.append(createNPC(air, npcId, npcDesc, zoneId, posIndex=posIndex))
     return npcs
 
 
 def createLocalNPC(npcId):
-    import Toon
+    from . import Toon
 
     if npcId not in NPCToonDict:
         return None
@@ -210,6 +210,8 @@ def createLocalNPC(npcId):
 
     npc.setDNAString(dna.makeNetString())
     npc.animFSM.request('neutral')
+    if settings.get(SettingsGlobals.AnimationSmoothing):
+        npc.setBlend(frameBlend=True)
 
     return npc
 
@@ -231,25 +233,7 @@ def isZoneProtected(zoneId):
 
 
 lnames = TTLocalizer.NPCToonNames
-NPCToonDict = {20000: (-1,
-         lnames[20000],
-         ('dls',
-          'ms',
-          'm',
-          'm',
-          7,
-          0,
-          7,
-          7,
-          2,
-          6,
-          2,
-          6,
-          2,
-          16),
-         'm',
-         1,
-         NPC_SPECIALQUESTGIVER),
+NPCToonDict = {
  998: (2000,
        lnames[998],
        'r',
@@ -11702,7 +11686,7 @@ NPCToonDict = {20000: (-1,
         0,
         NPC_REGULAR)}
 
-if config.GetBool('want-new-toonhall', 1):
+if ConfigVariableBool('want-new-toonhall', True).getValue():
     NPCToonDict[2001] = (2513,
      lnames[2001],
      ('dss',
@@ -11747,10 +11731,11 @@ BlockerPositions = {TTLocalizer.Flippy: (Point3(207.4, 18.81, -0.475), 90.0)}
 zone2NpcDict = {}
 
 def generateZone2NpcDict():
-    for id, npcDesc in NPCToonDict.items():
+    for id, npcDesc in list(NPCToonDict.items()):
         zoneId = npcDesc[0]
         if zoneId in zone2NpcDict:
             zone2NpcDict[zoneId].append(id)
+            zone2NpcDict[zoneId].sort()
         else:
             zone2NpcDict[zoneId] = [id]
 
@@ -11974,7 +11959,7 @@ def getNPCName(npcId):
 
 
 def npcFriendsMinMaxStars(minStars, maxStars):
-    return [ id for id in npcFriends.keys() if getNPCTrackLevelHpRarity(id)[3] >= minStars and getNPCTrackLevelHpRarity(id)[3] <= maxStars ]
+    return [ id for id in list(npcFriends.keys()) if getNPCTrackLevelHpRarity(id)[3] >= minStars and getNPCTrackLevelHpRarity(id)[3] <= maxStars ]
 
 
 def getNPCTrack(npcId):

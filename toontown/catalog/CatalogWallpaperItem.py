@@ -1,4 +1,5 @@
-from CatalogSurfaceItem import *
+from panda3d.core import Datagram, Filename, Texture
+from .CatalogSurfaceItem import *
 
 WTTextureName = 0
 WTColor = 1
@@ -620,10 +621,8 @@ class CatalogWallpaperItem(CatalogSurfaceItem):
 
     def compareTo(self, other):
         if self.patternIndex != other.patternIndex:
-            century = self.patternIndex - self.patternIndex % 100
-            otherCentury = other.patternIndex - other.patternIndex % 100
-            return century - otherCentury
-        return 0
+            return self.patternIndex == other.patternIndex
+        return self.colorIndex == other.colorIndex
 
     def getHashContents(self):
         return self.patternIndex - self.patternIndex % 100
@@ -632,7 +631,6 @@ class CatalogWallpaperItem(CatalogSurfaceItem):
         return WallpaperTypes[self.patternIndex][WTBasePrice]
 
     def loadTexture(self):
-        from pandac.PandaModules import Texture
         filename = WallpaperTypes[self.patternIndex][WTTextureName]
         texture = loader.loadTexture(filename)
         texture.setMinfilter(Texture.FTLinearMipmapLinear)
@@ -651,7 +649,6 @@ class CatalogWallpaperItem(CatalogSurfaceItem):
             return CT_WHITE
 
     def loadBorderTexture(self):
-        from pandac.PandaModules import Texture
         if self.borderIndex == None or self.borderIndex == 0:
             return self.loadTexture()
         borderInfo = BorderTypes[self.borderIndex]
@@ -722,9 +719,9 @@ def getAllWallpapers(*typeList):
                     numBorderColors = len(borderData[BDColor])
                 else:
                     numBorderColors = 1
-                for borderColorIndex in xrange(numBorderColors):
+                for borderColorIndex in range(numBorderColors):
                     colors = WallpaperTypes[index][WTColor]
-                    for n in xrange(len(colors)):
+                    for n in range(len(colors)):
                         list.append(CatalogWallpaperItem(index, n, borderKey, borderColorIndex))
     return list
 
@@ -747,8 +744,8 @@ def getWallpaperRange(fromIndex, toIndex, *otherRanges):
                         numBorderColors = len(borderData[BDColor])
                     else:
                         numBorderColors = 1
-                    for borderColorIndex in xrange(numBorderColors):
+                    for borderColorIndex in range(numBorderColors):
                         colors = WallpaperTypes[patternIndex][WTColor]
-                        for n in xrange(len(colors)):
+                        for n in range(len(colors)):
                             list.append(CatalogWallpaperItem(patternIndex, n, borderKey, borderColorIndex))
     return list

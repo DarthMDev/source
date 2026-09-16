@@ -1,13 +1,13 @@
+from panda3d.core import Vec4
 from direct.gui.DirectGui import DirectFrame, DGG
 from direct.fsm import StateData
 
 from toontown.toonbase import TTLocalizer
 from toontown.toon import ToonDNA
 
-from MakeAToonGlobals import *
-from MakeAToonGUI import MATFrame, MATShuffleButton
-from panda3d.core import Vec4
-import ShuffleButton
+from .MakeAToonGlobals import *
+from .MakeAToonGUI import MATFrame, MATShuffleButton
+from . import ShuffleButton
 import random
 
 

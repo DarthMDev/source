@@ -29,7 +29,6 @@ class ToontownControlManager(ControlManager.ControlManager):
             return
 
         self.isEnabled = 1
-        keymap = settings.get('keymap', {})
         # Keep track of what we do on the inputState so we can undo it later on
         self.inputStateTokens.extend((
             inputState.watch('run', 'runningEvent', 'running-on', 'running-off'),
@@ -42,20 +41,20 @@ class ToontownControlManager(ControlManager.ControlManager):
                 inputState.watch('turnLeft', 'force-turnLeft', 'force-turnLeft-stop'),
                 inputState.watch('turnRight', 'mouse-look_right', 'mouse-look_right-done'),
                 inputState.watch('turnRight', 'force-turnRight', 'force-turnRight-stop'),
-                inputState.watchWithModifiers('forward', keymap.get('MOVE_UP', base.MOVE_UP), inputSource=inputState.WASD),
-                inputState.watchWithModifiers('reverse', keymap.get('MOVE_DOWN', base.MOVE_DOWN), inputSource=inputState.WASD),
-                inputState.watchWithModifiers('jump', keymap.get('JUMP', base.JUMP))
+                inputState.watchWithModifiers('forward', base.MOVE_UP, inputSource=inputState.WASD),
+                inputState.watchWithModifiers('reverse', base.MOVE_DOWN, inputSource=inputState.WASD),
+                inputState.watchWithModifiers('jump', base.JUMP)
             ))
 
             self.setWASDTurn(True)
 
         else:
             self.istNormal.extend((
-                inputState.watchWithModifiers('forward', 'arrow_up', inputSource=inputState.ArrowKeys),
-                inputState.watchWithModifiers('reverse', 'arrow_down', inputSource=inputState.ArrowKeys),
-                inputState.watchWithModifiers('turnLeft', 'arrow_left', inputSource=inputState.ArrowKeys),
-                inputState.watchWithModifiers('turnRight', 'arrow_right', inputSource=inputState.ArrowKeys),
-                inputState.watch('jump', 'control', 'control-up')
+                inputState.watchWithModifiers('forward', base.MOVE_UP, inputSource=inputState.ArrowKeys),
+                inputState.watchWithModifiers('reverse', base.MOVE_DOWN, inputSource=inputState.ArrowKeys),
+                inputState.watchWithModifiers('turnLeft', base.MOVE_LEFT, inputSource=inputState.ArrowKeys),
+                inputState.watchWithModifiers('turnRight', base.MOVE_RIGHT, inputSource=inputState.ArrowKeys),
+                inputState.watch('jump', base.JUMP, base.JUMP + '-up')
             ))
             
             self.istNormal.extend((
@@ -75,9 +74,7 @@ class ToontownControlManager(ControlManager.ControlManager):
 
         if not self.isEnabled:
             return
-        
-        keymap = settings.get('keymap', {})
-        
+
         turnLeftWASDSet = inputState.isSet("turnLeft", inputSource=inputState.WASD)
         turnRightWASDSet = inputState.isSet("turnRight", inputSource=inputState.WASD)
         slideLeftWASDSet = inputState.isSet("slideLeft", inputSource=inputState.WASD)
@@ -88,8 +85,8 @@ class ToontownControlManager(ControlManager.ControlManager):
 
         if turn:
             self.WASDTurnTokens = (
-                inputState.watchWithModifiers("turnLeft", keymap.get('MOVE_LEFT', base.MOVE_LEFT), inputSource=inputState.WASD),
-                inputState.watchWithModifiers("turnRight", keymap.get('MOVE_RIGHT', base.MOVE_RIGHT), inputSource=inputState.WASD),
+                inputState.watchWithModifiers("turnLeft", base.MOVE_LEFT, inputSource=inputState.WASD),
+                inputState.watchWithModifiers("turnRight", base.MOVE_RIGHT, inputSource=inputState.WASD),
                 )
 
             inputState.set("turnLeft", slideLeftWASDSet, inputSource=inputState.WASD)
@@ -100,8 +97,8 @@ class ToontownControlManager(ControlManager.ControlManager):
 
         else:
             self.WASDTurnTokens = (
-                inputState.watchWithModifiers("slideLeft", keymap.get('MOVE_LEFT', base.MOVE_LEFT), inputSource=inputState.WASD),
-                inputState.watchWithModifiers("slideRight", keymap.get('MOVE_RIGHT', base.MOVE_RIGHT), inputSource=inputState.WASD),
+                inputState.watchWithModifiers("slideLeft", base.MOVE_LEFT, inputSource=inputState.WASD),
+                inputState.watchWithModifiers("slideRight", base.MOVE_RIGHT, inputSource=inputState.WASD),
                 )
 
             inputState.set("slideLeft", turnLeftWASDSet, inputSource=inputState.WASD)
@@ -132,37 +129,36 @@ class ToontownControlManager(ControlManager.ControlManager):
         if self.currentControls:
             self.currentControls.disableAvatarControls()
 
-        keymap = settings.get('keymap', {})
         if self.passMessagesThrough:
             if self.wantWASD:
                 self.istWASD.append(inputState.watchWithModifiers(
-                  'forward', keymap.get('MOVE_UP', base.MOVE_UP), inputSource=inputState.WASD))
+                  'forward', base.MOVE_UP, inputSource=inputState.WASD))
                 self.istWASD.append(inputState.watchWithModifiers(
-                  'reverse', keymap.get('MOVE_DOWN', base.MOVE_DOWN), inputSource=inputState.WASD))
+                  'reverse', base.MOVE_DOWN, inputSource=inputState.WASD))
                 self.istWASD.append(inputState.watchWithModifiers(
-                  'turnLeft', keymap.get('MOVE_LEFT', base.MOVE_LEFT), inputSource=inputState.WASD))
+                  'turnLeft', base.MOVE_LEFT, inputSource=inputState.WASD))
                 self.istWASD.append(inputState.watchWithModifiers(
-                  'turnRight', keymap.get('MOVE_RIGHT', base.MOVE_RIGHT), inputSource=inputState.WASD))
+                  'turnRight', base.MOVE_RIGHT, inputSource=inputState.WASD))
             else:
                 self.istNormal.append(
                     inputState.watchWithModifiers(
                         'forward',
-                        'arrow_up',
+                        base.MOVE_UP,
                         inputSource=inputState.ArrowKeys))
                 self.istNormal.append(
                     inputState.watchWithModifiers(
                         'reverse',
-                        'arrow_down',
+                        base.MOVE_DOWN,
                         inputSource=inputState.ArrowKeys))
                 self.istNormal.append(
                     inputState.watchWithModifiers(
                         'turnLeft',
-                        'arrow_left',
+                        base.MOVE_LEFT,
                         inputSource=inputState.ArrowKeys))
                 self.istNormal.append(
                     inputState.watchWithModifiers(
                         'turnRight',
-                        'arrow_right',
+                        base.MOVE_RIGHT,
                         inputSource=inputState.ArrowKeys))
 
     def disableWASD(self):

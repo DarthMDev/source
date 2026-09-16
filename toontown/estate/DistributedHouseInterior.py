@@ -1,11 +1,11 @@
+from panda3d.core import Vec4
 from toontown.toonbase.ToontownGlobals import *
 from toontown.toonbase.ToonBaseGlobal import *
-from pandac.PandaModules import *
 from direct.interval.IntervalGlobal import *
 from direct.distributed.ClockDelta import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedObject
-import HouseGlobals
+from . import HouseGlobals
 from toontown.catalog import CatalogItemList
 from toontown.catalog import CatalogItem
 from toontown.catalog import CatalogSurfaceItem
@@ -94,7 +94,7 @@ class DistributedHouseInterior(DistributedObject.DistributedObject):
         self.__colorWalls()
         self.__setupWindows()
         messenger.send('houseInteriorLoaded-%d' % self.zoneId)
-        self.interiorMusic = base.loadMusic(self.interiorMusicName)
+        self.interiorMusic = base.loader.loadMusic(self.interiorMusicName)
         base.playMusic(self.interiorMusic, looping=1, volume=0.8)
         return None
 
@@ -108,12 +108,12 @@ class DistributedHouseInterior(DistributedObject.DistributedObject):
 
             return
         numSurfaceTypes = CatalogSurfaceItem.NUM_ST_TYPES
-        numRooms = min(len(self.wallpaper) / numSurfaceTypes, len(RoomNames))
-        for room in xrange(numRooms):
+        numRooms = min(len(self.wallpaper) // numSurfaceTypes, len(RoomNames))
+        for room in range(numRooms):
             roomName = RoomNames[room]
             roomNode = self.interior.find(roomName)
             if not roomNode.isEmpty():
-                for surface in xrange(numSurfaceTypes):
+                for surface in range(numSurfaceTypes):
                     slot = room * numSurfaceTypes + surface
                     wallpaper = self.wallpaper[slot]
                     color = wallpaper.getColor()

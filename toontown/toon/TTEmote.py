@@ -1,11 +1,11 @@
+from panda3d.core import ConfigVariableBool, Point3, Vec3
+import random
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 from direct.showbase import PythonUtil
-from pandac.PandaModules import *
 import random
-import types
 
-import Toon, ToonDNA
+from . import Toon, ToonDNA
 from otp.avatar import Emote
 from otp.otpbase import OTPLocalizer
 from toontown.chat.ChatGlobals import *
@@ -360,7 +360,7 @@ def stopSinginAnim(toon):
 
 
 def singNote1(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'g1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -370,7 +370,7 @@ def singNote1(toon, volume = 1):
 
 
 def singNote2(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'a1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -380,7 +380,7 @@ def singNote2(toon, volume = 1):
 
 
 def singNote3(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'b1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -390,7 +390,7 @@ def singNote3(toon, volume = 1):
 
 
 def singNote4(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'c1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -400,7 +400,7 @@ def singNote4(toon, volume = 1):
 
 
 def singNote5(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'd1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -410,7 +410,7 @@ def singNote5(toon, volume = 1):
 
 
 def singNote6(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'e1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -420,7 +420,7 @@ def singNote6(toon, volume = 1):
 
 
 def singNote7(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'f1')
         elif toon.style.getTorsoSize() == 'medium':
@@ -430,7 +430,7 @@ def singNote7(toon, volume = 1):
 
 
 def singNote8(toon, volume = 1):
-    if base.config.GetBool('want-octaves', True):
+    if ConfigVariableBool('want-octaves', True).getValue():
         if toon.style.getTorsoSize() == 'short':
             return getSingingNote(toon, 'g2')
         elif toon.style.getTorsoSize() == 'medium':
@@ -523,7 +523,7 @@ class TTEmote(Emote.Emote):
 
     def unlockStateChangeMsg(self):
         if self.stateChangeMsgLocks <= 0:
-            print PythonUtil.lineTag() + ': someone unlocked too many times'
+            print(PythonUtil.lineTag() + ': someone unlocked too many times')
             return
         self.stateChangeMsgLocks -= 1
         if self.stateChangeMsgLocks == 0 and self.stateHasChanged:
@@ -539,12 +539,12 @@ class TTEmote(Emote.Emote):
     def disableAll(self, toon, msg = None):
         if toon != base.localAvatar:
             return
-        self.disableGroup(range(len(self.emoteFunc)), toon)
+        self.disableGroup(list(range(len(self.emoteFunc))), toon)
 
     def releaseAll(self, toon, msg = None):
         if toon != base.localAvatar:
             return
-        self.enableGroup(range(len(self.emoteFunc)), toon)
+        self.enableGroup(list(range(len(self.emoteFunc))), toon)
 
     def disableBody(self, toon, msg = None):
         if toon != base.localAvatar:
@@ -584,7 +584,7 @@ class TTEmote(Emote.Emote):
         self.unlockStateChangeMsg()
 
     def disable(self, index, toon):
-        if isinstance(index, types.StringType):
+        if isinstance(index, str):
             index = OTPLocalizer.EmoteFuncDict[index]
         self.emoteFunc[index][1] = self.emoteFunc[index][1] + 1
         if toon is base.localAvatar:
@@ -592,7 +592,7 @@ class TTEmote(Emote.Emote):
                 self.emoteEnableStateChanged()
 
     def enable(self, index, toon):
-        if isinstance(index, types.StringType):
+        if isinstance(index, str):
             index = OTPLocalizer.EmoteFuncDict[index]
         self.emoteFunc[index][1] = self.emoteFunc[index][1] - 1
         if toon is base.localAvatar:
@@ -603,7 +603,7 @@ class TTEmote(Emote.Emote):
         try:
             func = self.emoteFunc[emoteIndex][0]
         except:
-            print 'Error in finding emote func %s' % emoteIndex
+            print('Error in finding emote func %s' % emoteIndex)
             return (None, None)
 
         def clearEmoteTrack():

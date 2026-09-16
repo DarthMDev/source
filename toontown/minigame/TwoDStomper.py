@@ -1,3 +1,4 @@
+from panda3d.core import NodePath, Point3, VBase4
 from direct.showbase.DirectObject import DirectObject
 from toontown.toonbase.ToontownGlobals import *
 from direct.directnotify import DirectNotifyGlobal
@@ -71,7 +72,7 @@ class TwoDStomper(DirectObject):
         self.range = self.headEndZ - self.headStartZ
         self.collSolids = []
         self.collSolids.append(originalColl)
-        for i in xrange(self.numCollSolids - 1):
+        for i in range(self.numCollSolids - 1):
             newColl = originalColl.copyTo(self.model)
             self.collSolids.append(newColl)
 
@@ -116,7 +117,7 @@ class TwoDStomper(DirectObject):
 
     def adjustCollSolidHeight(self, t):
         heightDiff = self.head.getZ() - self.headStartZ
-        for i in xrange(1, len(self.collSolids) - 1):
+        for i in range(1, len(self.collSolids) - 1):
             self.collSolids[i].setZ(heightDiff * i / (self.numCollSolids - 1))
 
     def start(self, elapsedTime):

@@ -6,12 +6,55 @@ from toontown.toonbase import ToontownGlobals, TTLocalizer
 from toontown.toon import GuildMasterGlobals
 from otp.ai.MagicWordGlobal import *
 
+CREATE_GUILD_TIMEOUT = 60
+MAX_JAR_MONEY = 10000
+
 
 class GuildManagerAI(DistributedObjectGlobalAI):
     notify = DirectNotifyGlobal.directNotify.newCategory('GuildManagerAI')
 
     def announceGenerate(self):
         DistributedObjectGlobalAI.announceGenerate(self)
+        self.pendingCreations = {}
+        self.accept('guildCreateResult', self.handleCreateGuildResult)
+
+    def handleCreateGuildResult(self, avId, success):
+        pending = self.pendingCreations.pop(avId, None)
+        if pending is None:
+            return
+
+        taskName, charged = pending
+        taskMgr.remove(taskName)
+        if not success:
+            self.refundGuildCost(avId, charged)
+
+    def handleCreateGuildTimeout(self, avId, task):
+        pending = self.pendingCreations.pop(avId, None)
+        if pending is not None:
+            self.notify.warning('The UD never answered avatar %d\'s guild request, refunding' % avId)
+            self.refundGuildCost(avId, pending[1])
+        return task.done
+
+    def refundGuildCost(self, avId, charged):
+        if not charged:
+            return
+
+        av = self.air.doId2do.get(avId)
+        if av is not None:
+            av.addMoney(charged)
+            return
+
+        def handleRetrieved(dclass, fields):
+            if dclass != self.air.dclassesByName['DistributedToonAI']:
+                self.notify.warning('Could not refund %d beans to avatar %d' % (charged, avId))
+                return
+
+            money = fields['setMoney'][0] + charged
+            if money > MAX_JAR_MONEY:
+                self.notify.warning('Avatar %d lost %d beans of a guild refund to a full jar' % (avId, money - MAX_JAR_MONEY))
+            self.air.dbInterface.updateObject(self.air.dbId, avId, dclass, {'setMoney': [min(money, MAX_JAR_MONEY)]})
+
+        self.air.dbInterface.queryObject(self.air.dbId, avId, handleRetrieved)
     
     def handleInstanceCompleted(self, points, involvedToonIds):
         guildId2ToonIds = self.getGuildToInvloved(involvedToonIds)
@@ -75,7 +118,7 @@ class GuildManagerAI(DistributedObjectGlobalAI):
             involvedToons = guildId2ToonIds[guildId]
 
             suitType = suit['type']
-            if suitType not in ToontownGlobals.SuitToDeptNames.keys():
+            if suitType not in list(ToontownGlobals.SuitToDeptNames.keys()):
                 self.notify.warning('We don\'t handle suit %s' % suitType)
                 return
             self.notify.debug('Handling members %s of guild %s defeating a cog of type %s' % (involvedToons, guildId, suitType))
@@ -142,12 +185,19 @@ class GuildManagerAI(DistributedObjectGlobalAI):
             self.sendUpdate('guildError', [GuildGlobals.GUILD_NOT_ENOUGH_JB])
             return
 
-        # Deduct money from the avatar
+        if avId in self.pendingCreations:
+            self.notify.warning('Avatar %d requested a guild while their last request is still pending' % avId)
+            return
+
+        # Hold the beans until the UD says whether the guild was created
         money = av.getMoney()
-        money -= GuildMasterGlobals.GUILD_COST
-        if money < 0:
-            money = 0
-        av.b_setMoney(money)
+        charged = min(money, GuildMasterGlobals.GUILD_COST)
+        av.b_setMoney(money - charged)
+
+        taskName = self.uniqueName('createGuildTimeout-%d' % avId)
+        self.pendingCreations[avId] = (taskName, charged)
+        taskMgr.doMethodLater(CREATE_GUILD_TIMEOUT, self.handleCreateGuildTimeout, taskName,
+                              extraArgs=[avId], appendTask=True)
 
         # Send the creation request to the UD
         self.d_requestCreateGuild(avId, name, iconId)
@@ -253,7 +303,7 @@ def guildQuest(command, arg=""):
     return 'No command %s exists.' % command
 
 
-@magicWord(category=CATEGORY_MODERATOR, types=[int])
+@magicWord(category=CATEGORY_ADMINISTRATOR, types=[int])
 def badGuildName(wantSelf=0):
     target = spellbook.getTarget()
     invoker = spellbook.getInvoker()
@@ -292,13 +342,13 @@ def leaveGuild():
     simbase.air.guildManager.d_adminLeaveGuild(invoker.doId)
 
 
-@magicWord(category=CATEGORY_MODERATOR)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def guildId():
     target = spellbook.getTarget()
     guildId = target.getGuildId()
     if guildId == 0:
         return 'Target does not belong to a Guild!'
-    print('Got guildId: %d' % guildId)
+    print(('Got guildId: %d' % guildId))
     return 'Guild Id: %d' % guildId
 
 

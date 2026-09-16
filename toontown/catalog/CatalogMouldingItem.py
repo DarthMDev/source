@@ -1,4 +1,5 @@
-from CatalogSurfaceItem import *
+from panda3d.core import Datagram, Filename, Texture
+from .CatalogSurfaceItem import *
 MTTextureName = 0
 MTColor = 1
 MTBasePrice = 2
@@ -57,9 +58,7 @@ class CatalogMouldingItem(CatalogSurfaceItem):
         return MouldingTypes[self.patternIndex][MTTextureName]
 
     def compareTo(self, other):
-        if self.patternIndex != other.patternIndex:
-            return self.patternIndex - other.patternIndex
-        return self.colorIndex - other.colorIndex
+        return self.colorIndex == other.colorIndex
 
     def getHashContents(self):
         return (self.patternIndex, self.colorIndex)
@@ -68,7 +67,6 @@ class CatalogMouldingItem(CatalogSurfaceItem):
         return MouldingTypes[self.patternIndex][MTBasePrice]
 
     def loadTexture(self):
-        from pandac.PandaModules import Texture
         filename = MouldingTypes[self.patternIndex][MTTextureName]
         texture = loader.loadTexture(filename)
         texture.setMinfilter(Texture.FTLinearMipmapLinear)
@@ -85,7 +83,7 @@ class CatalogMouldingItem(CatalogSurfaceItem):
             if colorIndex < len(colors):
                 return colors[colorIndex]
             else:
-                print 'Warning: colorIndex not in colors. Returning white.'
+                print('Warning: colorIndex not in colors. Returning white.')
                 return CT_WHITE
         else:
             return CT_WHITE
@@ -119,7 +117,7 @@ def getAllMouldings(*indexList):
     for index in indexList:
         colors = MouldingTypes[index][MTColor]
         if colors:
-            for n in xrange(len(colors)):
+            for n in range(len(colors)):
                 list.append(CatalogMouldingItem(index, n))
 
         else:
@@ -138,12 +136,12 @@ def getMouldingRange(fromIndex, toIndex, *otherRanges):
         tos.append(otherRanges[i + 1])
         i += 2
 
-    for patternIndex in MouldingTypes.keys():
+    for patternIndex in list(MouldingTypes.keys()):
         for fromIndex, toIndex in zip(froms, tos):
             if patternIndex >= fromIndex and patternIndex <= toIndex:
                 colors = MouldingTypes[patternIndex][MTColor]
                 if colors:
-                    for n in xrange(len(colors)):
+                    for n in range(len(colors)):
                         list.append(CatalogMouldingItem(patternIndex, n))
 
                 else:

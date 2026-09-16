@@ -1,18 +1,18 @@
-from pandac.PandaModules import StringStream
+from panda3d.core import ConfigVariableDouble, ConfigVariableInt, StringStream
 from direct.distributed.PyDatagram import PyDatagram
 import random
 
 class ClsendTracker:
     clsendNotify = directNotify.newCategory('clsend')
     NumTrackersLoggingOverflow = 0
-    MaxTrackersLoggingOverflow = config.GetInt('max-clsend-loggers', 5)
+    MaxTrackersLoggingOverflow = ConfigVariableInt('max-clsend-loggers', 5).getValue()
 
     def __init__(self):
         self._logClsendOverflow = False
         if self.isPlayerControlled():
             if simbase.air.getTrackClsends():
                 if ClsendTracker.NumTrackersLoggingOverflow < ClsendTracker.MaxTrackersLoggingOverflow:
-                    self._logClsendOverflow = random.random() < 1.0 / config.GetFloat('clsend-log-one-av-in-every', 4 if __dev__ else 50)
+                    self._logClsendOverflow = random.random() < 1.0 / ConfigVariableDouble('clsend-log-one-av-in-every', 4 if __dev__ else 50).getValue()
         if self._logClsendOverflow:
             ClsendTracker.NumTrackersLoggingOverflow += 1
         self._clsendMsgs = []
@@ -34,7 +34,7 @@ class ClsendTracker:
             self._trimClsend()
 
     def _trimClsend(self):
-        for i in xrange(self._clsendFlushNum):
+        for i in range(self._clsendFlushNum):
             if self._logClsendOverflow:
                 self._logClsend(*self._clsendMsgs[0])
             self._clsendMsgs = self._clsendMsgs[1:]

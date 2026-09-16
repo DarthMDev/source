@@ -1,23 +1,21 @@
+from panda3d.core import CollideMask, ConfigVariable, ConfigVariableBool, GeomNode, PartBundle, Point3, Texture
+import random
 from direct.actor import Actor
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import globalClockDelta
 from direct.fsm.ClassicFSM import *
 from direct.fsm.State import *
 from direct.interval.IntervalGlobal import *
-from direct.showbase import PythonUtil
 from direct.task import Task
-from pandac.PandaModules import *
-import random
-import types
 
-from PetDNA import HeadParts, EarParts, NoseParts, TailParts, BodyTypes, BodyTextures, AllPetColors, getColors, ColorScales, PetEyeColors, EarTextures, TailTextures, getFootTexture, getEarTexture, GiraffeTail, LeopardTail, PetGenders
+from .PetDNA import HeadParts, EarParts, NoseParts, TailParts, BodyTypes, BodyTextures, AllPetColors, getColors, ColorScales, PetEyeColors, EarTextures, TailTextures, getFootTexture, getEarTexture, GiraffeTail, LeopardTail, PetGenders
 from otp.avatar import Avatar
 from toontown.chat.ChatGlobals import *
 from toontown.nametag import NametagGlobals
 from toontown.pets import PetDNA
 from toontown.toonbase import TTLocalizer
 from toontown.toonbase import ToontownGlobals
-from toontown.toonbase.HolidayGlobals import APRIL_FOOLS_DAY
+from toontown.toonbase.HolidayGlobals import APRIL_FOOLS_COSTUMES
 
 
 Component2IconDict = {'boredom': 'Bored',
@@ -33,14 +31,10 @@ Component2IconDict = {'boredom': 'Bored',
  'surprise': 'Surprised',
  'affection': 'Love'}
 
+
 class Pet(Avatar.Avatar):
     notify = DirectNotifyGlobal.directNotify.newCategory('Pet')
     SerialNum = 0
-    Interactions = PythonUtil.Enum('SCRATCH, BEG, EAT, NEUTRAL')
-    InteractAnims = {Interactions.SCRATCH: ('toPet', 'pet', 'fromPet'),
-     Interactions.BEG: ('toBeg', 'beg', 'fromBeg'),
-     Interactions.EAT: ('eat', 'swallow', 'neutral'),
-     Interactions.NEUTRAL: 'neutral'}
 
     def __init__(self, forGui = 0):
         Avatar.Avatar.__init__(self)
@@ -71,7 +65,6 @@ class Pet(Avatar.Avatar):
         self.soundTeleportIn = None
         self.soundTeleportOut = None
         self.teleportHole = None
-        return
 
     def isPet(self):
         return True
@@ -285,7 +278,7 @@ class Pet(Avatar.Avatar):
         self.moodIcons.setScale(2.0)
         self.moodIcons.setZ(3.65)
         moods = moodIcons.findAllMatches('**/+GeomNode')
-        for moodNum in xrange(0, moods.getNumPaths()):
+        for moodNum in range(0, moods.getNumPaths()):
             mood = moods.getPath(moodNum)
             mood.reparentTo(self.moodIcons)
             mood.setBillboardPointEye()
@@ -299,7 +292,7 @@ class Pet(Avatar.Avatar):
 
     def showMood(self, mood):
         if hasattr(base.cr, 'newsManager') and base.cr.newsManager:
-            if base.cr.newsManager.isHolidayRunning(APRIL_FOOLS_DAY) and not mood == 'confusion':
+            if base.cr.newsManager.isHolidayRunning(APRIL_FOOLS_COSTUMES) and not mood == 'confusion':
                 self.speakMood(mood)
                 return
             else:
@@ -326,7 +319,8 @@ class Pet(Avatar.Avatar):
     def speakMood(self, mood):
         if self.moodModel:
             self.moodModel.hide()
-        if base.config.GetBool('want-speech-bubble', 1):
+
+        if ConfigVariableBool('want-speech-bubble', True).getValue():
             self.nametag.setChatText(random.choice(TTLocalizer.SpokenMoods[mood]))
         else:
             self.nametag.setChatText(random.choice(TTLocalizer.SpokenMoods[mood]))
@@ -422,7 +416,7 @@ class Pet(Avatar.Avatar):
 
     def enterNeutral(self):
         anim = 'neutral'
-        self.pose(anim, random.choice(range(0, self.getNumFrames(anim))))
+        self.pose(anim, random.choice(list(range(0, self.getNumFrames(anim)))))
         self.loop(anim, restart=0)
 
     def exitNeutral(self):
@@ -430,7 +424,7 @@ class Pet(Avatar.Avatar):
 
     def enterNeutralHappy(self):
         anim = 'neutralHappy'
-        self.pose(anim, random.choice(range(0, self.getNumFrames(anim))))
+        self.pose(anim, random.choice(list(range(0, self.getNumFrames(anim)))))
         self.loop(anim, restart=0)
 
     def exitNeutralHappy(self):
@@ -438,7 +432,7 @@ class Pet(Avatar.Avatar):
 
     def enterNeutralSad(self):
         anim = 'neutralSad'
-        self.pose(anim, random.choice(range(0, self.getNumFrames(anim))))
+        self.pose(anim, random.choice(list(range(0, self.getNumFrames(anim)))))
         self.loop(anim, restart=0)
 
     def exitNeutralSad(self):
@@ -634,18 +628,6 @@ class Pet(Avatar.Avatar):
         if not self.lockedDown:
             self.animFSM.request(self.prevAnimState)
             self.prevAnimState = None
-        return
-
-    def getInteractIval(self, interactId):
-        anims = self.InteractAnims[interactId]
-        if type(anims) == types.StringType:
-            animIval = ActorInterval(self, anims)
-        else:
-            animIval = Sequence()
-            for anim in anims:
-                animIval.append(ActorInterval(self, anim))
-
-        return animIval
 
 
 def gridPets():
@@ -653,19 +635,19 @@ def gridPets():
     offsetX = 0
     offsetY = 0
     startPos = base.localAvatar.getPos()
-    for body in xrange(0, len(BodyTypes)):
+    for body in range(0, len(BodyTypes)):
         colors = getColors(body)
         for color in colors:
             p = Pet()
-            p.setDNA([random.choice(range(-1, len(HeadParts))),
-             random.choice(range(-1, len(EarParts))),
-             random.choice(range(-1, len(NoseParts))),
-             random.choice(range(-1, len(TailParts))),
+            p.setDNA([random.choice(list(range(-1, len(HeadParts)))),
+             random.choice(list(range(-1, len(EarParts)))),
+             random.choice(list(range(-1, len(NoseParts)))),
+             random.choice(list(range(-1, len(TailParts)))),
              body,
              color,
-             random.choice(range(-1, len(ColorScales))),
-             random.choice(range(0, len(PetEyeColors))),
-             random.choice(range(0, len(PetGenders)))])
+             random.choice(list(range(-1, len(ColorScales)))),
+             random.choice(list(range(0, len(PetEyeColors)))),
+             random.choice(list(range(0, len(PetGenders))))])
             p.setPos(startPos[0] + offsetX, startPos[1] + offsetY, startPos[2])
             p.animFSM.request('neutral')
             p.reparentTo(render)

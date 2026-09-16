@@ -1,6 +1,6 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableInt, ModelPool, Texture, TexturePool, Vec3, Vec4
 from toontown.toonbase import ToontownGlobals
-import AvatarChoice
+from . import AvatarChoice
 from direct.fsm import ClassicFSM, State, StateData
 from toontown.launcher import DownloadForceAcknowledge
 from direct.gui.DirectGui import *
@@ -35,7 +35,7 @@ PreloadModels = (
 
 
 def preload():
-    print 'Preloading the Pick-A-Toon UI...'
+    print('Preloading the Pick-A-Toon UI...')
 
     for modelPath in PreloadModels:
         preloader.loadModel(modelPath)
@@ -71,7 +71,7 @@ class AvatarChooser(StateData.StateData):
         self.pickAToonBG.setBin('background', 1)
         self.pickAToonBG.reparentTo(aspect2d)
         base.setBackgroundColor(Vec4(0.145, 0.368, 0.78, 1))
-        choice = base.config.GetInt('auto-avatar-choice', -1)
+        choice = ConfigVariableInt('auto-avatar-choice', -1).getValue()
         for panel in self.panelList:
             panel.show()
             self.accept(panel.doneEvent, self.__handlePanelDone)
@@ -125,16 +125,20 @@ class AvatarChooser(StateData.StateData):
             text_wordwrap=25
         )
 
+        # Only a client started from source still has somewhere to log out to:
+        launched = base.cr.isLauncherSession()
+
         quitHover = gui.find('**/QuitBtn_RLVR')
         self.logoutButton = DirectButton(
             image=(quitHover, quitHover, quitHover), relief=None,
-            text='Log Out',
+            text=TTLocalizer.AvatarChooserQuit if launched else 'Log Out',
             text_font=ToontownGlobals.getSignFont(),
             text_fg=(0.977, 0.816, 0.133, 1),
             text_pos=TTLocalizer.AClogOutTextPos,
             text_scale=TTLocalizer.AClogOutButtonScale, image_scale=1,
             image1_scale=1.05, image2_scale=1.05, scale=1.05,
-            pos=(0.25, 0, 0.075), command=self.__back)
+            pos=(0.25, 0, 0.075),
+            command=self.__handleQuit if launched else self.__back)
         self.logoutButton.reparentTo(base.a2dBottomLeft)
 
         """
@@ -159,7 +163,7 @@ class AvatarChooser(StateData.StateData):
             used_position_indexs.append(av.position)
             self.panelList.append(panel)
 
-        for panelNum in xrange(0, MAX_AVATARS):
+        for panelNum in range(0, MAX_AVATARS):
             if panelNum not in used_position_indexs:
                 panel = AvatarChoice.AvatarChoice(position=panelNum)
                 panel.setPos(POSITIONS[panelNum])
@@ -190,7 +194,7 @@ class AvatarChooser(StateData.StateData):
             return toonHead.getRandomForwardLookAtPoint()
         else:
             other_toon_idxs = []
-            for i in xrange(len(self.IsLookingAt)):
+            for i in range(len(self.IsLookingAt)):
                 if self.IsLookingAt[i] == toonidx:
                     other_toon_idxs.append(i)
 
@@ -239,7 +243,7 @@ class AvatarChooser(StateData.StateData):
         if len(self.used_panel_indexs) == 0:
             return
         self.IsLookingAt = []
-        for i in xrange(MAX_AVATARS):
+        for i in range(MAX_AVATARS):
             self.IsLookingAt.append('f')
 
         for panel in self.panelList:
@@ -314,9 +318,15 @@ class AvatarChooser(StateData.StateData):
         pass
 
     def enterCheckDownload(self):
+        for avatar in self.avatarList:
+            if avatar.position == self.choice:
+                lastHoodId = avatar.lastHoodId
+                break
+        else:
+            lastHoodId = 0
         self.accept('downloadAck-response', self.__handleDownloadAck)
         self.downloadAck = DownloadForceAcknowledge.DownloadForceAcknowledge('downloadAck-response')
-        self.downloadAck.enter(2000)
+        self.downloadAck.enter(lastHoodId)
 
     def exitCheckDownload(self):
         self.downloadAck.exit()

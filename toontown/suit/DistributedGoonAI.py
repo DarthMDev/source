@@ -1,3 +1,4 @@
+from panda3d.core import Vec3
 from otp.ai.AIBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.battle import SuitBattleGlobals
@@ -6,8 +7,8 @@ from toontown.toonbase.ToontownGlobals import SellbotFactoryInt
 from direct.distributed import ClockDelta
 from direct.task import Task
 from toontown.coghq.FactoryQuestGlobals import FQSabotageId
-import GoonPathData
-from GoonGlobals import *
+from . import GoonPathData
+from .GoonGlobals import *
 import random
 
 
@@ -143,7 +144,7 @@ class DistributedGoonAI(DistributedCrushableEntityAI.DistributedCrushableEntityA
         t = 0
         self.tSeg = [t]
         self.pathSeg = []
-        for i in xrange(len(pathPts) - 1):
+        for i in range(len(pathPts) - 1):
             ptA = pathPts[i]
             ptB = pathPts[i + 1]
             t += T_TURN
@@ -160,7 +161,7 @@ class DistributedGoonAI(DistributedCrushableEntityAI.DistributedCrushableEntityA
         self.parameterized = 1
 
     def getPathPoint(self, t):
-        for i in xrange(len(self.tSeg) - 1):
+        for i in range(len(self.tSeg) - 1):
             if t >= self.tSeg[i] and t < self.tSeg[i + 1]:
                 tSeg = t - self.tSeg[i]
                 t = tSeg / (self.tSeg[i + 1] - self.tSeg[i])

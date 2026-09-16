@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableDouble, Point3, Vec3
 from toontown.toonbase.ToontownBattleGlobals import *
 from direct.task.Timer import *
 import math
@@ -58,9 +58,9 @@ REWARD_TIMEOUT = 120
 FLOOR_REWARD_TIMEOUT = 4
 BUILDING_REWARD_TIMEOUT = 300
 try:
-    CLIENT_INPUT_TIMEOUT = base.config.GetFloat('battle-input-timeout', TTLocalizer.BBbattleInputTimeout)
+    CLIENT_INPUT_TIMEOUT = ConfigVariableDouble('battle-input-timeout', TTLocalizer.BBbattleInputTimeout).getValue()
 except:
-    CLIENT_INPUT_TIMEOUT = simbase.config.GetFloat('battle-input-timeout', TTLocalizer.BBbattleInputTimeout)
+    CLIENT_INPUT_TIMEOUT = ConfigVariableDouble('battle-input-timeout', TTLocalizer.BBbattleInputTimeout).getValue()
 
 def levelAffectsGroup(track, level):
     return attackAffectsGroup(track, level)
@@ -150,14 +150,7 @@ def findToonAttack(toons, attacks, track):
                 else:
                     foundAttacks.append(attack)
 
-    def compFunc(a, b):
-        if a[TOON_LVL_COL] > b[TOON_LVL_COL]:
-            return 1
-        elif a[TOON_LVL_COL] < b[TOON_LVL_COL]:
-            return -1
-        return 0
-
-    foundAttacks.sort(compFunc)
+    foundAttacks.sort(key=lambda x: x[TOON_LVL_COL])
     return foundAttacks
 
 

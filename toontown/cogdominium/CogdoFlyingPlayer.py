@@ -1,4 +1,4 @@
-from pandac.PandaModules import DepthOffsetAttrib, NodePath, Vec3, Vec4, TextNode
+from panda3d.core import Texture, Vec3
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm.FSM import FSM
 from direct.interval.FunctionInterval import Wait
@@ -7,10 +7,10 @@ from direct.interval.MetaInterval import Sequence, Parallel
 from direct.distributed.ClockDelta import globalClockDelta
 from toontown.toonbase import ToontownGlobals
 from toontown.effects import DustCloud
-import CogdoFlyingGameGlobals as Globals
-import CogdoUtil
-from CogdoFlyingObjects import CogdoFlyingGatherable
-from CogdoFlyingUtil import swapAvatarShadowPlacer
+from . import CogdoFlyingGameGlobals as Globals
+from . import CogdoUtil
+from .CogdoFlyingObjects import CogdoFlyingGatherable
+from .CogdoFlyingUtil import swapAvatarShadowPlacer
 
 class CogdoFlyingPlayer(FSM):
     notify = DirectNotifyGlobal.directNotify.newCategory('CogdoFlyingPlayer')
@@ -28,10 +28,10 @@ class CogdoFlyingPlayer(FSM):
         self.lastBackpackState = -1
         self.lastPropellerSpinRate = Globals.Gameplay.NormalPropSpeed
         self.propellerSpinRate = Globals.Gameplay.NormalPropSpeed
-        self.setFuelState(Globals.Gameplay.FuelStates.FuelNoPropeller)
+        self.setFuelState(Globals.EFuelState.NO_PROPELLER)
         self.setOldFuelState(self.fuelState)
-        CogdoFlyingPlayer.setBlades(self, Globals.Gameplay.FuelStates.FuelNoPropeller)
-        self.setBackpackState(Globals.Gameplay.BackpackStates.Normal)
+        CogdoFlyingPlayer.setBlades(self, Globals.EFuelState.NO_PROPELLER)
+        self.setBackpackState(Globals.EBackpackState.NORMAL)
 
     def initModels(self):
         self.createPropeller()
@@ -91,7 +91,7 @@ class CogdoFlyingPlayer(FSM):
         self.propellerSpinLerp = LerpFunctionInterval(self.propeller.setH, fromData=0.0, toData=360.0, duration=self.baseSpinDuration, name='%s.propellerSpinLerp-%s' % (self.__class__.__name__, self.toon.doId))
         singleBlinkTime = Globals.Gameplay.TargetedWarningSingleBlinkTime
         blinkTime = Globals.Gameplay.TargetedWarningBlinkTime
-        self.blinkLoop = Sequence(Wait(singleBlinkTime / 2.0), Func(self.setBackpackTexture, Globals.Gameplay.BackpackStates.Attacked), Wait(singleBlinkTime / 2.0), Func(self.setBackpackTexture, Globals.Gameplay.BackpackStates.Targeted), name='%s.blinkLoop-%s' % (self.__class__.__name__, self.toon.doId))
+        self.blinkLoop = Sequence(Wait(singleBlinkTime / 2.0), Func(self.setBackpackTexture, Globals.EBackpackState.ATTACKED), Wait(singleBlinkTime / 2.0), Func(self.setBackpackTexture, Globals.EBackpackState.TARGETED), name='%s.blinkLoop-%s' % (self.__class__.__name__, self.toon.doId))
         self.blinkWarningSeq = Sequence(Func(self.blinkLoop.loop), Wait(blinkTime), Func(self.blinkLoop.clearToInitial), name='%s.blinkWarningSeq-%s' % (self.__class__.__name__, self.toon.doId))
         dur = Globals.Gameplay.BackpackRefuelDuration
         self.refuelSeq = Sequence(Func(self.setPropellerSpinRate, Globals.Gameplay.RefuelPropSpeed), Wait(dur), Func(self.returnBackpackToLastStateFunc), name='%s.refuelSeq-%s' % (self.__class__.__name__, self.toon.doId))
@@ -115,7 +115,7 @@ class CogdoFlyingPlayer(FSM):
         self.blinkBubbleSeq = Sequence(Wait(invulBuffTime - blinkTime), Func(self.blinkBubbleLoop.loop), Wait(blinkTime), Func(self.blinkBubbleLoop.finish), name='%s.blinkBubbleSeq-%s' % (self.__class__.__name__, self.toon.doId))
 
     def returnBackpackToLastStateFunc(self):
-        if self.backpackState == Globals.Gameplay.BackpackStates.Refuel:
+        if self.backpackState == Globals.EBackpackState.REFUEL:
             self.returnBackpackToLastState()
 
     def setPropellerSpinRateFunc(self):
@@ -133,16 +133,16 @@ class CogdoFlyingPlayer(FSM):
         self.blinkWarningSeq.clearToInitial()
         self.refuelSeq.clearToInitial()
         self.blinkLoop.clearToInitial()
-        if self.lastBackpackState == Globals.Gameplay.BackpackStates.Refuel:
+        if self.lastBackpackState == Globals.EBackpackState.REFUEL:
             self.setPropellerSpinRateFunc()
         if state in Globals.Gameplay.BackpackStates:
-            if state == Globals.Gameplay.BackpackStates.Normal:
+            if state == Globals.EBackpackState.NORMAL:
                 pass
-            elif state == Globals.Gameplay.BackpackStates.Targeted:
+            elif state == Globals.EBackpackState.TARGETED:
                 pass
-            elif state == Globals.Gameplay.BackpackStates.Refuel:
+            elif state == Globals.EBackpackState.REFUEL:
                 self.refuelSeq.start()
-            elif state == Globals.Gameplay.BackpackStates.Attacked:
+            elif state == Globals.EBackpackState.ATTACKED:
                 self.blinkWarningSeq.start()
             self.setBackpackTexture(state)
 
@@ -155,18 +155,18 @@ class CogdoFlyingPlayer(FSM):
         lerp.setStartScale(nodepath.getScale())
 
     def handleEnterGatherable(self, gatherable, elapsedTime):
-        if gatherable.type == Globals.Level.GatherableTypes.InvulPowerup:
+        if gatherable.type == Globals.EGatherableType.INVUL_POWERUP:
             self.blinkBubbleSeq.clearToInitial()
             self.blinkBubbleSeq.start(elapsedTime)
             self.removeBubbleSeq.clearToInitial()
             self.popUpBubbleSeq.start()
             if gatherable.type not in self.activeBuffs:
                 self.activeBuffs.append(gatherable.type)
-        elif gatherable.type == Globals.Level.GatherableTypes.Propeller:
-            self.setBackpackState(Globals.Gameplay.BackpackStates.Refuel)
+        elif gatherable.type == Globals.EGatherableType.PROPELLER:
+            self.setBackpackState(Globals.EBackpackState.REFUEL)
 
     def handleDebuffPowerup(self, pickupType, elapsedTime):
-        if pickupType == Globals.Level.GatherableTypes.InvulPowerup:
+        if pickupType == Globals.EGatherableType.INVUL_POWERUP:
             self.blinkBubbleSeq.finish()
             self.popUpBubbleSeq.clearToInitial()
             self.removeBubbleSeq.start()
@@ -179,7 +179,7 @@ class CogdoFlyingPlayer(FSM):
         return False
 
     def isInvulnerable(self):
-        if Globals.Level.GatherableTypes.InvulPowerup in self.activeBuffs:
+        if Globals.EGatherableType.INVUL_POWERUP in self.activeBuffs:
             return True
         return False
 
@@ -198,14 +198,14 @@ class CogdoFlyingPlayer(FSM):
     def updatePropellerSmoke(self):
         if not self.hasFuelStateChanged():
             return
-        if self.fuelState in [Globals.Gameplay.FuelStates.FuelNoPropeller, Globals.Gameplay.FuelStates.FuelNormal]:
+        if self.fuelState in [Globals.EFuelState.NO_PROPELLER, Globals.EFuelState.NORMAL]:
             self.propellerSmoke.stop()
-        elif self.fuelState in [Globals.Gameplay.FuelStates.FuelVeryLow, Globals.Gameplay.FuelStates.FuelEmpty]:
+        elif self.fuelState in [Globals.EFuelState.VERY_LOW, Globals.EFuelState.EMPTY]:
             self.propellerSmoke.stop()
             self.propellerSmoke.setScale(0.25)
             self.propellerSmoke.setZ(self.toon.getHeight() + 2.5)
             self.propellerSmoke.loop(rate=48)
-        elif self.fuelState in [Globals.Gameplay.FuelStates.FuelLow]:
+        elif self.fuelState in [Globals.EFuelState.LOW]:
             self.propellerSmoke.stop()
             self.propellerSmoke.setScale(0.0825)
             self.propellerSmoke.setZ(self.toon.getHeight() + 2.0)
@@ -233,19 +233,19 @@ class CogdoFlyingPlayer(FSM):
             return
         numBlades = fuelState - 1
         if len(self.activeBlades) != numBlades:
-            for i in xrange(len(self.activeBlades)):
+            for i in range(len(self.activeBlades)):
                 blade = self.activeBlades.pop()
                 blade.stash()
 
             if numBlades > len(self.blades):
                 numBlades = len(self.blades)
             if numBlades > 0:
-                for i in xrange(numBlades):
+                for i in range(numBlades):
                     blade = self.blades[i]
                     self.activeBlades.append(blade)
                     blade.unstash()
 
-            if fuelState == Globals.Gameplay.FuelStates.FuelNoPropeller:
+            if fuelState == Globals.EFuelState.NO_PROPELLER:
                 for prop in self.propInstances:
                     prop.hide()
 

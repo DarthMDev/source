@@ -1,5 +1,6 @@
+from panda3d.core import ConfigVariableBool, TextEncoder, Vec3
 from direct.directnotify import DirectNotifyGlobal
-import CogHQLoader
+from . import CogHQLoader
 from toontown.toonbase import ToontownGlobals
 from direct.gui import DirectGui
 from toontown.toonbase import TTLocalizer
@@ -9,10 +10,8 @@ from toontown.coghq import BossbotHQExterior
 from toontown.coghq import BossbotHQBossBattle
 from toontown.coghq import BossbotOfficeExterior
 from toontown.coghq import CountryClubInterior
-from pandac.PandaModules import TextEncoder
 from toontown.battle import BattleParticles
 import random
-from panda3d.core import Vec3
 aspectSF = 0.7227
 
 class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
@@ -31,13 +30,10 @@ class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
         self.cogHQLobbyModelPath = 'phase_12/models/bossbotHQ/CogGolfCourtyard'
         self.geom = None
         self.skyBoxLoop = None
-        self.rain = None
-        self.rainRender = None
 
     def load(self, zoneId):
         CogHQLoader.CogHQLoader.load(self, zoneId)
         Toon.loadBossbotHQAnims()
-        self.startRain()
 
     def unloadPlaceGeom(self):
         if self.skyBoxLoop:
@@ -68,7 +64,7 @@ class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
             self.skyBoxLoop.loop()
             self.geom.flattenMedium()
         elif zoneId == ToontownGlobals.BossbotLobby:
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: COGHQ: Visit BossbotLobby')
             self.notify.debug('cogHQLobbyModelPath = %s' % self.cogHQLobbyModelPath)
             self.geom = loader.loadModel(self.cogHQLobbyModelPath)
@@ -100,21 +96,6 @@ class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
     def unload(self):
         CogHQLoader.CogHQLoader.unload(self)
         Toon.unloadSellbotHQAnims()
-        self.stopRain()
-        del self.rain
-        del self.rainRender
-
-    def startRain(self):
-        self.rain = BattleParticles.loadParticleFile('raindisk.ptf')
-        self.rain.setPos(0, 0, 20)
-        self.rainRender = render.attachNewNode('rainRender')
-        self.rainRender.setDepthWrite(0)
-        self.rainRender.setBin('fixed', 1)
-        self.rain.start(camera, self.rainRender)
-
-    def stopRain(self):
-        if self.rain:
-            self.rain.cleanup()
 
     def enterStageInterior(self, requestStatus):
         self.placeClass = StageInterior.StageInterior
@@ -124,7 +105,6 @@ class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
     def exitStageInterior(self):
         self.exitPlace()
         self.placeClass = None
-
 
     def getExteriorPlaceClass(self):
         self.notify.debug('getExteriorPlaceClass')
@@ -142,14 +122,12 @@ class BossbotCogHQLoader(CogHQLoader.CogHQLoader):
         taskMgr.remove('titleText')
         self.hood.hideTitleText()
         self.exitPlace()
-        self.startRain()
         self.placeClass = None
 
     def enterCogHQBossBattle(self, requestStatus):
         self.notify.debug('BossbotCogHQLoader.enterCogHQBossBattle')
         CogHQLoader.CogHQLoader.enterCogHQBossBattle(self, requestStatus)
         base.cr.forbidCheesyEffects(1)
-        self.stopRain()
 
     def exitCogHQBossBattle(self):
         self.notify.debug('BossbotCogHQLoader.exitCogHQBossBattle')

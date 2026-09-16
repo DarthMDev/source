@@ -1,3 +1,4 @@
+from panda3d.core import BitMask32, BoundingSphere, CSDefault, CollideMask, CollisionHandler, CollisionHandlerEvent, CollisionNode, CollisionPlane, CollisionSphere, CollisionTube, GeomNode, Mat3, NodePath, Plane, Point3, Texture, TextureStage, VBase3, VBase4, Vec2, Vec3, composeMatrix, decomposeMatrix
 from direct.distributed.ClockDelta import globalClockDelta
 from toontown.effects import DustCloud
 from toontown.suit import Suit
@@ -16,8 +17,8 @@ from direct.interval.IntervalGlobal import *
 from direct.task import Task
 import math
 
-import DistributedBossCog
-import SuitDNA
+from . import DistributedBossCog
+from . import SuitDNA
 from toontown.battle import MovieToonVictory
 from toontown.battle import RewardPanel
 from toontown.battle import SuitBattleGlobals
@@ -79,6 +80,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
     def announceGenerate(self):
         global OneBossCog
         DistributedBossCog.DistributedBossCog.announceGenerate(self)
+        self.setName(TTLocalizer.BossbotBossName)
         self.loadEnvironment()
         self.__makeResistanceToon()
         base.localAvatar.chatMgr.chatInputSpeedChat.addCEOMenu()
@@ -118,6 +120,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         demotedCeo.dna.newSuit('f')
         demotedCeo.setDNA(demotedCeo.dna)
         demotedCeo.reparentTo(self.geom)
+        demotedCeo.setName(TTLocalizer.DemotedCEO)
         demotedCeo.loop('neutral')
         demotedCeo.stash()
         self.demotedCeo = demotedCeo
@@ -174,9 +177,6 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         DistributedBossCog.DistributedBossCog.loadEnvironment(self)
         self.geom = loader.loadModel('phase_12/models/bossbotHQ/BanquetInterior_1')
 
-        self.banquet = self.geom.find('**/Banquet')
-        self.banquet.hide()
-
         self.elevatorEntrance = self.geom.find('**/elevator_origin')
         self.elevatorEntrance.showThrough()
 
@@ -198,10 +198,10 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         self.geom.attachNewNode(planeNode)
         self.geom.reparentTo(render)
 
-        self.promotionMusic = base.loadMusic('phase_7/audio/bgm/encntr_suit_winning_indoor.ogg')
-        self.betweenPhaseMusic = base.loadMusic('phase_9/audio/bgm/encntr_toon_winning.ogg')
-        self.phaseTwoMusic = base.loadMusic('phase_12/audio/bgm/BossBot_CEO_v1.ogg')
-        self.phaseFourMusic = base.loadMusic('phase_12/audio/bgm/BossBot_CEO_v2.ogg')
+        self.promotionMusic = base.loader.loadMusic('phase_7/audio/bgm/encntr_suit_winning_indoor.ogg')
+        self.betweenPhaseMusic = base.loader.loadMusic('phase_9/audio/bgm/encntr_toon_winning.ogg')
+        self.phaseTwoMusic = base.loader.loadMusic('phase_12/audio/bgm/BossBot_CEO_v1.ogg')
+        self.phaseFourMusic = base.loader.loadMusic('phase_12/audio/bgm/BossBot_CEO_v2.ogg')
         self.pickupFoodSfx = loader.loadSfx('phase_6/audio/sfx/SZ_MM_gliss.ogg')
         self.explodeSfx = loader.loadSfx('phase_4/audio/sfx/firework_distance_02.ogg')
 
@@ -211,7 +211,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             if belt:
                 belt.cleanup()
 
-        for spot in self.golfSpots.values():
+        for spot in list(self.golfSpots.values()):
             if spot:
                 spot.cleanup()
 
@@ -265,52 +265,6 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             self.resistanceToon.removeActive()
             self.resistanceToon.detachNode()
             self.resistanceToonOnstage = 0
-
-    def loseCogSuits(self, toons, battleNode, camLoc, arrayOfObjs = False):
-        seq = Sequence()
-        if not toons:
-            return seq
-        self.notify.debug('battleNode=%s camLoc=%s' % (battleNode, camLoc))
-        seq.append(Func(base.camera.setPosHpr, battleNode, *camLoc))
-        suitsOff = Parallel()
-        if arrayOfObjs:
-            toonArray = toons
-        else:
-            toonArray = []
-            for toonId in toons:
-                toon = base.cr.doId2do.get(toonId)
-                if toon:
-                    toonArray.append(toon)
-
-        for toon in toonArray:
-            dustCloud = DustCloud.DustCloud()
-            dustCloud.setPos(0, 2, 3)
-            dustCloud.setScale(0.5)
-            dustCloud.setDepthWrite(0)
-            dustCloud.setBin('fixed', 0)
-            dustCloud.createTrack()
-            suitsOff.append(
-                Sequence(
-                    Func(dustCloud.reparentTo, toon),
-                    Parallel(
-                        dustCloud.track,
-                        Sequence(
-                            Wait(0.3),
-                            Func(toon.takeOffSuit),
-                            Func(toon.clearGoofyEffect),
-                            Func(toon.blinkEyes),
-                            Func(toon.loop, 'neutral'),
-                            Wait(0.7),
-                        )
-                    ),
-                    Func(dustCloud.detachNode),
-                    Func(dustCloud.destroy),
-                    Wait(3),
-                )
-            )
-
-        seq.append(suitsOff)
-        return seq
 
     def enterElevator(self):
         DistributedBossCog.DistributedBossCog.enterElevator(self)
@@ -381,6 +335,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
                          loseSuitCamHpr[0],
                          loseSuitCamHpr[1],
                          loseSuitCamHpr[2])),
+                         Wait(2),
                          Func(camera.setPosHpr, closeUpRTCamPos, closeUpRTCamHpr),
                          Func(rToon.setChatAbsolute, TTL.BossbotRTFightWaiters, CFSpeech),
                          Wait(1.0),
@@ -399,7 +354,6 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         DistributedBossCog.DistributedBossCog.exitBattleOne(self)
 
         self.show()
-        self.banquet.show()
 
     def enterFrolic(self):
         self.notify.debug('----- enterFrolic')
@@ -532,7 +486,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         radius = 9
         numToons = len(self.involvedToons)
         center = (numToons - 1) / 2.0
-        for i in xrange(numToons):
+        for i in range(numToons):
             toon = self.cr.doId2do.get(self.involvedToons[i])
             if toon:
                 angle = 90 - 25 * (i - center)
@@ -677,7 +631,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
     def calcNotDeadList(self):
         if not self.notDeadList:
             self.notDeadList = []
-            for tableIndex in xrange(len(self.tables)):
+            for tableIndex in range(len(self.tables)):
                 table = self.tables[tableIndex]
                 tableInfo = table.getNotDeadInfo()
                 self.notDeadList += tableInfo
@@ -715,7 +669,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
     def enterBattleThree(self):
         self.cleanupIntervals()
         self.calcNotDeadList()
-        for table in self.tables.values():
+        for table in list(self.tables.values()):
             table.setAllDinersToSitNeutral()
 
         self.battleANode.setPosHpr(*ToontownGlobals.DinerBattleAPosHpr)
@@ -1000,7 +954,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
         radius = 7
         numToons = len(self.involvedToons)
         center = (numToons - 1) / 2.0
-        for i in xrange(numToons):
+        for i in range(numToons):
             toon = self.cr.doId2do.get(self.involvedToons[i])
             if toon:
                 angle = 90 - 15 * (i - center)
@@ -1028,7 +982,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             if not self.twoFaced:
                 neutral = 'Ff_neutral'
             gearTrack = Parallel()
-            for i in xrange(4):
+            for i in range(4):
                 nodeName = '%s-%s' % (str(i), globalClock.getFrameTime())
                 node = gearRoot.attachNewNode(nodeName)
                 node.hide()
@@ -1184,7 +1138,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
     def setAttackCode(self, attackCode, avId=0):
         if self.state != 'BattleFour':
             return
-        print 'Client setAttackCode: %s %s' % (attackCode, avId)
+        print('Client setAttackCode: %s %s' % (attackCode, avId))
         self.numAttacks += 1
         self.notify.debug('numAttacks=%d' % self.numAttacks)
         self.attackCode = attackCode
@@ -1460,7 +1414,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
 
     def getToonTableIndex(self, toonId):
         tableIndex = -1
-        for table in self.tables.values():
+        for table in list(self.tables.values()):
             if table.avId == toonId:
                 tableIndex = table.index
                 break
@@ -1469,7 +1423,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
 
     def getToonGolfSpotIndex(self, toonId):
         golfSpotIndex = -1
-        for golfSpot in self.golfSpots.values():
+        for golfSpot in list(self.golfSpots.values()):
             if golfSpot.avId == toonId:
                 golfSpotIndex = golfSpot.index
                 break
@@ -1523,7 +1477,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             if not self.twoFaced:
                 neutral = 'Ff_neutral'
             gearTrack = Parallel()
-            for i in xrange(5):
+            for i in range(5):
                 nodeName = '%s-%s' % (str(i), globalClock.getFrameTime())
                 node = gearRoot.attachNewNode(nodeName)
                 node.hide()
@@ -1620,7 +1574,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             ballLaunch.reparentTo(gearRoot)
             ballLaunch.setPos(self.BallLaunchOffset)
             gearTrack = Parallel()
-            for i in xrange(5):
+            for i in range(5):
                 nodeName = '%s-%s' % (str(i), globalClock.getFrameTime())
                 node = gearRoot.attachNewNode(nodeName)
                 node.hide()
@@ -1743,7 +1697,7 @@ class DistributedBossbotBoss(DistributedBossCog.DistributedBossCog, FSM.FSM):
             if not self.twoFaced:
                 neutral = 'Ff_neutral'
             gearTrack = Parallel()
-            for i in xrange(4):
+            for i in range(4):
                 node = gearRoot.attachNewNode(str(i))
                 node.hide()
                 node.setPos(0, 5.85, 4.0)

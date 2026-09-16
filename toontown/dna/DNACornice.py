@@ -1,7 +1,7 @@
-from panda3d.core import LVector4f, LVector3f, DecalEffect
-import DNAGroup
-import DNAError
-import DNAUtil
+from panda3d.core import DecalEffect, LVector3f, LVector4f
+from . import DNAGroup
+from . import DNAError
+from . import DNAUtil
 
 class DNACornice(DNAGroup.DNAGroup):
     COMPONENT_CODE = 12

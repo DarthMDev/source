@@ -1,6 +1,5 @@
+from panda3d.core import Fog, Point3, Vec3
 import random
-from pandac.PandaModules import *
-from panda3d.core import Fog
 from direct.interval.IntervalGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals, ToontownTimer
@@ -46,7 +45,7 @@ class CogdoBarrelRoom:
         self.nearBattleNode.setPos(0, -25, 0)
         self.rewardUi = CogdoBarrelRoomRewardPanel.CogdoBarrelRoomRewardPanel()
         self.hideRewardUi()
-        self.stomperSfx = base.loadSfx(CogdoBarrelRoomConsts.StomperSound)
+        self.stomperSfx = base.loader.loadSfx(CogdoBarrelRoomConsts.StomperSound)
         self.fog = Fog('barrel-room-fog')
         self.fog.setColor(CogdoBarrelRoomConsts.BarrelRoomFogColor)
         self.fog.setLinearRange(*CogdoBarrelRoomConsts.BarrelRoomFogLinearRange)
@@ -104,11 +103,11 @@ class CogdoBarrelRoom:
         self.timer.stash()
 
     def placeToonsAtEntrance(self, toons):
-        for i in xrange(len(toons)):
+        for i in range(len(toons)):
             toons[i].setPosHpr(self.entranceNode, *CogdoBarrelRoomConsts.BarrelRoomPlayerSpawnPoints[i])
 
     def placeToonsNearBattle(self, toons):
-        for i in xrange(len(toons)):
+        for i in range(len(toons)):
             toons[i].setPosHpr(self.nearBattleNode, *CogdoBarrelRoomConsts.BarrelRoomPlayerSpawnPoints[i])
 
     def showBattleAreaLight(self, visible = True):

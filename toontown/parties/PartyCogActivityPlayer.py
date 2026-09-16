@@ -1,3 +1,4 @@
+from panda3d.core import NodePath, Point3, VBase3
 import math
 from direct.showbase.PythonUtil import bound, lerp
 from direct.task.Task import Task
@@ -6,16 +7,15 @@ from direct.interval.FunctionInterval import Func, Wait
 from direct.interval.SoundInterval import SoundInterval
 from direct.interval.LerpInterval import LerpScaleInterval, LerpFunc
 from direct.directnotify import DirectNotifyGlobal
-from pandac.PandaModules import NodePath, Point3, VBase3
 from toontown.minigame.OrthoDrive import OrthoDrive
 from toontown.minigame.OrthoWalk import OrthoWalk
 from toontown.battle.BattleProps import globalPropPool
 from toontown.battle.BattleSounds import globalBattleSoundCache
-import PartyGlobals
-from PartyCogActivityInput import PartyCogActivityInput
-from PartyCogActivityGui import PartyCogActivityGui
-from PartyCogUtils import CameraManager
-from PartyCogUtils import StrafingControl
+from . import PartyGlobals
+from .PartyCogActivityInput import PartyCogActivityInput
+from .PartyCogActivityGui import PartyCogActivityGui
+from .PartyCogUtils import CameraManager
+from .PartyCogUtils import StrafingControl
 UPDATE_TASK_NAME = 'PartyCogActivityLocalPlayer_UpdateTask'
 THROW_PIE_LIMIT_TIME = 0.2
 

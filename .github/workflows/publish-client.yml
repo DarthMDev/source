@@ -1,0 +1,331 @@
+name: Publish client
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      promote:
+        description: "Point latest.json at this version when the build lands."
+        default: true
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 1.0.0)."
+        required: true
+        type: string
+      promote:
+        description: "Point latest.json at this version when the build lands."
+        default: true
+        type: boolean
+
+env:
+  BUCKET: ttiwebsite
+  PREFIX: releases
+  INDEX: release-index
+  PACK_FORMAT: "1"
+  AWS_DEFAULT_REGION: auto
+  AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AWS_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    outputs:
+      value: ${{ steps.version.outputs.value }}
+    steps:
+      - id: version
+        run: |
+          VALUE="${{ inputs.version }}"
+          echo "value=${VALUE#v}" >> "$GITHUB_OUTPUT"
+
+  resources:
+    name: Pack the resources
+    needs: version
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check out the build tools
+        id: tools
+        shell: bash
+        env:
+          BUILD_TOOLS_TOKEN: ${{ secrets.BUILD_TOOLS_TOKEN }}
+        run: |
+          echo "::add-mask::$BUILD_TOOLS_TOKEN"
+
+          auth=$(printf 'oauth2:%s' "$BUILD_TOOLS_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+
+          git init -q tools
+          git -C tools remote add origin \
+            https://git.toontown.io/toontown-infinite/build-tools.git
+          git -C tools -c http.extraheader="Authorization: Basic $auth" \
+            fetch -q --depth 1 origin HEAD
+          git -C tools checkout -q FETCH_HEAD
+
+          echo "sha=$(git -C tools rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the art
+        uses: actions/checkout@v5
+        with:
+          repository: TT-Infinite-Archive/resources
+          path: art
+          fetch-depth: 1
+
+      - name: Look for an identical resource pack
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          art=$(git -C art rev-parse HEAD)
+          key=$(printf '%s\n' \
+                  "$PACK_FORMAT" \
+                  "$art" \
+                  "${{ steps.tools.outputs.sha }}" \
+                  "$(sha256sum requirements.txt | cut -d' ' -f1)" \
+              | sha256sum | cut -d' ' -f1)
+
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          echo "Art \`$art\`, pack key \`$key\`." >> "$GITHUB_STEP_SUMMARY"
+
+          if aws s3 cp "s3://$BUCKET/$INDEX/resources-$key.json" recorded.json \
+                  --only-show-errors 2> /dev/null; then
+              echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+              echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v6
+        if: steps.pack.outputs.hit != 'true'
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Pack the phase multifiles
+        if: steps.pack.outputs.hit != 'true'
+        run: |
+          pip install --disable-pip-version-check -r requirements.txt
+          python tools/pack_client_resources.py art build/client/resources
+
+      - name: Describe them
+        if: steps.pack.outputs.hit != 'true'
+        run: |
+          python tools/build_manifest.py \
+              --tree build/client/resources \
+              --section resources \
+              --prefix resources \
+              --version ${{ needs.version.outputs.value }} \
+              --manifest build/manifest/resources.json \
+              --blobs build/blobs
+
+      - name: Upload
+        if: steps.pack.outputs.hit != 'true'
+        run: |
+          aws s3 sync build/blobs "s3://$BUCKET/$PREFIX/blob/" --size-only \
+              --cache-control "public, max-age=31536000, immutable"
+          aws s3 cp build/manifest/resources.json \
+              "s3://$BUCKET/$PREFIX/${{ needs.version.outputs.value }}/resources.json" \
+              --cache-control "no-cache" --content-type application/json
+
+      - name: Record the resource pack
+        if: steps.pack.outputs.hit != 'true'
+        run: |
+          aws s3 cp build/manifest/resources.json \
+              "s3://$BUCKET/$INDEX/resources-${{ steps.pack.outputs.key }}.json" \
+              --cache-control "no-cache" --content-type application/json
+
+          echo "Packed it." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reuse the resource recorded pack
+        if: steps.pack.outputs.hit == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! jq -e 'has("version")' recorded.json > /dev/null; then
+              echo "::error::The recorded manifest carries no version field." \
+                   "The manifest format changed; bump PACK_FORMAT."
+              exit 1
+          fi
+
+          jq --arg v "${{ needs.version.outputs.value }}" '.version = $v' \
+              recorded.json > resources.json
+
+          aws s3 cp resources.json \
+              "s3://$BUCKET/$PREFIX/${{ needs.version.outputs.value }}/resources.json" \
+              --cache-control "no-cache" --content-type application/json
+
+          echo "The art has not moved since the last pack; reused it." \
+              >> "$GITHUB_STEP_SUMMARY"
+
+  client:
+    name: Build ${{ matrix.part }} ${{ matrix.target }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [mac-arm64, mac-x64, win-x64, linux-x64]
+        # The client and the host add-on share no build state, so they compile together:
+        part: [client, host]
+        include:
+          - target: mac-arm64
+            os: blacksmith-6vcpu-macos-15
+          # going away in August 2027
+          - target: mac-x64
+            os: macos-15-intel
+          - target: win-x64
+            os: blacksmith-4vcpu-windows-2025
+          - target: linux-x64
+            os: blacksmith-4vcpu-ubuntu-2404
+
+    env:
+      # Nuitka caches the compiled C here:
+      NUITKA_CACHE_DIR: ${{ github.workspace }}/.nuitka-cache
+      CCACHE_MAXSIZE: 1G
+      CLCACHE_OBJECT_CACHE_SIZE: "1000000000"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check out the build tools
+        shell: bash
+        env:
+          BUILD_TOOLS_TOKEN: ${{ secrets.BUILD_TOOLS_TOKEN }}
+        run: |
+          echo "::add-mask::$BUILD_TOOLS_TOKEN"
+
+          auth=$(printf 'oauth2:%s' "$BUILD_TOOLS_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+
+          git init -q tools
+          git -C tools remote add origin \
+            https://git.toontown.io/toontown-infinite/build-tools.git
+          git -C tools -c http.extraheader="Authorization: Basic $auth" \
+            fetch -q --depth 1 origin HEAD
+          git -C tools checkout -q FETCH_HEAD
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Reuse the last build's compiled C
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.nuitka-cache
+          key: nuitka-${{ matrix.target }}-${{ matrix.part }}-${{ hashFiles('requirements*.txt') }}-${{ github.sha }}
+          restore-keys: |
+            nuitka-${{ matrix.target }}-${{ matrix.part }}-${{ hashFiles('requirements*.txt') }}-
+            nuitka-${{ matrix.target }}-${{ hashFiles('requirements*.txt') }}-
+
+      - name: Ensure the AWS CLI is present
+        if: runner.os == 'macOS'
+        run: command -v aws || brew install awscli
+
+      - name: Report the macOS deployment target
+        if: runner.os == 'macOS'
+        run: python -c "import sysconfig; print(sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET'))"
+
+      - name: Ensure ccache is present
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          command -v ccache ||
+              if [ "$RUNNER_OS" = "macOS" ]; then
+                  brew install ccache
+              else
+                  sudo apt-get update && sudo apt-get install -y ccache
+              fi
+
+      # Nuitka needs this in a Windows Blacksmith runner:
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Confirm the MSVC toolchain
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not $env:WindowsSDKVersion) {
+              Write-Host "::error::No Windows SDK in the environment."
+              exit 1
+          }
+
+          Write-Host "Windows SDK $env:WindowsSDKVersion"
+          Write-Host "cl.exe: $((Get-Command cl -ErrorAction SilentlyContinue).Source)"
+
+      - name: Install dependencies
+        run: pip install --disable-pip-version-check -r requirements.txt -r requirements-build.txt
+
+      - name: Compile the ${{ matrix.part }}
+        env:
+          SERVER_VERSION: ${{ needs.version.outputs.value }}
+        run: python tools/build_client.py --target ${{ matrix.part }}
+
+      - name: Describe it
+        shell: bash
+        run: |
+          if [ "${{ matrix.part }}" = "client" ]; then
+              TREE=build/client/install
+              SECTION="${{ matrix.target }}"
+          else
+              TREE=build/client/host
+              SECTION="host-${{ matrix.target }}"
+          fi
+
+          if [ ! -d "$TREE" ]; then
+              echo "No $TREE for ${{ matrix.target }}."
+              exit 0
+          fi
+
+          python tools/build_manifest.py \
+              --tree "$TREE" \
+              --section "$SECTION" \
+              --version ${{ needs.version.outputs.value }} \
+              --manifest "build/manifest/$SECTION.json" \
+              --blobs build/blobs
+
+      - name: Keep the compilation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuitka-report-${{ matrix.part }}-${{ matrix.target }}
+          path: build/client/report-*.xml
+          if-no-files-found: ignore
+
+      - name: Upload
+        shell: bash
+        run: |
+          if [ ! -d build/manifest ]; then
+              echo "Nothing to upload for ${{ matrix.part }} ${{ matrix.target }}."
+              exit 0
+          fi
+
+          aws s3 sync build/blobs "s3://$BUCKET/$PREFIX/blob/" --size-only \
+              --cache-control "public, max-age=31536000, immutable"
+
+          for manifest in build/manifest/*.json; do
+              aws s3 cp "$manifest" \
+                  "s3://$BUCKET/$PREFIX/${{ needs.version.outputs.value }}/$(basename "$manifest")" \
+                  --cache-control "no-cache" --content-type application/json
+          done
+
+  publish:
+    name: Publish the release
+    if: inputs.promote
+    needs: [version, resources, client]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - name: Point latest.json at ${{ needs.version.outputs.value }}
+        run: |
+          echo '{"version":"${{ needs.version.outputs.value }}"}' > latest.json
+          aws s3 cp latest.json "s3://$BUCKET/$PREFIX/latest.json" \
+              --cache-control "no-cache" --content-type application/json

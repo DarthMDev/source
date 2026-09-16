@@ -1,11 +1,10 @@
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.directnotify import DirectNotifyGlobal
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from direct.task import Task
-import FlowerBase
-import FlowerPicker
+from . import FlowerBase
+from . import FlowerPicker
 
 class FlowerSellGUI(DirectFrame):
     notify = DirectNotifyGlobal.directNotify.newCategory('FlowerGui')

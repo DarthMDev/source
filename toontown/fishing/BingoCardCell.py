@@ -1,6 +1,5 @@
 from direct.fsm import FSM
 from direct.gui.DirectGui import *
-from pandac.PandaModules import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.interval.IntervalGlobal import *
 from toontown.toonbase import ToontownGlobals
@@ -30,7 +29,6 @@ class BingoCardCell(DirectButton, FSM.FSM):
         self.fish = fish
         self.cellId = cellId
         self.request('Off')
-        return
 
     def destroy(self):
         DirectButton.destroy(self)

@@ -1,3 +1,4 @@
+from panda3d.core import Texture
 from toontown.parties.DistributedPartyJukeboxActivityBase import DistributedPartyJukeboxActivityBase
 from toontown.parties import PartyGlobals
 
@@ -5,7 +6,7 @@ class DistributedPartyJukebox40Activity(DistributedPartyJukeboxActivityBase):
     notify = directNotify.newCategory('DistributedPartyJukeboxActivity')
 
     def __init__(self, cr):
-        DistributedPartyJukeboxActivityBase.__init__(self, cr, PartyGlobals.ActivityIds.PartyJukebox40, PartyGlobals.PhaseToMusicData40)
+        DistributedPartyJukeboxActivityBase.__init__(self, cr, PartyGlobals.EActivityId.PartyJukebox40, PartyGlobals.PhaseToMusicData40)
 
     def load(self):
         DistributedPartyJukeboxActivityBase.load(self)

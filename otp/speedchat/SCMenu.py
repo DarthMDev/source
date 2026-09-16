@@ -1,22 +1,21 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableBool, ConfigVariableDouble, NodePath
 from direct.gui.DirectGui import *
 from direct.task import Task
-from SCConstants import *
+from .SCConstants import *
 from direct.interval.IntervalGlobal import *
-from SCObject import SCObject
+from .SCObject import SCObject
 from direct.showbase.PythonUtil import makeTuple
-import types
+
 
 class SCMenu(SCObject, NodePath):
-    config = getConfigShowbase()
-    SpeedChatRolloverTolerance = config.GetFloat('speedchat-rollover-tolerance', 0.08)
-    WantFade = config.GetBool('want-speedchat-fade', 0)
-    FadeDuration = config.GetFloat('speedchat-fade-duration', 0.2)
+    SpeedChatRolloverTolerance = ConfigVariableDouble('speedchat-rollover-tolerance', 0.08).getValue()
+    WantFade = ConfigVariableBool('want-speedchat-fade', False).getValue()
+    FadeDuration = ConfigVariableDouble('speedchat-fade-duration', 0.2).getValue()
     SerialNum = 0
     BackgroundModelName = None
     GuiModelName = None
 
-    def __init__(self, holder = None):
+    def __init__(self, holder=None):
         SCObject.__init__(self)
         self.SerialNum = SCMenu.SerialNum
         SCMenu.SerialNum += 1
@@ -27,7 +26,7 @@ class SCMenu(SCObject, NodePath):
         self.ActiveMemberSwitchTaskName = 'SCMenu%s_SwitchActiveMember' % self.SerialNum
         self.bg = loader.loadModel(self.BackgroundModelName)
 
-        def findNodes(names, model = self.bg):
+        def findNodes(names, model=self.bg):
             results = []
             for name in names:
                 for nm in makeTuple(name):
@@ -38,15 +37,16 @@ class SCMenu(SCObject, NodePath):
 
             return results
 
-        self.bgTop, self.bgBottom, self.bgLeft, self.bgRight, self.bgMiddle, self.bgTopLeft, self.bgBottomLeft, self.bgTopRight, self.bgBottomRight = findNodes([('top', 'top1'),
-         'bottom',
-         'left',
-         'right',
-         'middle',
-         'topLeft',
-         'bottomLeft',
-         'topRight',
-         'bottomRight'])
+        self.bgTop, self.bgBottom, self.bgLeft, self.bgRight, self.bgMiddle, self.bgTopLeft, self.bgBottomLeft, self.bgTopRight, self.bgBottomRight = findNodes(
+            [('top', 'top1'),
+             'bottom',
+             'left',
+             'right',
+             'middle',
+             'topLeft',
+             'bottomLeft',
+             'topRight',
+             'bottomRight'])
         self.bg.reparentTo(self, -1)
         self.__members = []
         self.activeMember = None
@@ -54,7 +54,6 @@ class SCMenu(SCObject, NodePath):
         self.fadeIval = None
         self.width = 1
         self.inFinalize = 0
-        return
 
     def destroy(self):
         self.stopFade()
@@ -77,7 +76,6 @@ class SCMenu(SCObject, NodePath):
         self.removeNode()
         taskMgr.remove(self.FinalizeTaskName)
         taskMgr.remove(self.ActiveMemberSwitchTaskName)
-        return
 
     def clearMenu(self):
         while len(self):
@@ -85,7 +83,7 @@ class SCMenu(SCObject, NodePath):
             del self[0]
             item.destroy()
 
-    def rebuildFromStructure(self, structure, title = None):
+    def rebuildFromStructure(self, structure, title=None):
         self.clearMenu()
         if title:
             holder = self.getHolder()
@@ -94,14 +92,14 @@ class SCMenu(SCObject, NodePath):
         self.appendFromStructure(structure)
 
     def appendFromStructure(self, structure):
-        from SpeedChatTypes import SCMenuHolder, SCStaticTextTerminal, SCGMTextTerminal
+        from .SpeedChatTypes import SCMenuHolder, SCStaticTextTerminal, SCGMTextTerminal
         from otp.otpbase import OTPLocalizer
 
         def addChildren(menu, childList):
             for child in childList:
                 emote = None
                 if type(child) == type({}):
-                    item = child.keys()[0]
+                    item = list(child.keys())[0]
                     emote = child[item]
                     child = item
                 if type(child) == type(0):
@@ -119,7 +117,7 @@ class SCMenu(SCObject, NodePath):
                         subMenu = menuType()
                         subMenuChildren = child[2:]
                     if emote:
-                        print 'warning: tried to link emote %s to a menu holder' % emote
+                        print('warning: tried to link emote %s to a menu holder' % emote)
                     holder = SCMenuHolder(holderTitle, menu=subMenu)
                     menu.append(holder)
                     addChildren(subMenu, subMenuChildren)
@@ -133,7 +131,6 @@ class SCMenu(SCObject, NodePath):
 
         addChildren(self, structure)
         addChildren = None
-        return
 
     def fadeFunc(self, t):
         cs = self.getColorScale()
@@ -143,7 +140,6 @@ class SCMenu(SCObject, NodePath):
         if self.fadeIval is not None:
             self.fadeIval.pause()
             self.fadeIval = None
-        return
 
     def enterVisible(self):
         SCObject.enterVisible(self)
@@ -165,11 +161,11 @@ class SCMenu(SCObject, NodePath):
                 self.fadeFunc(1.0)
             else:
                 self.stopFade()
-                self.fadeIval = LerpFunctionInterval(self.fadeFunc, fromData=0.0, toData=1.0, duration=SCMenu.FadeDuration)
+                self.fadeIval = LerpFunctionInterval(self.fadeFunc, fromData=0.0, toData=1.0,
+                                                     duration=SCMenu.FadeDuration)
                 self.fadeIval.play()
                 if parentMenu is not None:
                     parentMenu.childHasFaded = 1
-        return
 
     def exitVisible(self):
         SCObject.exitVisible(self)
@@ -180,8 +176,6 @@ class SCMenu(SCObject, NodePath):
         for member in self:
             if member.isVisible():
                 member.exitVisible()
-
-        return
 
     def setHolder(self, holder):
         self.holder = holder
@@ -205,7 +199,6 @@ class SCMenu(SCObject, NodePath):
         if self.activeMember is not None:
             self.activeMember.reparentTo(self)
             self.activeMember.enterActive()
-        return
 
     def memberGainedInputFocus(self, member):
         self.__cancelActiveMemberSwitch()
@@ -215,23 +208,22 @@ class SCMenu(SCObject, NodePath):
             self.__setActiveMember(member)
         else:
 
-            def doActiveMemberSwitch(task, self = self, member = member):
+            def doActiveMemberSwitch(task, self=self, member=member):
                 self.activeCandidate = None
                 self.__setActiveMember(member)
                 return Task.done
 
             minFrameRate = 1.0 / SCMenu.SpeedChatRolloverTolerance
             if globalClock.getAverageFrameRate() > minFrameRate:
-                taskMgr.doMethodLater(SCMenu.SpeedChatRolloverTolerance, doActiveMemberSwitch, self.ActiveMemberSwitchTaskName)
+                taskMgr.doMethodLater(SCMenu.SpeedChatRolloverTolerance, doActiveMemberSwitch,
+                                      self.ActiveMemberSwitchTaskName)
                 self.activeCandidate = member
             else:
                 self.__setActiveMember(member)
-        return
 
     def __cancelActiveMemberSwitch(self):
         taskMgr.remove(self.ActiveMemberSwitchTaskName)
         self.activeCandidate = None
-        return
 
     def memberLostInputFocus(self, member):
         if member is self.activeCandidate:
@@ -240,7 +232,6 @@ class SCMenu(SCObject, NodePath):
             pass
         elif not member.hasStickyFocus():
             self.__setActiveMember(None)
-        return
 
     def memberViewabilityChanged(self, member):
         self.invalidate()
@@ -252,7 +243,7 @@ class SCMenu(SCObject, NodePath):
 
     def privScheduleFinalize(self):
 
-        def finalizeMenu(task, self = self):
+        def finalizeMenu(task, self=self):
             self.finalize()
             return Task.done
 
@@ -293,7 +284,7 @@ class SCMenu(SCObject, NodePath):
             maxWidth = max(maxWidth, widthToCover)
         memberWidth, memberHeight = maxWidth, maxHeight
         self.width = maxWidth
-        for i in xrange(len(visibleMembers)):
+        for i in range(len(visibleMembers)):
             member = visibleMembers[i]
             member.setPos(0, 0, -i * maxHeight)
             member.setDimensions(memberWidth, memberHeight)
@@ -347,7 +338,7 @@ class SCMenu(SCObject, NodePath):
         return
 
     def append(self, element):
-        if isinstance(self.__members, types.TupleType):
+        if isinstance(self.__members, tuple):
             self.__members = list(self.__members)
         self.__members.append(element)
         self.privMemberListChanged(added=[element])
@@ -362,43 +353,38 @@ class SCMenu(SCObject, NodePath):
         return len(self.__members)
 
     def __getitem__(self, index):
+        if isinstance(index, slice):
+            if isinstance(self.__members, tuple):
+                self.__members = list(self.__members)
+            return self.__members[index.start:index.stop]
         return self.__members[index]
 
     def __setitem__(self, index, value):
-        if isinstance(self.__members, types.TupleType):
+        if isinstance(self.__members, tuple):
             self.__members = list(self.__members)
-        removedMember = self.__members[index]
-        self.__members[index] = value
-        self.privMemberListChanged(added=[value], removed=[removedMember])
+        if isinstance(index, slice):
+            removedMembers = self.__members[index.start:index.stop]
+            self.__members[index.start:index.stop] = list(value)
+            self.privMemberListChanged(added=list(value), removed=removedMembers)
+        else:
+            removedMember = self.__members[index]
+            self.__members[index] = value
+            self.privMemberListChanged(added=[value], removed=[removedMember])
 
     def __delitem__(self, index):
-        if isinstance(self.__members, types.TupleType):
+        if isinstance(self.__members, tuple):
             self.__members = list(self.__members)
-        removedMember = self.__members[index]
-        del self.__members[index]
-        self.privMemberListChanged(removed=[removedMember])
-
-    def __getslice__(self, i, j):
-        if isinstance(self.__members, types.TupleType):
-            self.__members = list(self.__members)
-        return self.__members[i:j]
-
-    def __setslice__(self, i, j, s):
-        if isinstance(self.__members, types.TupleType):
-            self.__members = list(self.__members)
-        removedMembers = self.__members[i:j]
-        self.__members[i:j] = list(s)
-        self.privMemberListChanged(added=list(s), removed=removedMembers)
-
-    def __delslice__(self, i, j):
-        if isinstance(self.__members, types.TupleType):
-            self.__members = list(self.__members)
-        removedMembers = self.__members[i:j]
-        del self.__members[i:j]
-        self.privMemberListChanged(removed=removedMembers)
+        if isinstance(index, slice):
+            removedMembers = self.__members[index.start:index.stop]
+            del self.__members[index.start:index.stop]
+            self.privMemberListChanged(removed=removedMembers)
+        else:
+            removedMember = self.__members[index]
+            del self.__members[index]
+            self.privMemberListChanged(removed=[removedMember])
 
     def __iadd__(self, other):
-        if isinstance(self.__members, types.TupleType):
+        if isinstance(self.__members, tuple):
             self.__members = list(self.__members)
         if isinstance(other, SCMenu):
             otherMenu = other
@@ -408,7 +394,7 @@ class SCMenu(SCObject, NodePath):
         self.privMemberListChanged(added=list(other))
         return self
 
-    def privMemberListChanged(self, added = None, removed = None):
+    def privMemberListChanged(self, added=None, removed=None):
         if removed is not None:
             for element in removed:
                 if element is self.activeMember:
@@ -426,11 +412,10 @@ class SCMenu(SCObject, NodePath):
 
         if self.holder is not None:
             self.holder.updateViewability()
-        for i in xrange(len(self.__members)):
+        for i in range(len(self.__members)):
             self.__members[i].posInParentMenu = i
 
         self.invalidate()
-        return
 
     def privSetSettingsRef(self, settingsRef):
         SCObject.privSetSettingsRef(self, settingsRef)

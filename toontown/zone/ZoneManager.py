@@ -1,5 +1,5 @@
+from panda3d.core import Filename, Multifile, VirtualFileSystem
 from direct.distributed.DistributedObjectGlobal import DistributedObjectGlobal
-from panda3d.core import Multifile, Filename, VirtualFileSystem
 import os
 
 
@@ -151,7 +151,7 @@ class ZoneManager(DistributedObjectGlobal):
         vfs.mount(mf, mountPoint, 0)
 
     def getZoneComplete(self, zone):
-        r = (zone in self.completedZones or (zone not in self.modifiedZones and self.modifiedZonesSet))
+        r = zone in self.completedZones or zone not in self.modifiedZones
         self.notify.debug('getZoneComplete %s %s %s %s' % (zone, r, self.completedZones, self.currentRequestedZone))
         return r
 

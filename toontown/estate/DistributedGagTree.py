@@ -1,3 +1,4 @@
+from panda3d.core import BitMask32, CollideMask, CollisionHandler, CollisionHandlerQueue, CollisionNode, CollisionRay, CollisionTraverser, NodePath, Point3
 from toontown.estate import DistributedPlantBase
 from direct.interval.IntervalGlobal import *
 from direct.directnotify import DirectNotifyGlobal
@@ -5,13 +6,13 @@ from direct.showbase import PythonUtil
 from toontown.toonbase import ToontownBattleGlobals
 from toontown.toontowngui import TTDialog
 from toontown.toonbase import TTLocalizer
-import GardenGlobals
-import HouseGlobals
+from . import GardenGlobals
+from . import HouseGlobals
 from direct.task import Task
-from pandac.PandaModules import *
 from otp.otpbase import OTPGlobals
 from toontown.estate import DistributedLawnDecor
 DIRT_AS_WATER_INDICATOR = True
+
 
 class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedGagTree')
@@ -28,8 +29,8 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         self.needToLoad = 0
         self.backupFruits = []
         self.signHasBeenStuck2Ground = False
+        self.fruiting = 0
         self.setName('DistributedGagTree')
-        return
 
     def delete(self):
         DistributedPlantBase.DistributedPlantBase.delete(self)
@@ -39,7 +40,6 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         del self.sandMound
         self.signModel.removeNode()
         self.signModel = None
-        return
 
     def setTypeIndex(self, typeIndex):
         DistributedPlantBase.DistributedPlantBase.setTypeIndex(self, typeIndex)
@@ -79,7 +79,7 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         self.model.reparentTo(self.rotateNode)
         if self.isFruiting() and not self.isWilted():
             self.fruits = []
-            for i in xrange(1, self.maxFruit + 1):
+            for i in range(1, self.maxFruit + 1):
                 pos = self.model.find('**/locator' + str(i))
                 if pos and not pos.isEmpty():
                     fruit = self.prop.copyTo(self.model)
@@ -117,6 +117,10 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         DistributedPlantBase.DistributedPlantBase.setupShadow(self)
         self.adjustGrowth()
 
+    def isFruiting(self):
+        retval = self.growthLevel >= self.growthThresholds[2] and self.fruiting
+        return retval
+
     def makeMovieNode(self):
         self.movieNode = self.rotateNode.attachNewNode('moviePos')
         self.movieNode.setPos(0, -5, 0)
@@ -135,7 +139,6 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         self.confirmDialog = TTDialog.TTDialog(style=TTDialog.YesNo, text=text, command=self.confirmCallback)
         self.confirmDialog.show()
         self.startInteraction()
-        return
 
     def confirmCallback(self, value):
         self.confirmDialog.destroy()
@@ -333,7 +336,7 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         picker.traverse(render)
         if queue.getNumEntries() > 0:
             queue.sortEntries()
-            for index in xrange(queue.getNumEntries()):
+            for index in range(queue.getNumEntries()):
                 entry = queue.getEntry(index)
                 if DistributedLawnDecor.recurseParent(entry.getIntoNode(), 'terrain_DNARoot'):
                     self.signModel.wrtReparentTo(render)
@@ -349,7 +352,7 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         myTrack, myLevel = GardenGlobals.getTreeTrackAndLevel(self.typeIndex)
         levelsInTrack = []
         levelTreeDict = {}
-        allGagTrees = base.cr.doFindAll('DistributedGagTree')
+        allGagTrees = base.cr.doFindAllInstances(DistributedGagTree)
         for gagTree in allGagTrees:
             if gagTree.getOwnerId() == localAvatar.doId:
                 curTrack, curLevel = GardenGlobals.getTreeTrackAndLevel(gagTree.typeIndex)
@@ -357,7 +360,7 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
                     levelsInTrack.append(curLevel)
                     levelTreeDict[curLevel] = gagTree
 
-        for levelToTest in xrange(myLevel):
+        for levelToTest in range(myLevel):
             if levelToTest not in levelsInTrack:
                 return False
             curTree = levelTreeDict[levelToTest]
@@ -393,6 +396,10 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         self.finishInteraction()
         return
 
+    def allowedToPick(self):
+        retval = True
+        return retval
+
     def unlockPick(self):
         retval = True
         toon = base.localAvatar
@@ -404,3 +411,11 @@ class DistributedGagTree(DistributedPlantBase.DistributedPlantBase):
         if inventory.numItem(self.gagTrack, self.gagLevel) >= inventory.getMax(self.gagTrack, self.gagLevel):
             retval = False
         return retval
+
+    def setFruiting(self, fruiting):
+        self.fruiting = fruiting
+        if self.model:
+            self.model.removeNode()
+            self.loadModel()
+            self.adjustWaterIndicator()
+            self.stick2Ground()

@@ -1,4 +1,6 @@
-from direct.showbase.PythonUtil import randFloat, normalDistrib, Enum
+import enum
+
+from direct.showbase.PythonUtil import randFloat, normalDistrib
 from toontown.toonbase import TTLocalizer, ToontownGlobals
 import random, copy
 TraitDivisor = 10000
@@ -21,19 +23,30 @@ def gaussian(min, max, rng):
     return normalDistrib(min, max, rng.gauss)
 
 
+class ETraitQuality(enum.IntEnum):
+    VERY_BAD = 0
+    BAD = 1
+    AVERAGE = 2
+    GOOD = 3
+    VERY_GOOD = 4
+
+
+class ETraitType(enum.IntEnum):
+    INCREASING = 0
+    DECREASING = 1
+
+
 class TraitDistribution:
-    TraitQuality = Enum('VERY_BAD, BAD, AVERAGE, GOOD, VERY_GOOD')
-    TraitTypes = Enum('INCREASING, DECREASING')
     Sz2MinMax = None
     TraitType = None
-    TraitCutoffs = {TraitTypes.INCREASING: {TraitQuality.VERY_BAD: 0.1,
-                             TraitQuality.BAD: 0.25,
-                             TraitQuality.GOOD: 0.75,
-                             TraitQuality.VERY_GOOD: 0.9},
-     TraitTypes.DECREASING: {TraitQuality.VERY_BAD: 0.9,
-                             TraitQuality.BAD: 0.75,
-                             TraitQuality.GOOD: 0.25,
-                             TraitQuality.VERY_GOOD: 0.1}}
+    TraitCutoffs = {ETraitType.INCREASING: {ETraitQuality.VERY_BAD: 0.1,
+                             ETraitQuality.BAD: 0.25,
+                             ETraitQuality.GOOD: 0.75,
+                             ETraitQuality.VERY_GOOD: 0.9},
+     ETraitType.DECREASING: {ETraitQuality.VERY_BAD: 0.9,
+                             ETraitQuality.BAD: 0.75,
+                             ETraitQuality.GOOD: 0.25,
+                             ETraitQuality.VERY_GOOD: 0.1}}
 
     def __init__(self, rndFunc = gaussian):
         self.rndFunc = rndFunc
@@ -53,7 +66,7 @@ class TraitDistribution:
         return self.rndFunc(min, max, rng)
 
     def getHigherIsBetter(self):
-        return self.TraitType == TraitDistribution.TraitTypes.INCREASING
+        return self.TraitType == ETraitType.INCREASING
 
     def getMinMax(self, szId):
         return (self.Sz2MinMax[szId][0], self.Sz2MinMax[szId][1])
@@ -70,36 +83,35 @@ class TraitDistribution:
         return (traitValue - gMin) / (gMax - gMin)
 
     def getPercentile(self, traitValue):
-        if self.TraitType is TraitDistribution.TraitTypes.INCREASING:
+        if self.TraitType is ETraitType.INCREASING:
             return self._getTraitPercent(traitValue)
         else:
             return 1.0 - self._getTraitPercent(traitValue)
 
     def getQuality(self, traitValue):
-        TraitQuality = TraitDistribution.TraitQuality
         TraitCutoffs = self.TraitCutoffs[self.TraitType]
         percent = self._getTraitPercent(traitValue)
-        if self.TraitType is TraitDistribution.TraitTypes.INCREASING:
-            if percent <= TraitCutoffs[TraitQuality.VERY_BAD]:
-                return TraitQuality.VERY_BAD
-            elif percent <= TraitCutoffs[TraitQuality.BAD]:
-                return TraitQuality.BAD
-            elif percent >= TraitCutoffs[TraitQuality.VERY_GOOD]:
-                return TraitQuality.VERY_GOOD
-            elif percent >= TraitCutoffs[TraitQuality.GOOD]:
-                return TraitQuality.GOOD
+        if self.TraitType is ETraitType.INCREASING:
+            if percent <= TraitCutoffs[ETraitQuality.VERY_BAD]:
+                return ETraitQuality.VERY_BAD
+            elif percent <= TraitCutoffs[ETraitQuality.BAD]:
+                return ETraitQuality.BAD
+            elif percent >= TraitCutoffs[ETraitQuality.VERY_GOOD]:
+                return ETraitQuality.VERY_GOOD
+            elif percent >= TraitCutoffs[ETraitQuality.GOOD]:
+                return ETraitQuality.GOOD
             else:
-                return TraitQuality.AVERAGE
-        elif percent <= TraitCutoffs[TraitQuality.VERY_GOOD]:
-            return TraitQuality.VERY_GOOD
-        elif percent <= TraitCutoffs[TraitQuality.GOOD]:
-            return TraitQuality.GOOD
-        elif percent >= TraitCutoffs[TraitQuality.VERY_BAD]:
-            return TraitQuality.VERY_BAD
-        elif percent >= TraitCutoffs[TraitQuality.BAD]:
-            return TraitQuality.BAD
+                return ETraitQuality.AVERAGE
+        elif percent <= TraitCutoffs[ETraitQuality.VERY_GOOD]:
+            return ETraitQuality.VERY_GOOD
+        elif percent <= TraitCutoffs[ETraitQuality.GOOD]:
+            return ETraitQuality.GOOD
+        elif percent >= TraitCutoffs[ETraitQuality.VERY_BAD]:
+            return ETraitQuality.VERY_BAD
+        elif percent >= TraitCutoffs[ETraitQuality.BAD]:
+            return ETraitQuality.BAD
         else:
-            return TraitQuality.AVERAGE
+            return ETraitQuality.AVERAGE
 
     def getExtremeness(self, traitValue):
         percent = self._getTraitPercent(traitValue)
@@ -113,7 +125,7 @@ class TraitDistribution:
 class PetTraits:
 
     class StdIncDistrib(TraitDistribution):
-        TraitType = TraitDistribution.TraitTypes.INCREASING
+        TraitType = ETraitType.INCREASING
         Sz2MinMax = {ToontownGlobals.ToontownCentral: (0.2, 0.65),
          ToontownGlobals.DonaldsDock: (0.3, 0.7),
          ToontownGlobals.DaisyGardens: (0.4, 0.75),
@@ -122,7 +134,7 @@ class PetTraits:
          ToontownGlobals.DonaldsDreamland: (0.7, 0.9)}
 
     class StdDecDistrib(TraitDistribution):
-        TraitType = TraitDistribution.TraitTypes.DECREASING
+        TraitType = ETraitType.DECREASING
         Sz2MinMax = {ToontownGlobals.ToontownCentral: (0.35, 0.8),
          ToontownGlobals.DonaldsDock: (0.3, 0.7),
          ToontownGlobals.DaisyGardens: (0.25, 0.6),
@@ -131,7 +143,7 @@ class PetTraits:
          ToontownGlobals.DonaldsDreamland: (0.1, 0.3)}
 
     class ForgetfulnessDistrib(TraitDistribution):
-        TraitType = TraitDistribution.TraitTypes.DECREASING
+        TraitType = ETraitType.DECREASING
         Sz2MinMax = {ToontownGlobals.ToontownCentral: (0.0, 1.0),
          ToontownGlobals.DonaldsDock: (0.0, 0.9),
          ToontownGlobals.DaisyGardens: (0.0, 0.8),
@@ -140,7 +152,7 @@ class PetTraits:
          ToontownGlobals.DonaldsDreamland: (0.0, 0.5)}
 
     class BoredomDistrib(TraitDistribution):
-        TraitType = TraitDistribution.TraitTypes.INCREASING
+        TraitType = ETraitType.INCREASING
         Sz2MinMax = {ToontownGlobals.ToontownCentral: (0.1, 0.35),
          ToontownGlobals.DonaldsDock: (0.2, 0.55),
          ToontownGlobals.DaisyGardens: (0.3, 0.65),
@@ -182,7 +194,7 @@ class PetTraits:
         def __repr__(self):
             return 'Trait: %s, %s, %s, %s' % (self.name,
              self.value,
-             TraitDistribution.TraitQuality.getString(self.quality),
+             ETraitQuality(self.quality).name,
              self.howExtreme)
 
     def __init__(self, traitSeed, safeZoneId, traitValueList = []):
@@ -190,7 +202,7 @@ class PetTraits:
         self.safeZoneId = safeZoneId
         self.rng = random.Random(self.traitSeed)
         self.traits = {}
-        for i in xrange(len(PetTraits.TraitDescs)):
+        for i in range(len(PetTraits.TraitDescs)):
             if i < len(traitValueList) and traitValueList[i] > 0.0:
                 trait = PetTraits.Trait(i, self, traitValueList[i])
             else:
@@ -199,10 +211,10 @@ class PetTraits:
             self.__dict__[trait.name] = trait.value
 
         extremeTraits = []
-        for trait in self.traits.values():
+        for trait in list(self.traits.values()):
             if not trait.hasWorth:
                 continue
-            if trait.quality == TraitDistribution.TraitQuality.AVERAGE:
+            if trait.quality == ETraitQuality.AVERAGE:
                 continue
             i = 0
             while i < len(extremeTraits) and extremeTraits[i].howExtreme > trait.howExtreme:
@@ -231,7 +243,7 @@ class PetTraits:
     def getOverallValue(self):
         total = 0
         numUsed = 0
-        for trait in self.traits.values():
+        for trait in list(self.traits.values()):
             if trait.hasWorth:
                 if trait.higherIsBetter:
                     value = trait.value
@@ -240,16 +252,15 @@ class PetTraits:
                 total += value
                 numUsed += 1
 
-        value = total / len(self.traits.values())
+        value = total / len(list(self.traits.values()))
         return value
 
     def getExtremeTraitDescriptions(self):
         descs = []
-        TraitQuality = TraitDistribution.TraitQuality
-        Quality2index = {TraitQuality.VERY_BAD: 0,
-         TraitQuality.BAD: 1,
-         TraitQuality.GOOD: 2,
-         TraitQuality.VERY_GOOD: 3}
+        Quality2index = {ETraitQuality.VERY_BAD: 0,
+         ETraitQuality.BAD: 1,
+         ETraitQuality.GOOD: 2,
+         ETraitQuality.VERY_GOOD: 3}
         for name, quality in self.extremeTraits:
             descs.append(TTLocalizer.PetTrait2descriptions[name][Quality2index[quality]])
 

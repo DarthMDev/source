@@ -1,11 +1,11 @@
+from panda3d.core import CollisionNode, CollisionTube
 from direct.actor.Actor import Actor
 from direct.task.Task import Task
-from pandac.PandaModules import *
-from otp.otpbase.OTPBase import OTPBase
+
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
 from toontown.parties.DistributedPartyActivity import DistributedPartyActivity
-from toontown.parties.PartyGlobals import ActivityIds, ActivityTypes, JUKEBOX_TIMEOUT
+from toontown.parties.PartyGlobals import EActivityId, EActivityType, JUKEBOX_TIMEOUT
 from toontown.parties.PartyGlobals import getMusicRepeatTimes, MUSIC_PATH, sanitizePhase
 from toontown.parties.JukeboxGui import JukeboxGui
 
@@ -13,7 +13,7 @@ class DistributedPartyJukeboxActivityBase(DistributedPartyActivity):
     notify = directNotify.newCategory('DistributedPartyJukeboxActivityBase')
 
     def __init__(self, cr, actId, phaseToMusicData):
-        DistributedPartyActivity.__init__(self, cr, actId, ActivityTypes.Continuous)
+        DistributedPartyActivity.__init__(self, cr, actId, EActivityType.CONTINUOUS)
         self.phaseToMusicData = phaseToMusicData
         self.jukebox = None
         self.gui = None
@@ -120,7 +120,7 @@ class DistributedPartyJukeboxActivityBase(DistributedPartyActivity):
 
     def queuedSongsResponse(self, songInfoList, index):
         if self.gui.isLoaded():
-            for i in xrange(len(songInfoList)):
+            for i in range(len(songInfoList)):
                 songInfo = songInfoList[i]
                 self.__addSongToQueue(songInfo, isLocalQueue=index >= 0 and i == index)
 
@@ -163,7 +163,7 @@ class DistributedPartyJukeboxActivityBase(DistributedPartyActivity):
         return
 
     def __play(self, phase, filename, length):
-        self.music = base.loadMusic((MUSIC_PATH + '%s') % (phase, filename))
+        self.music = base.loader.loadMusic((MUSIC_PATH + '%s') % (phase, filename))
         if self.music:
             if self.__checkPartyValidity() and hasattr(base.cr.playGame.getPlace().loader, 'music') and base.cr.playGame.getPlace().loader.music:
                 base.cr.playGame.getPlace().loader.music.stop()

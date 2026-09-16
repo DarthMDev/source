@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import CollideMask, ConfigVariable, ConfigVariableBool, Filename, NodePath, Texture, Vec4
 from toontown.battle.BattleProps import *
 from toontown.battle.BattleSounds import *
 from toontown.distributed.ToontownMsgTypes import *
@@ -21,7 +21,7 @@ from toontown.toonbase import TTLocalizer
 from direct.interval.IntervalGlobal import *
 from toontown.nametag import NametagGlobals
 
-visualizeZones = base.config.GetBool('visualize-zones', 0)
+visualizeZones = ConfigVariableBool('visualize-zones', False).getValue()
 
 class Street(BattlePlace.BattlePlace):
 
@@ -325,7 +325,7 @@ class Street(BattlePlace.BattlePlace):
             collNodePaths = i.findAllMatches('**/+CollisionNode')
             numCollNodePaths = collNodePaths.getNumPaths()
             visGroupName = i.node().getName()
-            for j in xrange(numCollNodePaths):
+            for j in range(numCollNodePaths):
                 collNodePath = collNodePaths.getPath(j)
                 bitMask = collNodePath.node().getIntoCollideMask()
                 if bitMask.getBit(1):
@@ -383,7 +383,7 @@ class Street(BattlePlace.BattlePlace):
                 if newZoneId in loader.zoneVisDict:
                     base.cr.sendSetZoneMsg(newZoneId, loader.zoneVisDict[newZoneId])
                 else:
-                    visList = [newZoneId] + loader.zoneVisDict.values()[0]
+                    visList = [newZoneId] + list(loader.zoneVisDict.values())[0]
                     base.cr.sendSetZoneMsg(newZoneId, visList)
             self.zoneId = newZoneId
         geom = base.cr.playGame.getPlace().loader.geom

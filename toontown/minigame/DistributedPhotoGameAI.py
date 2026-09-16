@@ -1,9 +1,10 @@
-from DistributedMinigameAI import *
+from panda3d.core import ConfigVariableBool
+from .DistributedMinigameAI import *
 from direct.distributed.ClockDelta import *
 from direct.fsm import ClassicFSM, State
 from direct.fsm import State
 from direct.task import Task
-import PhotoGameGlobals
+from . import PhotoGameGlobals
 from toontown.minigame import PhotoGameBase
 import random
 
@@ -55,7 +56,7 @@ class DistributedPhotoGameAI(DistributedMinigameAI, PhotoGameBase.PhotoGameBase)
 
     def enterPlay(self):
         self.notify.debug('enterPlay')
-        if not config.GetBool('endless-photo-game', 0):
+        if not ConfigVariableBool('endless-photo-game', False).getValue():
             taskMgr.doMethodLater(self.data['TIME'], self.timerExpired, self.taskName('gameTimer'))
 
     def timerExpired(self, task = None):
@@ -134,7 +135,7 @@ class DistributedPhotoGameAI(DistributedMinigameAI, PhotoGameBase.PhotoGameBase)
             self.notify.debug('player used more film than possible')
             return
         assignmentIndex = None
-        for dataIndex in xrange(len(self.assignmentData)):
+        for dataIndex in range(len(self.assignmentData)):
             assignment = self.assignmentData[dataIndex]
             if assignment[0] == subjectIndex and assignment[1] == pose:
                 assignmentIndex = dataIndex

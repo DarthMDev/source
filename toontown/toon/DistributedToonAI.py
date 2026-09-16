@@ -1,3 +1,4 @@
+from panda3d.core import BitMask32, CollideMask, CollisionNode, CollisionSphere, ConfigVariable, ConfigVariableBool, ConfigVariableInt, ConfigVariableString, NodePath, Notify, Vec3
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed import DistributedSmoothNodeAI
 from direct.distributed.ClockDelta import *
@@ -5,16 +6,15 @@ from direct.distributed.MsgTypes import *
 from direct.distributed.PyDatagram import PyDatagram
 from direct.task import Task
 from direct.stdpy import threading2
-from pandac.PandaModules import *
 import random
 import time
 import re
 
-import Experience
-import InventoryBase
-import ModuleListAI
-from NPCToons import npcFriends
-import ToonDNA
+from . import Experience
+from . import InventoryBase
+from . import ModuleListAI
+from .NPCToons import npcFriends
+from . import ToonDNA
 from otp.ai.AIBaseGlobal import *
 from otp.ai.MagicWordGlobal import *
 from otp.distributed import OtpDoGlobals
@@ -38,7 +38,6 @@ from toontown.hood import ZoneUtil
 from toontown.minigame import MinigameCreatorAI
 from toontown.parties import PartyGlobals
 from toontown.parties.InviteInfo import InviteInfoBase
-from toontown.parties.PartyGlobals import InviteStatus
 from toontown.parties.PartyInfo import PartyInfoAI
 from toontown.parties.PartyReplyInfo import PartyReplyInfoBase
 from toontown.quest import QuestRewardCounter
@@ -53,6 +52,7 @@ from toontown.toonbase import ToontownBattleGlobals
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase.ToontownGlobals import *
 from toontown.toonbase.TTLocalizerEnglish import SuitNameDropper
+from functools import reduce
 
 
 if simbase.wantPets:
@@ -91,14 +91,14 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     }
     lastFlagAvTime = globalClock.getFrameTime()
     flagCounts = {}
-    WantTpTrack = simbase.config.GetBool('want-tptrack', False)
-    DbCheckPeriodPaid = simbase.config.GetInt('toon-db-check-period-paid', 10 * 60)
-    DbCheckPeriodUnpaid = simbase.config.GetInt('toon-db-check-period-unpaid', 1 * 60)
-    BanOnDbCheckFail = simbase.config.GetBool('want-ban-dbcheck', 0)
-    DbCheckAccountDateEnable = config.GetBool('account-blackout-enable', 1)
-    DbCheckAccountDateBegin = config.GetString('account-blackout-start', '2013-08-20 12:30:00')
-    DbCheckAccountDateDisconnect = config.GetBool('account-blackout-disconnect', 0)
-    WantOldGMNameBan = simbase.config.GetBool('want-old-gm-name-ban', 1)
+    WantTpTrack = ConfigVariableBool('want-tptrack', False).getValue()
+    DbCheckPeriodPaid = ConfigVariableInt('toon-db-check-period-paid', 10 * 60).getValue()
+    DbCheckPeriodUnpaid = ConfigVariableInt('toon-db-check-period-unpaid', 1 * 60).getValue()
+    BanOnDbCheckFail = ConfigVariableBool('want-ban-dbcheck', False).getValue()
+    DbCheckAccountDateEnable = ConfigVariableBool('account-blackout-enable', True).getValue()
+    DbCheckAccountDateBegin = ConfigVariableString('account-blackout-start', '2013-08-20 12:30:00').getValue()
+    DbCheckAccountDateDisconnect = ConfigVariableBool('account-blackout-disconnect', False)
+    WantOldGMNameBan = ConfigVariableBool('want-old-gm-name-ban', True).getValue()
     petId = None
 
     def __init__(self, air):
@@ -130,6 +130,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.cogs = []
         self.cogCounts = []
         self.NPCFriendsDict = {}
+        self.purgedNPCFriends = []
         self.clothesTopsList = []
         self.clothesBottomsList = []
         self.hatList = []
@@ -236,7 +237,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             if self.doId in self.air.disconnectedToons:
                 del self.air.disconnectedToons[self.doId]
 
-            patchVersion = config.GetInt('toon-patch-version', 0)
+            patchVersion = ConfigVariableInt('toon-patch-version', False).getValue()
             while self.patchVersion < patchVersion:
                 patch = getattr(self, 'patch_'+str(self.patchVersion+1), None)
                 if patch is not None:
@@ -246,37 +247,16 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                 self.patchVersion += 1
             self.b_setPatchVersion(patchVersion)
 
+            if self.purgedNPCFriends:
+                self.notify.info('purging retired SOS friends %s from %d' % (self.purgedNPCFriends, self.doId))
+                self.purgedNPCFriends = []
+                self.d_setNPCFriendsDict(self.NPCFriendsDict)
+
             messenger.send('avatarEntered', [self])
-            self.checkForBadName()
 
         from toontown.toon.DistributedNPCToonBaseAI import DistributedNPCToonBaseAI
         if not isinstance(self, DistributedNPCToonBaseAI):
             self.sendUpdate('setDefaultShard', [self.air.districtId])
-
-    def checkForBadName(self, requestName=False, name=None):
-        if name is None:
-            name = self.getName()
-
-        simbase.air.sendNetEvent('nameCheck', [name], channels=[OtpDoGlobals.MESSENGER_CHANNEL_UD])
-
-        def resetName(responseStatus):
-            if responseStatus and (not requestName):
-                self.resetName(responseStatus)
-            elif not responseStatus and requestName:
-                self.b_setName(name)
-                return
-
-        self.acceptOnce('badNameResponse', resetName)
-
-    def resetName(self, responseStatus):
-        if responseStatus:
-            dna = self.dna
-            colorString = TTLocalizer.NumToColor[dna.headColor]
-            animalType = TTLocalizer.AnimalToSpecies[dna.getAnimal()]
-            self.b_setName(colorString + ' ' + animalType)
-            self.sendUpdate('WishNameState', ['REJECTED'])
-
-        self.ignore('badNameResponse')
 
     def setLocation(self, parentId, zoneId):
         DistributedPlayerAI.DistributedPlayerAI.setLocation(self, parentId, zoneId)
@@ -299,12 +279,18 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                         tpAccess.append(ToontownGlobals.GoofySpeedway)
                         self.b_setTeleportAccess(tpAccess)
 
+                if zoneId == ToontownGlobals.OutdoorZone:
+                    tpAccess = self.getTeleportAccess()
+                    if ToontownGlobals.OutdoorZone not in tpAccess:
+                        tpAccess.append(ToontownGlobals.OutdoorZone)
+                        self.b_setTeleportAccess(tpAccess)
+
     def sendDeleteEvent(self):
         if simbase.wantPets:
             isInEstate = self.isInEstate()
             wasInEstate = self.wasInEstate()
             if isInEstate or wasInEstate:
-                PetObserve.send(self.estateZones, PetObserve.PetActionObserve(PetObserve.Actions.LOGOUT, self.doId))
+                PetObserve.send(self.estateZones, PetObserve.PetActionObserve(PetObserve.EAction.LOGOUT, self.doId))
                 if wasInEstate:
                     self.cleanupEstateData()
 
@@ -407,11 +393,12 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                 # Kill Group; Player left zone with a jellbean fest up
                 self.air.globalGroupTracker.updateGroupAI(self.doId, GroupTrackerGlobals.JELLYBEAN_FEST, [], [''], 1)
 
-        for hood in self.air.hoods:
-            if hood.zoneId == newZoneId and self.doId not in hood.avIds:
-                hood.avIds.append(self.doId)
-            elif hood.zoneId == oldZoneId and self.doId in hood.avIds:
-                hood.avIds.remove(self.doId)
+        # TODO TTI: what to do with global group tracker?
+        #for hood in self.air.hoods:
+        #    if hood.zoneId == newZoneId and self.doId not in hood.avIds:
+        #        hood.avIds.append(self.doId)
+        #    elif hood.zoneId == oldZoneId and self.doId in hood.avIds:
+        #        hood.avIds.remove(self.doId)
 
         if self.isPlayerControlled() and self.WantTpTrack:
             messenger.send(self.staticGetLogicalZoneChangeAllEvent(), [newZoneId, oldZoneId, self])
@@ -421,7 +408,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             broadcastZones = [oldZoneId, newZoneId]
             if self.isInEstate() or self.wasInEstate():
                 broadcastZones = union(broadcastZones, self.estateZones)
-            PetObserve.send(broadcastZones, PetObserve.PetActionObserve(PetObserve.Actions.CHANGE_ZONE, self.doId, (oldZoneId, newZoneId)))
+            PetObserve.send(broadcastZones, PetObserve.PetActionObserve(PetObserve.EAction.CHANGE_ZONE, self.doId, (oldZoneId, newZoneId)))
 
     def checkAccessorySanity(self, accessoryType, idx, textureIdx, colorIdx):
         if idx == 0 and textureIdx == 0 and colorIdx == 0:
@@ -441,9 +428,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         else:
             return 0
         try:
-            styleStr = stylesDict.keys()[stylesDict.values().index([idx, textureIdx, colorIdx])]
+            styleStr = list(stylesDict.keys())[list(stylesDict.values()).index([idx, textureIdx, colorIdx])]
             accessoryItemId = 0
-            for itemId in CatalogAccessoryItem.AccessoryTypes.keys():
+            for itemId in list(CatalogAccessoryItem.AccessoryTypes.keys()):
                 if styleStr == CatalogAccessoryItem.AccessoryTypes[itemId][CatalogAccessoryItem.ATString]:
                     accessoryItemId = itemId
                     break
@@ -590,8 +577,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             else:
                 newInventory = InventoryBase.InventoryBase(self)
                 oldList = emptyInv.makeFromNetStringForceSize(inventoryNetString, oldTracks, oldLevels)
-                for indexTrack in xrange(0, oldTracks):
-                    for indexGag in xrange(0, oldLevels):
+                for indexTrack in range(0, oldTracks):
+                    for indexGag in range(0, oldLevels):
                         newInventory.addItems(indexTrack, indexGag, oldList[indexTrack][indexGag])
                 self.inventory.unload()
                 self.inventory = newInventory
@@ -635,20 +622,47 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.sendUpdate('setFriendsList', [friendsList])
 
     def setFriendsList(self, friendsList):
+        self.notify.debug("setting friends list to %s" % self.friendsList)
         self.friendsList = friendsList
+        # If the friendsList is nonEmpty, notify the quest manager
+        if friendsList:
+            # Assume the newest one on the list is the one we just
+            # made friends with. Is it? Check with Roger.
+            friendId = friendsList[-1]
+            # See if the otherAv is logged in
+            otherAv = self.air.doId2do.get(friendId)
+            # Tell the quest manager. Note: there is a design flaw here
+            # whereby the player could remove a friend and still get credit
+            # for this a friend quest. Really we need to know when a friend
+            # is added, not simply when the friends list changed (add or
+            # remove)
+            self.air.questManager.toonMadeFriend(self, otherAv)
 
     def getFriendsList(self):
         return self.friendsList
 
     def extendFriendsList(self, friendId, friendCode):
-        for i in xrange(len(self.friendsList)):
+        # This is called only by the friend manager when a new friend
+        # transaction is successfully completed.  Its purpose is
+        # simply to update the AI's own copy of the avatar's friends
+        # list, mainly so that the quest manager can reliably know
+        # if the avatar has any friends.
+
+        # First, see if we already had this friend.
+        for i in range(len(self.friendsList)):
             friendPair = self.friendsList[i]
             if friendPair[0] == friendId:
+                # We did.  Update the code.
                 self.friendsList[i] = (friendId, friendCode)
                 return
 
+        # We didn't already have this friend; tack it on.
         self.friendsList.append((friendId, friendCode))
-        self.air.questManager.toonMadeFriend(self)
+
+        # Note that if an avatar *breaks* a friendship, the AI never
+        # hears about it.  So our friends list will not be 100%
+        # up-to-date, but it will at least be good enough for the
+        # quest manager.
 
         if self.air.wantAchievements:
             self.air.achievementsManager.toonMadeFriend(self.doId)
@@ -660,7 +674,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if max & 32768:
             self.b_setSosPageFlag(1)
             max &= 32767
-        configMax = simbase.config.GetInt('max-sos-cards', 16)
+        configMax = ConfigVariableInt('max-sos-cards', 16).getValue()
         if configMax != max:
             if self.sosPageFlag == 0:
                 self.b_setMaxNPCFriends(configMax)
@@ -699,7 +713,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def d_setNPCFriendsDict(self, NPCFriendsDict):
         NPCFriendsList = []
-        for friend in NPCFriendsDict.keys():
+        for friend in list(NPCFriendsDict.keys()):
             NPCFriendsList.append((friend, NPCFriendsDict[friend]))
 
         self.sendUpdate('setNPCFriendsDict', [NPCFriendsList])
@@ -707,6 +721,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def setNPCFriendsDict(self, NPCFriendsList):
         self.NPCFriendsDict = {}
         for friendPair in NPCFriendsList:
+            if friendPair[0] not in npcFriends:
+                self.purgedNPCFriends.append(friendPair[0])
+                continue
             self.NPCFriendsDict[friendPair[0]] = friendPair[1]
 
     def getNPCFriendsDict(self):
@@ -726,7 +743,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if npcFriend in self.NPCFriendsDict:
             self.NPCFriendsDict[npcFriend] += numCalls
         elif npcFriend in npcFriends:
-            if len(self.NPCFriendsDict.keys()) >= self.maxNPCFriends:
+            if len(list(self.NPCFriendsDict.keys())) >= self.maxNPCFriends:
                 return 0
             self.NPCFriendsDict[npcFriend] = numCalls
         else:
@@ -851,7 +868,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         else:
             return 0
         index = 0
-        for i in xrange(0, len(itemList), 3):
+        for i in range(0, len(itemList), 3):
             if itemList[i] == geomIdx and itemList[i + 1] == texIdx and itemList[i + 2] == colorIdx:
                 return 0
 
@@ -885,7 +902,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         else:
             return 0
         index = 0
-        for i in xrange(0, len(itemList), 3):
+        for i in range(0, len(itemList), 3):
             if itemList[i] == geomIdxA and itemList[i + 1] == texIdxA and itemList[i + 2] == colorIdxA:
                 if accessoryType == ToonDNA.HAT:
                     self.hatList[i] = geomIdxB
@@ -924,7 +941,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             raise 'invalid accessory type %s' % accessoryType
         if cur == (geomIdx, texIdx, colorIdx):
             return True
-        for i in xrange(0, len(itemList), 3):
+        for i in range(0, len(itemList), 3):
             if itemList[i] == geomIdx and itemList[i + 1] == texIdx and itemList[i + 2] == colorIdx:
                 return True
 
@@ -951,7 +968,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning('Accessory list is not long enough to delete anything')
             return 0
         index = 0
-        for i in xrange(0, len(itemList), 3):
+        for i in range(0, len(itemList), 3):
             if itemList[i] == geomIdx and itemList[i + 1] == texIdx and itemList[i + 2] == colorIdx:
                 itemList = itemList[0:i] + itemList[i + 3:listLen]
                 if accessoryType == ToonDNA.HAT:
@@ -971,7 +988,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                     styles = ToonDNA.ShoesStyles
                     descDict = TTLocalizer.ShoesStylesDescriptions
                 styleName = 'none'
-                for style in styles.items():
+                for style in list(styles.items()):
                     if style[1] == [geomIdx, texIdx, colorIdx]:
                         styleName = style[0]
                         break
@@ -1018,7 +1035,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if self.isClosetFull():
             return 0
         index = 0
-        for i in xrange(0, len(self.clothesTopsList), 4):
+        for i in range(0, len(self.clothesTopsList), 4):
             if self.clothesTopsList[i] == topTex and self.clothesTopsList[i + 1] == topTexColor and self.clothesTopsList[i + 2] == sleeveTex and self.clothesTopsList[i + 3] == sleeveTexColor:
                 return 0
 
@@ -1030,7 +1047,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def replaceItemInClothesTopsList(self, topTexA, topTexColorA, sleeveTexA, sleeveTexColorA, topTexB, topTexColorB, sleeveTexB, sleeveTexColorB):
         index = 0
-        for i in xrange(0, len(self.clothesTopsList), 4):
+        for i in range(0, len(self.clothesTopsList), 4):
             if self.clothesTopsList[i] == topTexA and self.clothesTopsList[i + 1] == topTexColorA and self.clothesTopsList[i + 2] == sleeveTexA and self.clothesTopsList[i + 3] == sleeveTexColorA:
                 self.clothesTopsList[i] = topTexB
                 self.clothesTopsList[i + 1] = topTexColorB
@@ -1046,7 +1063,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning('Clothes top list is not long enough to delete anything')
             return 0
         index = 0
-        for i in xrange(0, listLen, 4):
+        for i in range(0, listLen, 4):
             if self.clothesTopsList[i] == topTex and self.clothesTopsList[i + 1] == topTexColor and self.clothesTopsList[i + 2] == sleeveTex and self.clothesTopsList[i + 3] == sleeveTexColor:
                 self.clothesTopsList = self.clothesTopsList[0:i] + self.clothesTopsList[i + 4:listLen]
                 return 1
@@ -1071,7 +1088,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning('clothes bottoms list is full')
             return 0
         index = 0
-        for i in xrange(0, len(self.clothesBottomsList), 2):
+        for i in range(0, len(self.clothesBottomsList), 2):
             if self.clothesBottomsList[i] == botTex and self.clothesBottomsList[i + 1] == botTexColor:
                 return 0
 
@@ -1081,7 +1098,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def replaceItemInClothesBottomsList(self, botTexA, botTexColorA, botTexB, botTexColorB):
         index = 0
-        for i in xrange(0, len(self.clothesBottomsList), 2):
+        for i in range(0, len(self.clothesBottomsList), 2):
             if self.clothesBottomsList[i] == botTexA and self.clothesBottomsList[i + 1] == botTexColorA:
                 self.clothesBottomsList[i] = botTexB
                 self.clothesBottomsList[i + 1] = botTexColorB
@@ -1095,7 +1112,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning('Clothes bottoms list is not long enough to delete anything')
             return 0
         index = 0
-        for i in xrange(0, len(self.clothesBottomsList), 2):
+        for i in range(0, len(self.clothesBottomsList), 2):
             if self.clothesBottomsList[i] == botTex and self.clothesBottomsList[i + 1] == botTexColor:
                 self.clothesBottomsList = self.clothesBottomsList[0:i] + self.clothesBottomsList[i + 2:listLen]
                 return 1
@@ -1215,7 +1232,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def setAnimState(self, animName, animMultiplier, timestamp = 0):
         if animName not in ToontownGlobals.ToonAnimStates:
             desc = 'tried to set invalid animState: %s' % (animName,)
-            if config.GetBool('want-ban-animstate', 1):
+            if ConfigVariableBool('want-ban-animstate', True).getValue():
                 #simbase.air.banManager.ban(self.doId, self.DISLid, desc)
                 pass
             else:
@@ -1432,7 +1449,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         loseCount = random.randrange(CogDisguiseGlobals.MinPartLoss, CogDisguiseGlobals.MaxPartLoss + 1)
         parts = self.getCogParts()
         partBitmask = parts[dept]
-        partList = range(17)
+        partList = list(range(17))
         while loseCount > 0 and partList:
             losePart = random.choice(partList)
             partList.remove(losePart)
@@ -1482,7 +1499,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def b_setCogIndex(self, index):
         self.setCogIndex(index)
-        if simbase.config.GetBool('cogsuit-hack-prevent', False):
+        if ConfigVariableBool('cogsuit-hack-prevent', False).getValue():
             self.d_setCogIndex(self.cogIndex)
         else:
             self.d_setCogIndex(index)
@@ -1491,7 +1508,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if index != -1 and not ToontownAccessAI.canWearSuit(self.doId, self.zoneId):
             if not simbase.air.cogSuitMessageSent:
                 self.notify.warning('%s setCogIndex invalid: %s' % (self.doId, index))
-                if simbase.config.GetBool('want-ban-wrong-suit-place', False):
+                if ConfigVariableBool('want-ban-wrong-suit-place', False).getValue():
                     commentStr = 'Toon %s trying to set cog index to %s in Zone: %s' % (self.doId, index, self.zoneId)
                     # simbase.air.banManager.ban(self.doId, self.DISLid, commentStr)
         else:
@@ -1714,7 +1731,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.notify.debug('setting quests to %s' % flattenedQuests)
         questList = []
         questLen = 5
-        for i in xrange(0, len(flattenedQuests), questLen):
+        for i in range(0, len(flattenedQuests), questLen):
             questList.append(flattenedQuests[i:i + questLen])
 
         self.quests = questList
@@ -1748,7 +1765,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def removeQuest(self, id, visitNpcId = None):
         index = -1
-        for i in xrange(len(self.quests)):
+        for i in range(len(self.quests)):
             if self.quests[i][0] == id:
                 if visitNpcId:
                     otherId = self.quests[i][2]
@@ -1762,9 +1779,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if index >= 0:
             del self.quests[i]
             self.b_setQuests(self.quests)
-            return 1
+            return True
         else:
-            return 0
+            return False
 
     def addQuest(self, quest, finalReward, recordHistory = 1):
         self.quests.append(quest)
@@ -1809,8 +1826,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning('%s.requestDeleteQuest(%s) -- Tried to cancel non-Just For Fun quest' % (self, str(questDesc)))
             return
         removedStatus = self.removeAllTracesOfQuest(questId, rewardId)
-        if 0 in removedStatus:
-            self.notify.warning('%s.requestDeleteQuest(%s) -- Failed to remove quest, status=%s' % (self, str(questDesc), removedStatus))
+        if not removedStatus[0]:
+            self.notify.warning(f'{self}.requestDeleteQuest({str(questDesc)}) -- Failed to remove quest')
 
     def b_setQuestCarryLimit(self, limit):
         self.setQuestCarryLimit(limit)
@@ -2078,7 +2095,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def checkTeleportAccess(self, zoneId):
         if zoneId not in self.getTeleportAccess() and self.teleportOverride != 1:
             simbase.air.writeServerEvent('suspicious', self.doId, 'Toon teleporting to zone %s they do not have access to.' % zoneId)
-            if simbase.config.GetBool('want-ban-teleport', False):
+            if ConfigVariableBool('want-ban-teleport', False).getValue():
                 commentStr = 'Toon %s teleporting to a zone %s they do not have access to' % (self.doId, zoneId)
                 #simbase.air.banManager.ban(self.doId, self.DISLid, commentStr)
 
@@ -2117,18 +2134,18 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if questId in self.questHistory:
             self.questHistory.remove(questId)
             self.d_setQuestHistory(self.questHistory)
-            return 1
+            return True
         else:
-            return 0
+            return False
 
     def removeRewardFromHistory(self, rewardId):
         rewardTier, rewardHistory = self.getRewardHistory()
         if rewardId in rewardHistory:
             rewardHistory.remove(rewardId)
             self.b_setRewardHistory(rewardTier, rewardHistory)
-            return 1
+            return True
         else:
-            return 0
+            return False
 
     def b_setRewardHistory(self, tier, rewardList):
         self.setRewardHistory(tier, rewardList)
@@ -2161,9 +2178,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             anyChanged = 1
         inventoryChanged = 0
         carry = self.maxCarry
-        for track in xrange(len(ToontownBattleGlobals.Tracks)):
+        for track in range(len(ToontownBattleGlobals.Tracks)):
             if not self.hasTrackAccess(track):
-                for level in xrange(len(ToontownBattleGlobals.Levels[track])):
+                for level in range(len(ToontownBattleGlobals.Levels[track])):
                     count = self.inventory.inventory[track][level]
                     if count != 0:
                         self.notify.info('Changed avatar %d to throw away %d items in track %d level %d; no access to track.' % (self.doId,
@@ -2175,7 +2192,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
             else:
                 curSkill = self.experience.getExp(track)
-                for level in xrange(len(ToontownBattleGlobals.Levels[track])):
+                for level in range(len(ToontownBattleGlobals.Levels[track])):
                     count = self.inventory.inventory[track][level]
                     if curSkill < ToontownBattleGlobals.Levels[track][level]:
                         if count != 0:
@@ -2288,7 +2305,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def addResistanceMessage(self, textId):
         msgs = self.getResistanceMessages()
-        for i in xrange(len(msgs)):
+        for i in range(len(msgs)):
             if msgs[i][0] == textId:
                 msgs[i][1] += 1
                 if msgs[i][1] > 32767:
@@ -2301,7 +2318,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def removeResistanceMessage(self, textId):
         msgs = self.getResistanceMessages()
-        for i in xrange(len(msgs)):
+        for i in range(len(msgs)):
             if msgs[i][0] == textId:
                 msgs[i][1] -= 1
                 if msgs[i][1] <= 0:
@@ -2391,11 +2408,13 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.setBothSchedules(onOrder, onGiftOrder, doUpdateLater)
         self.d_setDeliverySchedule(onOrder)
 
-    def setBothSchedules(self, onOrder, onGiftOrder, doUpdateLater = True):
+    def setBothSchedules(self, onOrder, onGiftOrder, doUpdateLater=True):
         if onOrder != None:
-            self.onOrder = CatalogItemList.CatalogItemList(onOrder, store=CatalogItem.Customization | CatalogItem.DeliveryDate)
+            self.onOrder = CatalogItemList.CatalogItemList(onOrder,
+                                                           store=CatalogItem.Customization | CatalogItem.DeliveryDate)
         if onGiftOrder != None:
-            self.onGiftOrder = CatalogItemList.CatalogItemList(onGiftOrder, store=CatalogItem.Customization | CatalogItem.DeliveryDate)
+            self.onGiftOrder = CatalogItemList.CatalogItemList(onGiftOrder,
+                                                               store=CatalogItem.Customization | CatalogItem.DeliveryDate)
         if not hasattr(self, 'air') or self.air == None:
             return
         if doUpdateLater and self.air.doLiveUpdates and hasattr(self, 'name'):
@@ -2410,11 +2429,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             if self.onGiftOrder:
                 nextGiftTime = self.onGiftOrder.getNextDeliveryDate()
                 nextGiftItem = self.onGiftOrder.getNextDeliveryItem()
-            if nextTime == None:
-                nextTime = nextGiftTime
-            if nextGiftTime == None:
-                nextGiftTime = nextTime
-            if nextGiftTime < nextTime:
+            if nextTime == None or (nextGiftTime and nextGiftTime < nextTime):
                 nextTime = nextGiftTime
             existingDuration = None
             checkTaskList = taskMgr.getTasksNamed(taskName)
@@ -2431,7 +2446,6 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                     pass
                 else:
                     taskMgr.doMethodLater(newDuration, self.__deliverBothPurchases, taskName)
-        return
 
     def __deliverBothPurchases(self, task):
         now = int(time.time() / 60 + 0.5)
@@ -2540,7 +2554,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             money = 0
             commentStr = 'User %s has negative money %s' % (self.doId, money)
             dislId = self.DISLid
-            if simbase.config.GetBool('want-ban-negative-money', False):
+            if ConfigVariableBool('want-ban-negative-money', False).getValue():
                 #simbase.air.banManager.ban(self.doId, dislId, commentStr)
                 pass
         self.money = money
@@ -2581,14 +2595,14 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def addEmblems(self, emblemsToAdd):
         newEmblems = self.emblems[:]
-        for i in xrange(ToontownGlobals.NumEmblemTypes):
+        for i in range(ToontownGlobals.NumEmblemTypes):
             newEmblems[i] += emblemsToAdd[i]
 
         self.b_setEmblems(newEmblems)
 
     def subtractEmblems(self, emblemsToSubtract):
         newEmblems = self.emblems[:]
-        for i in xrange(ToontownGlobals.NumEmblemTypes):
+        for i in range(ToontownGlobals.NumEmblemTypes):
             newEmblems[i] -= emblemsToSubtract[i]
 
         self.b_setEmblems(newEmblems)
@@ -2769,7 +2783,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     if simbase.wantKarts:
 
         def hasKart(self):
-            return self.kartDNA[KartDNA.bodyType] != -1
+            return self.kartDNA[EKartDNA.BODY_TYPE] != -1
 
         def b_setTickets(self, numTickets):
             if numTickets > RaceGlobals.MaxTickets:
@@ -2849,15 +2863,15 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             return self.kartingPersonalBest + self.kartingPersonalBest2
 
         def setKartDNA(self, kartDNA):
-            self.b_setKartBodyType(kartDNA[KartDNA.bodyType])
-            self.b_setKartBodyColor(kartDNA[KartDNA.bodyColor])
-            self.b_setKartAccColor(kartDNA[KartDNA.accColor])
-            self.b_setKartEngineBlockType(kartDNA[KartDNA.ebType])
-            self.b_setKartSpoilerType(kartDNA[KartDNA.spType])
-            self.b_setKartFrontWheelWellType(kartDNA[KartDNA.fwwType])
-            self.b_setKartBackWheelWellType(kartDNA[KartDNA.bwwType])
-            self.b_setKartRimType(kartDNA[KartDNA.rimsType])
-            self.b_setKartDecalType(kartDNA[KartDNA.decalType])
+            self.b_setKartBodyType(kartDNA[EKartDNA.BODY_TYPE])
+            self.b_setKartBodyColor(kartDNA[EKartDNA.BODY_COLOR])
+            self.b_setKartAccColor(kartDNA[EKartDNA.ACC_COLOR])
+            self.b_setKartEngineBlockType(kartDNA[EKartDNA.EB_TYPE])
+            self.b_setKartSpoilerType(kartDNA[EKartDNA.SP_TYPE])
+            self.b_setKartFrontWheelWellType(kartDNA[EKartDNA.FWW_TYPE])
+            self.b_setKartBackWheelWellType(kartDNA[EKartDNA.BWW_TYPE])
+            self.b_setKartRimType(kartDNA[EKartDNA.RIMS_TYPE])
+            self.b_setKartDecalType(kartDNA[EKartDNA.DECAL_TYPE])
 
         def b_setKartBodyType(self, bodyType):
             self.d_setKartBodyType(bodyType)
@@ -2867,10 +2881,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartBodyType', [bodyType])
 
         def setKartBodyType(self, bodyType):
-            self.kartDNA[KartDNA.bodyType] = bodyType
+            self.kartDNA[EKartDNA.BODY_TYPE] = bodyType
 
         def getKartBodyType(self):
-            return self.kartDNA[KartDNA.bodyType]
+            return self.kartDNA[EKartDNA.BODY_TYPE]
 
         def b_setKartBodyColor(self, bodyColor):
             self.d_setKartBodyColor(bodyColor)
@@ -2880,10 +2894,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartBodyColor', [bodyColor])
 
         def setKartBodyColor(self, bodyColor):
-            self.kartDNA[KartDNA.bodyColor] = bodyColor
+            self.kartDNA[EKartDNA.BODY_COLOR] = bodyColor
 
         def getKartBodyColor(self):
-            return self.kartDNA[KartDNA.bodyColor]
+            return self.kartDNA[EKartDNA.BODY_COLOR]
 
         def b_setKartAccessoryColor(self, accColor):
             self.d_setKartAccessoryColor(accColor)
@@ -2893,10 +2907,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartAccessoryColor', [accColor])
 
         def setKartAccessoryColor(self, accColor):
-            self.kartDNA[KartDNA.accColor] = accColor
+            self.kartDNA[EKartDNA.ACC_COLOR] = accColor
 
         def getKartAccessoryColor(self):
-            return self.kartDNA[KartDNA.accColor]
+            return self.kartDNA[EKartDNA.ACC_COLOR]
 
         def b_setKartEngineBlockType(self, ebType):
             self.d_setKartEngineBlockType(ebType)
@@ -2906,10 +2920,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartEngineBlockType', [ebType])
 
         def setKartEngineBlockType(self, ebType):
-            self.kartDNA[KartDNA.ebType] = ebType
+            self.kartDNA[EKartDNA.EB_TYPE] = ebType
 
         def getKartEngineBlockType(self):
-            return self.kartDNA[KartDNA.ebType]
+            return self.kartDNA[EKartDNA.EB_TYPE]
 
         def b_setKartSpoilerType(self, spType):
             self.d_setKartSpoilerType(spType)
@@ -2919,10 +2933,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartSpoilerType', [spType])
 
         def setKartSpoilerType(self, spType):
-            self.kartDNA[KartDNA.spType] = spType
+            self.kartDNA[EKartDNA.SP_TYPE] = spType
 
         def getKartSpoilerType(self):
-            return self.kartDNA[KartDNA.spType]
+            return self.kartDNA[EKartDNA.SP_TYPE]
 
         def b_setKartFrontWheelWellType(self, fwwType):
             self.d_setKartFrontWheelWellType(fwwType)
@@ -2932,10 +2946,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartFrontWheelWellType', [fwwType])
 
         def setKartFrontWheelWellType(self, fwwType):
-            self.kartDNA[KartDNA.fwwType] = fwwType
+            self.kartDNA[EKartDNA.FWW_TYPE] = fwwType
 
         def getKartFrontWheelWellType(self):
-            return self.kartDNA[KartDNA.fwwType]
+            return self.kartDNA[EKartDNA.FWW_TYPE]
 
         def b_setKartBackWheelWellType(self, bwwType):
             self.d_setKartBackWheelWellType(bwwType)
@@ -2945,10 +2959,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartBackWheelWellType', [bwwType])
 
         def setKartBackWheelWellType(self, bwwType):
-            self.kartDNA[KartDNA.bwwType] = bwwType
+            self.kartDNA[EKartDNA.BWW_TYPE] = bwwType
 
         def getKartBackWheelWellType(self):
-            return self.kartDNA[KartDNA.bwwType]
+            return self.kartDNA[EKartDNA.BWW_TYPE]
 
         def b_setKartRimType(self, rimsType):
             self.d_setKartRimType(rimsType)
@@ -2958,10 +2972,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartRimType', [rimsType])
 
         def setKartRimType(self, rimsType):
-            self.kartDNA[KartDNA.rimsType] = rimsType
+            self.kartDNA[EKartDNA.RIMS_TYPE] = rimsType
 
         def getKartRimType(self):
-            return self.kartDNA[KartDNA.rimsType]
+            return self.kartDNA[EKartDNA.RIMS_TYPE]
 
         def b_setKartDecalType(self, decalType):
             self.d_setKartDecalType(decalType)
@@ -2971,10 +2985,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.sendUpdate('setKartDecalType', [decalType])
 
         def setKartDecalType(self, decalType):
-            self.kartDNA[KartDNA.decalType] = decalType
+            self.kartDNA[EKartDNA.DECAL_TYPE] = decalType
 
         def getKartDecalType(self):
-            return self.kartDNA[KartDNA.decalType]
+            return self.kartDNA[EKartDNA.DECAL_TYPE]
 
         def b_setKartAccessoriesOwned(self, accessories):
             self.d_setKartAccessoriesOwned(accessories)
@@ -3031,19 +3045,19 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             if not checkKartFieldValidity(dnaField):
                 self.air.writeServerEvent('suspicious', self.doId, 'attempt to update to dna value  %s in the invalid field %s' % (fieldValue, dnaField))
                 return
-            if dnaField == KartDNA.bodyType:
-                if fieldValue not in KartDict.keys() and fieldValue != InvalidEntry:
+            if dnaField == EKartDNA.BODY_TYPE:
+                if fieldValue not in list(KartDict.keys()) and fieldValue != InvalidEntry:
                     self.air.writeServerEvent('suspicious', self.doId, 'attempt to update kart body to invalid body %s.' % fieldValue)
                     return
                 self.b_setKartBodyType(fieldValue)
             else:
-                accFields = [KartDNA.ebType,
-                 KartDNA.spType,
-                 KartDNA.fwwType,
-                 KartDNA.bwwType,
-                 KartDNA.rimsType,
-                 KartDNA.decalType]
-                colorFields = [KartDNA.bodyColor, KartDNA.accColor]
+                accFields = [EKartDNA.EB_TYPE,
+                 EKartDNA.SP_TYPE,
+                 EKartDNA.FWW_TYPE,
+                 EKartDNA.BWW_TYPE,
+                 EKartDNA.RIMS_TYPE,
+                 EKartDNA.DECAL_TYPE]
+                colorFields = [EKartDNA.BODY_COLOR, EKartDNA.ACC_COLOR]
                 if dnaField in accFields:
                     if fieldValue == InvalidEntry:
                         self.__updateKartDNAField(dnaField, fieldValue)
@@ -3070,7 +3084,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                             elif fieldValue == getDefaultColor() and self.kartDNA[dnaField] != InvalidEntry:
                                 self.air.writeServerEvent('suspicious', self.doId, 'attempt to update to default color %s which is not owned!' % fieldValue)
                                 return
-                        if getAccessoryType(fieldValue) != KartDNA.bodyColor:
+                        if getAccessoryType(fieldValue) != EKartDNA.BODY_COLOR:
                             self.air.writeServerEvent('suspicious', self.doId, 'attempt to update invalid color %s for dna field %s' % (fieldValue, dnaField))
                             return
                         self.__updateKartDNAField(dnaField, fieldValue)
@@ -3079,21 +3093,21 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                     return
 
         def __updateKartDNAField(self, dnaField, fieldValue):
-            if dnaField == KartDNA.bodyColor:
+            if dnaField == EKartDNA.BODY_COLOR:
                 self.b_setKartBodyColor(fieldValue)
-            elif dnaField == KartDNA.accColor:
+            elif dnaField == EKartDNA.ACC_COLOR:
                 self.b_setKartAccessoryColor(fieldValue)
-            elif dnaField == KartDNA.ebType:
+            elif dnaField == EKartDNA.EB_TYPE:
                 self.b_setKartEngineBlockType(fieldValue)
-            elif dnaField == KartDNA.spType:
+            elif dnaField == EKartDNA.SP_TYPE:
                 self.b_setKartSpoilerType(fieldValue)
-            elif dnaField == KartDNA.fwwType:
+            elif dnaField == EKartDNA.FWW_TYPE:
                 self.b_setKartFrontWheelWellType(fieldValue)
-            elif dnaField == KartDNA.bwwType:
+            elif dnaField == EKartDNA.BWW_TYPE:
                 self.b_setKartBackWheelWellType(fieldValue)
-            elif dnaField == KartDNA.rimsType:
+            elif dnaField == EKartDNA.RIMS_TYPE:
                 self.b_setKartRimType(fieldValue)
-            elif dnaField == KartDNA.decalType:
+            elif dnaField == EKartDNA.DECAL_TYPE:
                 self.b_setKartDecalType(fieldValue)
 
         def setAllowSoloRace(self, allowSoloRace):
@@ -3170,8 +3184,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             taskMgr.add(self._moveSphere, self._getMoveSphereTaskName(), priority=OTPGlobals.AICollMovePriority)
             self.inEstate = 1
             self.estateOwnerId = ownerId
-            self.estateZones = simbase.air.estateManager.getEstateZones(ownerId)
-            self.estateHouseZones = simbase.air.estateManager.getEstateHouseZones(ownerId)
+            self.estateZones = simbase.air.estateMgr.getEstateZones(ownerId)
+            self.estateHouseZones = simbase.air.estateMgr.getEstateHouseZones(ownerId)
             self.getZoneData().startCollTrav(cTravName=self.doId)
             self.enterPetLook()
 
@@ -3269,23 +3283,20 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if type == 'single':
             returnCode = self.doSummonSingleCog(suitIndex)
         elif type == 'building':
-            if random.random() < 0.25:
-                suitDeptIndex = suitIndex / SuitDNA.suitsPerDept
+            if simbase.air.wantCogdominiums and random.random() < 0.25:
+                suitDeptIndex = suitIndex // SuitDNA.suitsPerDept
                 department = SuitDNA.suitDepts[suitDeptIndex]
                 difficulty = random.randint(1, 9)
                 returnCode = self.doCogdoTakeOver(department, difficulty)
             else:
                 returnCode = self.doBuildingTakeover(suitIndex)
         elif type == 'invasion':
-            suitDeptIndex = suitIndex / SuitDNA.suitsPerDept
-            suitTypeIndex = suitIndex % SuitDNA.suitsPerDept
-            returnCode = self.doCogInvasion(suitDeptIndex, suitTypeIndex)
+            returnCode = self.doCogInvasion(suitIndex)
         if returnCode:
             if returnCode[0] == 'success':
                 self.air.writeServerEvent('cogSummoned', self.doId, '%s|%s|%s' % (type, suitIndex, self.zoneId))
                 self.removeCogSummonsEarned(suitIndex, type)
             self.sendUpdate('cogSummonsResponse', returnCode)
-        return
 
     def doSummonSingleCog(self, suitIndex):
         if suitIndex >= len(SuitDNA.suitHeadTypes):
@@ -3343,18 +3354,21 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         building.cogdoTakeOver(suitTrack, difficulty, buildingHeight)
         return ['success', difficulty, building.doId]
 
-    def doCogInvasion(self, suitDeptIndex, suitTypeIndex):
-        if self.air.suitInvasionManager.getInvading():
-            return ['busy', 0, 0]
-
-        suitName = SuitDNA.getSuitName(suitDeptIndex, suitTypeIndex)
-        suitIndex = SuitDNA.suitHeadTypes.index(suitName)
-
-        if self.air.suitInvasionManager.startInvasion(
-                suitDeptIndex=suitDeptIndex, suitTypeIndex=suitTypeIndex):
-            return ['success', suitIndex, 0]
-
-        return ['fail', suitIndex, 0]
+    def doCogInvasion(self, suitIndex):
+        invMgr = self.air.suitInvasionManager
+        if invMgr.getInvading():
+            returnCode = 'busy'
+        else:
+            if suitIndex >= len(SuitDNA.suitHeadTypes):
+                self.notify.warning('Bad suit index: %s' % suitIndex)
+                return ['badIndex', suitIndex, 0]
+            cogType = SuitDNA.suitHeadTypes[suitIndex]
+            numCogs = 1000
+            if invMgr.startInvasion(cogType, numCogs, False):
+                returnCode = 'success'
+            else:
+                returnCode = 'fail'
+        return [returnCode, suitIndex, 0]
 
     def b_setCogSummonsEarned(self, cogSummonsEarned):
         self.d_setCogSummonsEarned(cogSummonsEarned)
@@ -3417,10 +3431,10 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         return curSetting
 
     def hasParticularCogSummons(self, deptIndex, level, type):
-        if deptIndex not in xrange(len(SuitDNA.suitDepts)):
+        if deptIndex not in range(len(SuitDNA.suitDepts)):
             self.notify.warning('invalid parameter deptIndex %s' % deptIndex)
             return False
-        if level not in xrange(SuitDNA.suitsPerDept):
+        if level not in range(SuitDNA.suitsPerDept):
             self.notify.warning('invalid parameter level %s' % level)
             return False
         suitIndex = deptIndex * SuitDNA.suitsPerDept + level
@@ -3429,13 +3443,13 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def assignNewCogSummons(self, level = None, summonType = None, deptIndex = None):
         if level != None:
-            if deptIndex in xrange(len(SuitDNA.suitDepts)):
+            if deptIndex in range(len(SuitDNA.suitDepts)):
                 dept = deptIndex
             else:
                 numDepts = len(SuitDNA.suitDepts)
                 dept = random.randrange(0, numDepts)
             suitIndex = dept * SuitDNA.suitsPerDept + level
-        elif deptIndex in xrange(len(SuitDNA.suitDepts)):
+        elif deptIndex in range(len(SuitDNA.suitDepts)):
             randomLevel = random.randrange(0, SuitDNA.suitsPerDept)
             suitIndex = deptIndex * SuitDNA.suitsPerLevel + randomLevel
         else:
@@ -3721,7 +3735,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.sendUpdate('useSpecialResponse', [response])
 
     def tryToUseSpecial(self, special):
-        estateOwnerDoId = simbase.air.estateManager.zone2owner.get(self.zoneId)
+        estateOwnerDoId = simbase.air.estateMgr.zone2owner.get(self.zoneId)
         response = 'badlocation'
         doIHaveThisSpecial = False
         for curSpecial in self.gardenSpecials:
@@ -3735,7 +3749,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             self.notify.warning("how did this happen, planting an item you don't own")
             return response
         if estateOwnerDoId:
-            estate = simbase.air.estateManager.estate.get(estateOwnerDoId)
+            estate = simbase.air.estateMgr.estate.get(estateOwnerDoId)
             if estate and hasattr(estate, 'avIdList'):
                 ownerIndex = estate.avIdList.index(estateOwnerDoId)
                 if ownerIndex >= 0:
@@ -3748,7 +3762,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def sendGardenEvent(self):
         if hasattr(self, 'estateZones') and hasattr(self, 'doId'):
             if simbase.wantPets and self.hatePets:
-                PetObserve.send(self.estateZones, PetObserve.PetActionObserve(PetObserve.Actions.GARDEN, self.doId))
+                PetObserve.send(self.estateZones, PetObserve.PetActionObserve(PetObserve.EAction.GARDEN, self.doId))
 
     def setGardenStarted(self, bStarted):
         self.gardenStarted = bStarted
@@ -3771,14 +3785,14 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         if strSearch.search(eventName, 0, 100):
             self.air.district.recordSuspiciousEventData(len(eventStr))
         self.air.writeServerEvent('suspicious', self.doId, eventStr)
-        if simbase.config.GetBool('want-ban-setSCSinging', True):
+        if ConfigVariableBool('want-ban-setSCSinging', True).getValue():
             if 'invalid msgIndex in setSCSinging:' in eventName:
                 if senderId == self.doId:
                     commentStr = 'Toon %s trying to call setSCSinging' % self.doId
                     #simbase.air.banManager.ban(self.doId, self.DISLid, commentStr)
                 else:
                     self.notify.warning('logSuspiciousEvent event=%s senderId=%s != self.doId=%s' % (eventName, senderId, self.doId))
-        if simbase.config.GetBool('want-ban-setAnimState', True):
+        if ConfigVariableBool('want-ban-setAnimState', True).getValue():
             if eventName.startswith('setAnimState: '):
                 if senderId == self.doId:
                     commentStr = 'Toon %s trying to call setAnimState' % self.doId
@@ -3890,7 +3904,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         self.sendUpdate('setAccess', [access])
 
     def setAccess(self, access):
-        paidStatus = simbase.config.GetString('force-paid-status', 'none')
+        paidStatus = ConfigVariableString('force-paid-status', 'none').getValue()
         if paidStatus == 'unpaid':
             access = 1
         if access == OTPGlobals.AccessInvalid:
@@ -3920,7 +3934,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def logMessage(self, message):
         avId = self.air.getAvatarIdFromSender()
         if __dev__:
-            print 'CLIENT LOG MESSAGE %s %s' % (avId, message)
+            print('CLIENT LOG MESSAGE %s %s' % (avId, message))
         try:
             self.air.writeServerEvent('clientLog', avId, message)
         except:
@@ -3947,7 +3961,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def setInvites(self, invites):
         self.invites = []
-        for i in xrange(len(invites)):
+        for i in range(len(invites)):
             oneInvite = invites[i]
             newInvite = InviteInfoBase(*oneInvite)
             self.invites.append(newInvite)
@@ -3957,9 +3971,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         newInvites = 0
         readButNotRepliedInvites = 0
         for invite in invitesInMailbox:
-            if invite.status == PartyGlobals.InviteStatus.NotRead:
+            if invite.status == PartyGlobals.EInviteStatus.NOT_READ:
                 newInvites += 1
-            elif invite.status == PartyGlobals.InviteStatus.ReadButNotReplied:
+            elif invite.status == PartyGlobals.EInviteStatus.READ_BUT_NOT_REPLIED:
                 readButNotRepliedInvites += 1
             if __dev__:
                 partyInfo = self.getOnePartyInvitedTo(invite.partyId)
@@ -3975,8 +3989,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def getNumNonResponseInvites(self):
         count = 0
-        for i in xrange(len(self.invites)):
-            if self.invites[i].status == InviteStatus.NotRead or self.invites[i].status == InviteStatus.ReadButNotReplied:
+        for i in range(len(self.invites)):
+            if self.invites[i].status == PartyGlobals.EInviteStatus.NOT_READ or self.invites[i].status == PartyGlobals.EInviteStatus.READ_BUT_NOT_REPLIED:
                 count += 1
 
         return count
@@ -3985,14 +3999,14 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         result = []
         for invite in self.invites:
             appendInvite = True
-            if invite.status == InviteStatus.Accepted or invite.status == InviteStatus.Rejected:
+            if invite.status == PartyGlobals.EInviteStatus.ACCEPTED or invite.status == PartyGlobals.EInviteStatus.REJECTED:
                 appendInvite = False
             if appendInvite:
                 partyInfo = self.getOnePartyInvitedTo(invite.partyId)
                 if not partyInfo:
                     appendInvite = False
                 if appendInvite:
-                    if partyInfo.status == PartyGlobals.PartyStatus.Cancelled:
+                    if partyInfo.status == PartyGlobals.EPartyStatus.CANCELLED:
                         appendInvite = False
                 if appendInvite:
                     endDate = partyInfo.endTime.date()
@@ -4010,14 +4024,14 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def setHostedParties(self, hostedParties):
         self.hostedParties = []
-        for i in xrange(len(hostedParties)):
+        for i in range(len(hostedParties)):
             hostedInfo = hostedParties[i]
             newParty = PartyInfoAI(*hostedInfo)
             self.hostedParties.append(newParty)
 
     def setPartiesInvitedTo(self, partiesInvitedTo):
         self.partiesInvitedTo = []
-        for i in xrange(len(partiesInvitedTo)):
+        for i in range(len(partiesInvitedTo)):
             partyInfo = partiesInvitedTo[i]
             newParty = PartyInfoAI(*partyInfo)
             self.partiesInvitedTo.append(newParty)
@@ -4027,7 +4041,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def getOnePartyInvitedTo(self, partyId):
         result = None
-        for i in xrange(len(self.partiesInvitedTo)):
+        for i in range(len(self.partiesInvitedTo)):
             partyInfo = self.partiesInvitedTo[i]
             if partyInfo.partyId == partyId:
                 result = partyInfo
@@ -4037,7 +4051,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def setPartyReplyInfoBases(self, replies):
         self.partyReplyInfoBases = []
-        for i in xrange(len(replies)):
+        for i in range(len(replies)):
             partyReply = replies[i]
             repliesForOneParty = PartyReplyInfoBase(*partyReply)
             self.partyReplyInfoBases.append(repliesForOneParty)
@@ -4061,7 +4075,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
     def canPlanParty(self):
         nonCancelledPartiesInTheFuture = 0
         for partyInfo in self.hostedParties:
-            if partyInfo.status not in (PartyGlobals.PartyStatus.Cancelled, PartyGlobals.PartyStatus.Finished, PartyGlobals.PartyStatus.NeverStarted):
+            if partyInfo.status not in (PartyGlobals.EPartyStatus.CANCELLED, PartyGlobals.EPartyStatus.FINISHED, PartyGlobals.EPartyStatus.NEVER_STARTED):
                 nonCancelledPartiesInTheFuture += 1
                 if nonCancelledPartiesInTheFuture >= PartyGlobals.MaxHostedPartiesPerToon:
                     break
@@ -4074,7 +4088,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         found = False
         for partyInfo in self.hostedParties:
             if partyInfo.partyId == partyId:
-                partyInfo.status = PartyGlobals.PartyStatus.CanStart
+                partyInfo.status = PartyGlobals.EPartyStatus.CAN_START
                 found = True
                 break
 
@@ -4178,6 +4192,8 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def getGMType(self):
         gmType = self._gmType
+        if gmType is None:
+            return self.getAdminAccess()
         if (gmType < CATEGORY_USER.defaultAccess) and (gmType != 0):
             gmType = self.getAdminAccess()
         return gmType
@@ -4214,7 +4230,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
 
     def _checkOldGMName(self):
         if '$' in set(self.name):
-            if config.GetBool('want-ban-old-gm-name', 0):
+            if ConfigVariableBool('want-ban-old-gm-name', False).getValue():
                 self.ban('invalid name: %s' % self.name)
             else:
                 self.air.writeServerEvent('suspicious', self.doId, '$ found in toon name')
@@ -4237,7 +4253,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
             if module not in self.moduleWhitelist:
                 if module in self.moduleBlacklist:
                     self.air.writeServerEvent('suspicious', avId, 'Black List module %s loaded into process.' % module)
-                    if simbase.config.GetBool('want-ban-blacklist-module', False):
+                    if ConfigVariableBool('want-ban-blacklist-module', False).getValue():
                         commentStr = 'User has blacklist module: %s attached to their game process' % module
                         dislId = self.DISLid
                         #simbase.air.banManager.ban(self.doId, dislId, commentStr)
@@ -4356,10 +4372,9 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
                              isGm)
                             self.notify.info('av %s is consistently in an inappropriate position with %s...' % (av.doId, valStr))
                             self.air.writeServerEvent('suspicious', avId, ' consistently in an inappropriate position with toon %s' % valStr)
-                            response = simbase.config.GetString('toon-pos-hack-response', 'nothing')
+                            response = ConfigVariableString('toon-pos-hack-response', 'nothing').getValue()
                             av.handleHacking(response, 'collision and position hacking', [otherAv])
                         del DistributedToonAI.flagCounts[avPairKey]
-        return
 
     def handleHacking(self, response, comment, coconspirators = []):
         if response == 'quietzone':
@@ -4395,15 +4410,15 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         return self.animalSound
 
     def setAchievements(self, achievements):
-        for i in xrange(len(achievements)):
-            if not achievements[i] in xrange(len(Achievements.AchievementsDict)):
+        for i in range(len(achievements)):
+            if not achievements[i] in range(len(Achievements.AchievementsDict)):
                 del achievements[i]
 
         self.achievements = achievements
 
     def d_setAchievements(self, achievements):
-        for i in xrange(len(achievements)):
-            if not achievements[i] in xrange(len(Achievements.AchievementsDict)):
+        for i in range(len(achievements)):
+            if not achievements[i] in range(len(Achievements.AchievementsDict)):
                 del achievements[i]
 
         self.sendUpdate('setAchievements', args=[achievements])
@@ -4416,7 +4431,7 @@ class DistributedToonAI(DistributedPlayerAI.DistributedPlayerAI, DistributedSmoo
         return self.achievements
 
     def addAchievement(self, achievementId):
-        if achievementId in xrange(len(Achievements.AchievementsDict)):
+        if achievementId in range(len(Achievements.AchievementsDict)):
             if not achievementId in self.achievements:
                 achievements = self.achievements
                 achievements.append(achievementId)
@@ -4648,7 +4663,7 @@ def maxToon(missingTrack=None):
 
     # Unlock all of the emotes:
     emotes = list(invoker.getEmoteAccess())
-    for emoteId in OTPLocalizer.EmoteFuncDict.values():
+    for emoteId in list(OTPLocalizer.EmoteFuncDict.values()):
         if emoteId >= len(emotes):
             continue
         # The following emotions are ignored because they are unable to be
@@ -4661,7 +4676,7 @@ def maxToon(missingTrack=None):
     # Max out their Cog suits:
     suitDeptCount = len(SuitDNA.suitDepts)
     cogParts = []
-    for i in xrange(suitDeptCount):
+    for i in range(suitDeptCount):
         cogParts.append(CogDisguiseGlobals.PartsPerSuitBitmasks[i])
     invoker.b_setCogParts(cogParts)
     maxSuitType = SuitDNA.suitsPerDept - 1
@@ -4669,7 +4684,7 @@ def maxToon(missingTrack=None):
     maxSuitLevel = (SuitDNA.levelsPerSuit-1) + maxSuitType
     invoker.b_setCogLevels([maxSuitLevel] * suitDeptCount)
     cogMerits = []
-    for i in xrange(suitDeptCount):
+    for i in range(suitDeptCount):
         suitIndex = (SuitDNA.suitsPerDept * (i+1)) - 1
         suitMerits = CogDisguiseGlobals.MeritsPerLevel[suitIndex]
         cogMerits.append(suitMerits[SuitDNA.levelsPerSuit - 1])
@@ -4705,7 +4720,7 @@ def maxToon(missingTrack=None):
 
     # Finally, unlock all of their pet phrases:
     if simbase.wantPets:
-        invoker.b_setPetTrickPhrases(range(7))
+        invoker.b_setPetTrickPhrases(list(range(7)))
 
     return 'Maxed your Toon!'
 
@@ -4723,7 +4738,7 @@ def unlocks():
 
     # Next, unlock all of their emotions:
     emotes = list(invoker.getEmoteAccess())
-    for emoteId in OTPLocalizer.EmoteFuncDict.values():
+    for emoteId in list(OTPLocalizer.EmoteFuncDict.values()):
         if emoteId >= len(emotes):
             continue
         # The following emotions are ignored because they are unable to be
@@ -4735,7 +4750,7 @@ def unlocks():
 
     # Finally, unlock all of their pet phrases:
     if simbase.wantPets:
-        invoker.b_setPetTrickPhrases(range(7))
+        invoker.b_setPetTrickPhrases(list(range(7)))
 
     return 'Unlocked teleport access, emotions, and pet trick phrases!'
 
@@ -4747,7 +4762,7 @@ def sos(count, name):
     invoker = spellbook.getInvoker()
     if not 0 <= count <= 100:
         return 'Your SOS count must be in range (0-100).'
-    for npcId, npcName in TTLocalizer.NPCToonNames.items():
+    for npcId, npcName in list(TTLocalizer.NPCToonNames.items()):
         if name.lower() == npcName.lower():
             if npcId not in NPCToons.npcFriends:
                 continue
@@ -4772,7 +4787,7 @@ def unites(value=32767):
     return 'Restocked %d unites!' % value
 
 @magicWord(category=CATEGORY_USER, types=[int])
-def fires(count):
+def fires(count=255):
     """
     Modifies the invoker's pink slip count.
     """
@@ -4783,7 +4798,7 @@ def fires(count):
     return 'You were given %d fires.' % count
 
 @magicWord(category=CATEGORY_USER, types=[int])
-def money(money):
+def money(money=10000):
     """
     Modifies the target's current money value.
     """
@@ -4879,7 +4894,7 @@ def name(name=''):
     Modify the target's name.
     """
     target = spellbook.getTarget()
-    target.checkForBadName(requestName=True, name=name)
+    target.b_setName(name=name)
 
 @magicWord(category=CATEGORY_USER, types=[int, int])
 def hat(hatIndex, hatTex=0):
@@ -4933,7 +4948,7 @@ def shoes(shoesIndex, shoesTex=0):
     invoker.b_setShoes(shoesIndex, shoesTex, 0)
     return "Set %s's shoes to %d, %d!" % (invoker.getName(), shoesIndex, shoesTex)
 
-@magicWord(category=CATEGORY_MODERATOR, types=[int])
+@magicWord(access=ACCESS_ADMINISTRATOR, types=[int])
 def gmIcon(accessLevel=None):
     """
     Toggles the target's GM icon. If an access level is provided, however, the
@@ -4942,7 +4957,7 @@ def gmIcon(accessLevel=None):
     invoker = spellbook.getInvoker()
     target = spellbook.getTarget()
     invokerAccess = spellbook.getInvokerAccess()
-    if invokerAccess != CATEGORY_HOST.defaultAccess:
+    if invokerAccess != ACCESS_SYSTEM_ADMINISTRATOR:
         if accessLevel is not None:
             return "You must be of a higher access level to override your GM icon."
         target = spellbook.getInvoker()
@@ -4957,13 +4972,9 @@ def gmIcon(accessLevel=None):
         if accessLevel is None:
             accessLevel = target.getAdminAccess()
         if accessLevel != target.getGMType():
-            if invokerAccess != CATEGORY_HOST.defaultAccess:
+            if invokerAccess != ACCESS_SYSTEM_ADMINISTRATOR:
                 accessLevel = target.getGMType()
-        if accessLevel not in (0,
-                               0,
-                               CATEGORY_MODERATOR.defaultAccess,
-                               CATEGORY_ADMINISTRATOR.defaultAccess,
-                               CATEGORY_HOST.defaultAccess):
+        if accessLevel not in GM_ICON_LEVELS:
             return 'Invalid access level!'
         target.b_setGM(accessLevel)
         if accessLevel == target.getAdminAccess():
@@ -4988,7 +4999,7 @@ def ghost():
         invoker.b_setGhostMode(0)
         return 'Ghost mode is disabled.'
 
-@magicWord(category=CATEGORY_MODERATOR)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def revokeName():
     """
     Revoke the target's name.
@@ -5039,7 +5050,7 @@ def inventory(a, b=None, c=None):
         targetTrack = -1 or c
         if not -1 <= targetTrack < len(ToontownBattleGlobals.Tracks):
             return 'Invalid target track index: ' + str(targetTrack)
-        for track in xrange(0, len(ToontownBattleGlobals.Tracks)):
+        for track in range(0, len(ToontownBattleGlobals.Tracks)):
             if (targetTrack == -1) or (track == targetTrack):
                 inventory.inventory[track][:maxLevelIndex + 1] = [0] * (maxLevelIndex+1)
         invoker.b_setInventory(inventory.makeNetString())
@@ -5072,7 +5083,7 @@ def inventory(a, b=None, c=None):
         maxLevelIndex = b or 6
         if not 0 <= maxLevelIndex < len(ToontownBattleGlobals.Levels[0]):
             return 'Invalid max level index: ' + str(maxLevelIndex)
-        for _ in xrange(c):
+        for _ in range(c):
             inventory.addItem(targetTrack, maxLevelIndex)
         invoker.b_setInventory(inventory.makeNetString())
         return 'Restored %d Gags to: %d, %d' % (c, targetTrack, maxLevelIndex)
@@ -5422,7 +5433,7 @@ def disguise(command, suitIndex, value):
 
     if command == 'parts':
         invoker.cogParts[suitIndex] = 0
-        for _ in xrange(value):
+        for _ in range(value):
             invoker.giveGenericCogPart('fullSuit', suitIndex)
         return 'Parts set.'
     elif command == 'tier':
@@ -5475,7 +5486,7 @@ def shovelSkill(value):
 @magicWord(category=CATEGORY_USER, types=[])
 def maxTrees():
     invoker = spellbook.getInvoker()
-    estate = simbase.air.estateManager.toon2estate.get(invoker)
+    estate = simbase.air.estateMgr.toon2estate.get(invoker)
     if not estate:
         return 'Unable to locate estate.'
     for house in estate.houses:
@@ -5499,7 +5510,7 @@ def getDNA():
     return dnaString
 
 
-@magicWord(category=CATEGORY_MODERATOR, types=[str])
+@magicWord(category=CATEGORY_ADMINISTRATOR, types=[str])
 def warn(reason):
     target = spellbook.getTarget()
     if target == spellbook.getInvoker():

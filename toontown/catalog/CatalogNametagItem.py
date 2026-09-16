@@ -1,4 +1,5 @@
-import CatalogItem
+from panda3d.core import Datagram
+from . import CatalogItem
 from toontown.collectibles.CollectibleInventoryGlobals import CICategoryNametag
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -60,7 +61,7 @@ class CatalogNametagItem(CatalogItem.CatalogItem):
         return 'CatalogNametagItem(%s%s)' % (self.nametagStyle, self.formatOptionalData(store))
 
     def compareTo(self, other):
-        return self.nametagStyle - other.nametagStyle
+        return self.nametagStyle == other.nametagStyle
 
     def getHashContents(self):
         return self.nametagStyle

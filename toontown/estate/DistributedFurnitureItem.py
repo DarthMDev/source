@@ -5,23 +5,22 @@ from toontown.catalog import CatalogItem
 from toontown.toonbase import ToontownGlobals
 from direct.distributed import DistributedObject
 from toontown.toonbase import TTLocalizer
-import DistributedHouseItem
+from . import DistributedHouseItem
 from direct.distributed import DistributedSmoothNode
 from direct.task import Task
-import HouseGlobals
+from . import HouseGlobals
 
 class DistributedFurnitureItem(DistributedHouseItem.DistributedHouseItem, DistributedSmoothNode.DistributedSmoothNode):
     notify = directNotify.newCategory('DistributedFurnitureItem')
+
     def __init__(self, cr):
         DistributedHouseItem.DistributedHouseItem.__init__(self, cr)
         DistributedSmoothNode.DistributedSmoothNode.__init__(self, cr)
-        NodePath.__init__(self)
         self.localControl = True
         self.__broadcastFrequency = 0.25
         self.__adjustStarted = 0
         self.furnitureMgr = None
         self.transmitRelativeTo = None
-        return
 
     def generate(self):
         DistributedHouseItem.DistributedHouseItem.generate(self)
@@ -43,7 +42,6 @@ class DistributedFurnitureItem(DistributedHouseItem.DistributedHouseItem, Distri
         self.furnitureMgr = None
         DistributedHouseItem.DistributedHouseItem.disable(self)
         DistributedSmoothNode.DistributedSmoothNode.disable(self)
-        return
 
     def delete(self):
         self.removeNode()
@@ -52,13 +50,12 @@ class DistributedFurnitureItem(DistributedHouseItem.DistributedHouseItem, Distri
         DistributedSmoothNode.DistributedSmoothNode.delete(self)
 
     def setItem(self, furnitureMgrId, blob):
-        self.furnitureMgr = self.cr.doId2do.get(furnitureMgrId)
-        if self.furnitureMgr:
-            self.furnitureMgr.dfitems.append(self)
-            self.item = CatalogItem.getItem(blob, store=CatalogItem.Customization)
-            self.assign(self.loadModel())
-            interior = self.furnitureMgr.getInteriorObject()
-            self.reparentTo(interior.interior)
+        self.furnitureMgr = self.cr.doId2do[furnitureMgrId]
+        self.furnitureMgr.dfitems.append(self)
+        self.item = CatalogItem.getItem(blob, store=CatalogItem.Customization)
+        self.assign(self.loadModel())
+        interior = self.furnitureMgr.getInteriorObject()
+        self.reparentTo(interior.interior)
 
     def loadModel(self):
         return self.item.loadModel()
@@ -95,7 +92,14 @@ class DistributedFurnitureItem(DistributedHouseItem.DistributedHouseItem, Distri
 
     def sendRequestPosHpr(self, final, x, y, z, h, p, r):
         t = globalClockDelta.getFrameNetworkTime()
-        self.sendUpdate('requestPosHpr', (final, x, y, z, h, 0, 0, t))
+        self.sendUpdate('requestPosHpr', (final,
+         x,
+         y,
+         z,
+         h,
+         p,
+         r,
+         t))
 
     def setMode(self, mode, avId):
         if mode == HouseGlobals.FURNITURE_MODE_START:
@@ -116,10 +120,15 @@ class DistributedFurnitureItem(DistributedHouseItem.DistributedHouseItem, Distri
         else:
             pos = self.getPos(self.transmitRelativeTo)
             hpr = self.getHpr(self.transmitRelativeTo)
-        return (pos[0], pos[1], pos[2], hpr[0], 0, 0)
+        return (pos[0],
+         pos[1],
+         pos[2],
+         hpr[0],
+         hpr[1],
+         hpr[2])
 
     def __comparePosHpr(self, a, b, threshold):
-        for i in xrange(len(a)):
+        for i in range(len(a)):
             if abs(a[i] - b[i]) >= threshold:
                 return 1
 

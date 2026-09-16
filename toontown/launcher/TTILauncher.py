@@ -1,4 +1,4 @@
-from pandac.PandaModules import *
+from panda3d.core import ConfigVariableInt, Filename, HTTPClient, MultiplexStream, Notify, StreamWriter
 from direct.directnotify import DirectNotifyGlobal, Notifier
 from toontown.toonbase import ToontownGlobals
 import os
@@ -63,6 +63,28 @@ class TTILauncher:
     def getGameServer(self):
         return self.getValue('TTI_GAMESERVER')
 
+    def getServerMode(self):
+        """
+        Which server the launcher picked: 'local', 'direct', or 'production'.
+        """
+        return self.getValue('TTI_SERVER_MODE')
+
+    def getProfile(self):
+        """
+        The account name to log in under on a server that keeps its own accounts:
+        the local profile's name in local mode, and the player's username on a server 
+        somebody else hosts.
+        """
+        return self.getValue('TTI_PROFILE')
+
+    def getProfileKey(self):
+        """
+        The password that goes with it, generated and kept by the launcher. In
+        direct mode it is derived per server, so the one host it is handed to
+        can't reuse it anywhere else.
+        """
+        return self.getValue('TTI_PROFILE_KEY')
+
     def setPandaErrorCode(self, code):
         self.notify.info('setting panda error code to %s' % code)
         self.pandaErrorCode = code
@@ -99,10 +121,7 @@ class TTILauncher:
         os.environ[key] = str(value)
 
     def getVerifyFiles(self):
-        return config.GetInt('launcher-verify', 0)
-
-    def getTestServerFlag(self):
-        return self.getValue('IS_TEST_SERVER', 0)
+        return ConfigVariableInt('launcher-verify', 0).getValue()
 
     def isDownloadComplete(self):
         return 1

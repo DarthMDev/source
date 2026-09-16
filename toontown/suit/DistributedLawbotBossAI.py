@@ -1,10 +1,13 @@
+from panda3d.core import ConfigVariableBool, Point3
+import math
+import random
 from otp.ai.AIBaseGlobal import *
 from direct.distributed.ClockDelta import *
 from otp.ai.MagicWordGlobal import *
-import DistributedBossCogAI
+from . import DistributedBossCogAI
 from direct.directnotify import DirectNotifyGlobal
 from otp.avatar import DistributedAvatarAI
-import DistributedSuitAI
+from . import DistributedSuitAI
 from toontown.battle import BattleExperienceAI
 from direct.fsm import FSM
 from toontown.toonbase import ToontownGlobals
@@ -13,14 +16,12 @@ from toontown.toonbase import TTLocalizer
 from toontown.battle import BattleBase
 from toontown.toon import NPCToons
 from toontown.building import SuitBuildingGlobals
-import SuitDNA
-import random
+from . import SuitDNA
 from toontown.coghq import DistributedLawbotBossGavelAI
 from toontown.suit import DistributedLawbotBossSuitAI
 from toontown.coghq import DistributedLawbotCannonAI
 from toontown.coghq import DistributedLawbotChairAI
 from toontown.toonbase import ToontownBattleGlobals
-import math
 
 
 class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM):
@@ -31,7 +32,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
     maxToonLevels = 77
 
     def __init__(self, air):
-        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_DAY):
+        if simbase.air.holidayManager.isHolidayRunning(ToontownGlobals.APRIL_FOOLS_COSTUMES):
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 's')
         else:
             DistributedBossCogAI.DistributedBossCogAI.__init__(self, air, 'l')
@@ -40,7 +41,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         self.cannons = None
         self.chairs = None
         self.gavels = None
-        self.cagedToonNpcId = random.choice(NPCToons.npcFriends.keys())
+        self.cagedToonNpcId = random.choice(list(NPCToons.npcFriends.keys()))
         self.bossMaxDamage = ToontownGlobals.LawbotBossMaxDamage
         self.recoverRate = 0
         self.recoverStartTime = 0
@@ -278,7 +279,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
              (1, 1),
              (1, 1, 1, 1, 1))
             listVersion = list(SuitBuildingGlobals.SuitBuildingInfo)
-            if simbase.config.GetBool('lawbot-boss-cheat', 0):
+            if ConfigVariableBool('lawbot-boss-cheat', False).getValue():
                 listVersion[13] = weakenedValue
                 SuitBuildingGlobals.SuitBuildingInfo = tuple(listVersion)
             return self.invokeSuitPlanner(13, 0)
@@ -301,12 +302,16 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         self.notify.debug('enterElevatro')
         DistributedBossCogAI.DistributedBossCogAI.enterElevator(self)
         self.b_setBossDamage(ToontownGlobals.LawbotBossInitialDamage, 0, 0)
+        self.__makeChairs()
 
     def enterIntroduction(self):
         self.notify.debug('enterIntroduction')
-        DistributedBossCogAI.DistributedBossCogAI.enterIntroduction(self)
+        self.resetBattles()
+        self.arenaSide = None
+        self.makeBattleOneBattles()
+        self.barrier = self.beginBarrier('Introduction', self.involvedToons, 80, self.doneIntroduction)
         self.b_setBossDamage(ToontownGlobals.LawbotBossInitialDamage, 0, 0)
-        self.__makeChairs()
+        return
 
     def exitIntroduction(self):
         self.notify.debug('exitIntroduction')
@@ -343,7 +348,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
             self.notify.debug('totalDisplacement=%s' % totalDisplacement)
             numToons = len(self.involvedToons)
             stepDisplacement = totalDisplacement / (numToons + 1)
-            for index in xrange(numToons):
+            for index in range(numToons):
                 newPos = stepDisplacement * (index + 1)
                 self.notify.debug('curDisplacement = %s' % newPos)
                 newPos += startPt
@@ -357,7 +362,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
     def __makeChairs(self):
         if self.chairs == None:
             self.chairs = []
-            for index in xrange(12):
+            for index in range(12):
                 chair = DistributedLawbotChairAI.DistributedLawbotChairAI(self.air, self, index)
                 chair.generateWithRequired(self.zoneId)
                 self.chairs.append(chair)
@@ -505,7 +510,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         jurorsOver = self.numToonJurorsSeated - ToontownGlobals.LawbotBossJurorsForBalancedScale
         dmgAdjust = jurorsOver * ToontownGlobals.LawbotBossDamagePerJuror
         self.b_setBossDamage(ToontownGlobals.LawbotBossInitialDamage + dmgAdjust, 0, 0)
-        if simbase.config.GetBool('lawbot-boss-cheat', 0):
+        if ConfigVariableBool('lawbot-boss-cheat', False).getValue():
             self.b_setBossDamage(ToontownGlobals.LawbotBossMaxDamage - 1, 0, 0)
         self.battleThreeStart = globalClock.getFrameTime()
         for toonId in self.involvedToons:
@@ -569,7 +574,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
     def __makeBattleThreeObjects(self):
         if self.gavels == None:
             self.gavels = []
-            for index in xrange(self.numGavels):
+            for index in range(self.numGavels):
                 gavel = DistributedLawbotBossGavelAI.DistributedLawbotBossGavelAI(self.air, self, index)
                 gavel.generateWithRequired(self.zoneId)
                 self.gavels.append(gavel)
@@ -632,7 +637,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
     def enterVictory(self):
         self.resetBattles()
         self.suitsKilled.append({'type': None,
-         'level': None,
+         'level': 0,
          'track': self.dna.dept,
          'isSkelecog': 0,
          'isForeman': 0,
@@ -642,7 +647,6 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
          'isVirtual': 0,
          'activeToons': self.involvedToons[:]})
         self.barrier = self.beginBarrier('Victory', self.involvedToons, 30, self.__doneVictory)
-        return
 
     def __doneVictory(self, avIds):
         self.d_setBattleExperience()
@@ -654,8 +658,8 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         for toonId in self.involvedToons:
             toon = self.air.doId2do.get(toonId)
             if toon is not None:
-                amount = 1 * self.air.holidayManager.rewardMultiplier
-                for i in xrange(0, amount):
+                amount = 1
+                for i in range(0, amount):
                     self.giveCogSummonReward(toon, preferredDept, preferredSummonType)
                 toon.b_promote(self.deptIndex)
 
@@ -673,7 +677,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
             summonType = 'invasion'
         else:
             foundOne = False
-            for curDeptIndex in xrange(len(SuitDNA.suitDepts)):
+            for curDeptIndex in range(len(SuitDNA.suitDepts)):
                 if not toon.hasParticularCogSummons(curDeptIndex, cogLevel, prefSummonType):
                     deptIndex = curDeptIndex
                     foundOne = True
@@ -694,12 +698,12 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
                     foundOne = True
                     break
 
-            possibleCogLevel = range(SuitDNA.suitsPerDept)
-            possibleDeptIndex = range(len(SuitDNA.suitDepts))
+            possibleCogLevel = list(range(SuitDNA.suitsPerDept))
+            possibleDeptIndex = list(range(len(SuitDNA.suitDepts)))
             possibleSummonType = ['single', 'building', 'invasion']
             typeWeights = ['single'] * 70 + ['building'] * 27 + ['invasion'] * 3
             if not foundOne:
-                 for i in xrange(5):
+                 for i in range(5):
                     randomCogLevel = random.choice(possibleCogLevel)
                     randomSummonType = random.choice(typeWeights)
                     randomDeptIndex = random.choice(possibleDeptIndex)
@@ -784,7 +788,7 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
          'sd',
          'le',
          'bw']
-        for i in xrange(self.numLawyers):
+        for i in range(self.numLawyers):
             suit = DistributedLawbotBossSuitAI.DistributedLawbotBossSuitAI(self.air, None)
             suit.dna = SuitDNA.SuitDNA()
             lawCog = random.choice(lawCogChoices)
@@ -887,39 +891,99 @@ class DistributedLawbotBossAI(DistributedBossCogAI.DistributedBossCogAI, FSM.FSM
         self.b_setBattleDifficulty(self.toonLevels)
 
 
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def skipCJ():
     """
     Skips to the final round of the CJ.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedLawbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CJ!"
-    if boss.state in ('PrepareBattleThree', 'BattleThree'):
+        return "You aren't in a C.J.!"
+    if boss.state == 'Elevator':
+        return "You can't skip the C.J. while in the elevator!"
+    if boss.state in ('Introduction', 'PrepareBattleOne', 'BattleOne'):
+        boss.exitIntroduction()
+        boss.b_setState('RollToBattleTwo')
+        return 'Skipping the round...'
+    else:
         return "You can't skip this round."
+
+
+@magicWord(category=CATEGORY_ADMINISTRATOR)
+def startCourt():
+    """
+    Skips to the final round of the CJ.
+    """
+    invoker = spellbook.getInvoker()
+    boss = None
+    for do in list(simbase.air.doId2do.values()):
+        if isinstance(do, DistributedLawbotBossAI):
+            if invoker.doId in do.involvedToons:
+                boss = do
+                break
+    if not boss:
+        return "You aren't in a C.J.!"
+    if boss.state == 'Elevator':
+        return "You can't start court while in the elevator!"
+    if boss.state == 'RollToBattleTwo':
+        return "You can't start court while the C.J. heads to his chambers!"
+    if boss.state in ('PrepareBattleTwo', 'BattleTwo', 'PrepareBattleThree', 'BattleThree', 'Defeat'):
+        return "Court is already in session!"
+    if boss.state in ('Victory', 'Reward', 'Epilogue'):
+        return "Unable to start court because it has ended already."
+    if boss.state == 'Defeat':
+        return "You can't kill the C.J. right after being defeated!"
     boss.exitIntroduction()
-    boss.b_setState('PrepareBattleThree')
+    boss.b_setState('RollToBattleTwo')
+    boss.b_setState('PrepareBattleTwo')
+    return 'Court is now in session!'
 
-
-@magicWord(category=CATEGORY_USER)
+@magicWord(category=CATEGORY_ADMINISTRATOR)
 def killCJ():
     """
     Kills the CJ.
     """
     invoker = spellbook.getInvoker()
     boss = None
-    for do in simbase.air.doId2do.values():
+    for do in list(simbase.air.doId2do.values()):
         if isinstance(do, DistributedLawbotBossAI):
             if invoker.doId in do.involvedToons:
                 boss = do
                 break
     if not boss:
-        return "You aren't in a CJ"
-    boss.b_setState('Victory')
-    return 'Killed CJ.'
+        return "You aren't in a C.J.!"
+    if boss.state == 'Elevator':
+        return "You can't kill the C.J. while in the elevator!"
+    if boss.state in ('Victory', 'Reward', 'Epilogue'):
+        return "The C.J. has already been defeated!"
+    if boss.state == 'BattleThree':
+        boss.b_setState('Victory')
+        return 'Killed C.J.'
+    else:
+        return "You must be in the final battle with the C.J. to kill him."
+
+@magicWord(category=CATEGORY_ADMINISTRATOR)
+def forfeit():
+    """
+    Kills the CJ.
+    """
+    invoker = spellbook.getInvoker()
+    boss = None
+    for do in list(simbase.air.doId2do.values()):
+        if isinstance(do, DistributedLawbotBossAI):
+            if invoker.doId in do.involvedToons:
+                boss = do
+                break
+    if not boss:
+        return "You aren't in a C.J."
+    if boss.state == 'BattleThree':
+        boss.b_setState('Defeat')
+        return "You forfeited to the C.J."
+    else:
+        return "You must be in the final battle with the C.J. to forfeit."

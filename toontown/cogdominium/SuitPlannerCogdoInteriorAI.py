@@ -3,8 +3,7 @@ from toontown.suit import SuitDNA
 from direct.directnotify import DirectNotifyGlobal
 from toontown.suit import DistributedSuitAI
 from toontown.building import SuitBuildingGlobals
-from toontown.suit.SuitInvasionGlobals import IFSkelecog, IFWaiter, IFV2
-import types, math, random
+import random
 
 
 class SuitPlannerCogdoInteriorAI:
@@ -16,7 +15,7 @@ class SuitPlannerCogdoInteriorAI:
         difficulty = min(difficulty + 4, len(SuitBuildingGlobals.SuitBuildingInfo) - 1)
         self.respectInvasions = 1
 
-        if isinstance(difficulty, types.StringType):
+        if isinstance(difficulty, str):
             self.notify.warning('difficulty is a string!')
             difficulty = int(difficulty)
 
@@ -24,16 +23,16 @@ class SuitPlannerCogdoInteriorAI:
 
     def __genJoinChances(self, num):
         joinChances = []
-        for currChance in xrange(num):
+        for currChance in range(num):
             joinChances.append(random.randint(1, 100))
 
-        joinChances.sort(cmp)
+        joinChances.sort()
         return joinChances
 
     def _genSuitInfos(self, numFloors, difficulty, bldgTrack):
         self.suitInfos = []
         self.notify.debug('\n\ngenerating suitsInfos with numFloors (' + str(numFloors) + ') difficulty (' + str(difficulty) + '+1) and bldgTrack (' + str(bldgTrack) + ')')
-        for currFloor in xrange(numFloors):
+        for currFloor in range(numFloors):
             infoDict = {}
             lvls = self.__genLevelList(difficulty, currFloor, numFloors)
             activeDicts = []
@@ -58,7 +57,7 @@ class SuitPlannerCogdoInteriorAI:
             else:
                 revives = 0
 
-            for currActive in xrange(numActive - 1, -1, -1):
+            for currActive in range(numActive - 1, -1, -1):
                 level = lvls[currActive]
                 type = self.__genNormalSuitType(level)
                 activeDict = {}
@@ -71,7 +70,7 @@ class SuitPlannerCogdoInteriorAI:
             reserveDicts = []
             numReserve = min(len(lvls) - numActive, random.randint(8, 14))
             joinChances = self.__genJoinChances(numReserve)
-            for currReserve in xrange(numReserve):
+            for currReserve in range(numReserve):
                 level = lvls[currReserve + numActive]
                 type = self.__genNormalSuitType(level)
                 reserveDict = {}
@@ -110,37 +109,30 @@ class SuitPlannerCogdoInteriorAI:
             bossLvlRange = bldgInfo[SuitBuildingGlobals.SUIT_BLDG_INFO_BOSS_LVLS]
             newLvl = random.randint(bossLvlRange[0], bossLvlRange[1])
             lvlList.append(newLvl)
-        lvlList.sort(cmp)
+        lvlList.sort()
         self.notify.debug('LevelList: ' + repr(lvlList))
         return lvlList
 
     def __setupSuitInfo(self, suit, bldgTrack, suitLevel, suitType):
-        suitDeptIndex, suitTypeIndex, flags = simbase.air.suitInvasionManager.getInvadingCog()
-        if self.respectInvasions:
-            if suitDeptIndex is not None:
-                bldgTrack = SuitDNA.suitDepts[suitDeptIndex]
-            if suitTypeIndex is not None:
-                suitName = SuitDNA.getSuitName(suitDeptIndex, suitTypeIndex)
-                suitType = SuitDNA.getSuitType(suitName)
-                suitLevel = min(max(suitLevel, suitType), suitType + 4)
+        suitName, skeleton = simbase.air.suitInvasionManager.getInvadingCog()
+        if suitName and self.respectInvasions:
+            suitType = SuitDNA.getSuitType(suitName)
+            bldgTrack = SuitDNA.getSuitDept(suitName)
+            suitLevel = min(max(suitLevel, suitType), suitType + 4)
         dna = SuitDNA.SuitDNA()
         dna.newSuitRandom(suitType, bldgTrack)
         suit.dna = dna
         self.notify.debug('Creating suit type ' + suit.dna.name + ' of level ' + str(suitLevel) + ' from type ' + str(suitType) + ' and track ' + str(bldgTrack))
         suit.setLevel(suitLevel)
-        return flags
+        return skeleton
 
     def __genSuitObject(self, suitZone, suitType, bldgTrack, suitLevel, revives = 0):
         newSuit = DistributedSuitAI.DistributedSuitAI(simbase.air, None)
-        flags = self.__setupSuitInfo(newSuit, bldgTrack, suitLevel, suitType)
-        if flags & IFSkelecog:
+        skel = self.__setupSuitInfo(newSuit, bldgTrack, suitLevel, suitType)
+        if skel:
             newSuit.setSkelecog(1)
         newSuit.setSkeleRevives(revives)
         newSuit.generateWithRequired(suitZone)
-        if flags & IFWaiter:
-            newSuit.b_setWaiter(1)
-        if flags & IFV2:
-            newSuit.b_setSkeleRevives(1)
         newSuit.node().setName('suit-%s' % newSuit.doId)
         return newSuit
 
@@ -163,7 +155,7 @@ class SuitPlannerCogdoInteriorAI:
 
     def genSuits(self):
         suitHandles = []
-        for floor in xrange(len(self.suitInfos)):
+        for floor in range(len(self.suitInfos)):
             floorSuitHandles = self.genFloorSuits(floor)
             suitHandles.append(floorSuitHandles)
 

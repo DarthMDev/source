@@ -1,3 +1,4 @@
+from panda3d.core import ConfigVariableBool
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase import PythonUtil
 from toontown.toonbase import ToontownBattleGlobals
@@ -152,9 +153,9 @@ def simulateRecoveryVar(numNeeded, baseChance, list=0, cap =1):
         else:
             currentFail += 1
 
-    print 'Test results: %s tries, %s longest failure chain, %s cap hits' % (numTries, greatestFailChain, capHits)
+    print('Test results: %s tries, %s longest failure chain, %s cap hits' % (numTries, greatestFailChain, capHits))
     if list:
-        print 'failures for each succes %s' % attemptList
+        print('failures for each succes %s' % attemptList)
 
 
 def simulateRecoveryFix(numNeeded, baseChance, list=0):
@@ -179,9 +180,9 @@ def simulateRecoveryFix(numNeeded, baseChance, list=0):
         else:
             currentFail += 1
 
-    print 'Test results: %s tries, %s longest failure chain' % (numTries, greatestFailChain)
+    print('Test results: %s tries, %s longest failure chain' % (numTries, greatestFailChain))
     if list:
-        print 'failures for each success %s' % attemptList
+        print('failures for each success %s' % attemptList)
 
 
 class Quest:
@@ -201,7 +202,7 @@ class Quest:
             raise InvalidQuest(msg)
 
     def checkLocation(self, location):
-        locations = [Anywhere] + TTLocalizer.GlobalStreetNames.keys()
+        locations = [Anywhere] + list(TTLocalizer.GlobalStreetNames.keys())
         self.check(location in locations, 'invalid location: %s' % location)
 
     def checkNumCogs(self, num):
@@ -211,7 +212,7 @@ class Quest:
         self.check(1, 'invalid newbie level: %s' % level)
 
     def checkCogType(self, type):
-        types = [Any] + SuitBattleGlobals.SuitAttributes.keys()
+        types = [Any] + list(SuitBattleGlobals.SuitAttributes.keys())
         self.check(type in types, 'invalid cog type: %s' % type)
 
     def checkCogTrack(self, track):
@@ -290,7 +291,7 @@ class Quest:
         holderTypes = ['type', 'level', 'track']
         self.check(holderType in holderTypes, 'invalid recovery item holderType: %s' % holderType)
         if holderType == 'type':
-            holders = [Any, AnyFish] + SuitBattleGlobals.SuitAttributes.keys()
+            holders = [Any, AnyFish] + list(SuitBattleGlobals.SuitAttributes.keys())
             self.check(holder in holders, 'invalid recovery item holder: %s for holderType: %s' % (holder, holderType))
         elif holderType == 'level':
             pass
@@ -542,7 +543,7 @@ class CogQuest(LocationBasedQuest):
     def doesCogCount(self, avId, cogDict, zoneId, avList):
         questCogType = self.getCogType()
         return (questCogType == Any or questCogType == cogDict['type']) and \
-               (avId in avList) and self.isLocationMatch(zoneId)
+               (avId in cogDict['activeToons']) and self.isLocationMatch(zoneId)
 
 
 class CogNewbieQuest(CogQuest, NewbieQuest):
@@ -631,7 +632,7 @@ class CogTrackQuest(CogQuest):
 
     def doesCogCount(self, avId, cogDict, zoneId, avList):
         questCogTrack = self.getCogTrack()
-        return (questCogTrack == cogDict['track']) and (avId in avList) and self.isLocationMatch(zoneId)
+        return (questCogTrack == cogDict['track']) and (avId in cogDict['activeToons']) and self.isLocationMatch(zoneId)
 
 class CogLevelQuest(CogQuest):
     def __init__(self, id, quest):
@@ -690,7 +691,7 @@ class CogLevelQuest(CogQuest):
 
     def doesCogCount(self, avId, cogDict, zoneId, avList):
         questCogLevel = self.getCogLevel()
-        return (questCogLevel <= cogDict['level']) and (avId in avList) and self.isLocationMatch(zoneId)
+        return (questCogLevel <= cogDict['level']) and (avId in cogDict['activeToons']) and self.isLocationMatch(zoneId)
 
 class CogTrackLevelQuest(CogQuest):
     trackCodes = ['c',
@@ -767,7 +768,7 @@ class CogTrackLevelQuest(CogQuest):
         questCogTrack = self.getCogTrack()
         questCogLevel = self.getCogLevel()
         return (questCogTrack == cogDict['track']) and (questCogLevel <= cogDict['level']) and\
-               (avId in avList) and self.isLocationMatch(zoneId)
+               (avId in cogDict['activeToons']) and self.isLocationMatch(zoneId)
 
 class SkelecogQBase:
     def getCogNameString(self):
@@ -778,7 +779,7 @@ class SkelecogQBase:
             return TTLocalizer.SkeletonP
 
     def doesCogCount(self, avId, cogDict, zoneId, avList):
-        return cogDict['isSkelecog'] and (avId in avList) and self.isLocationMatch(zoneId)
+        return cogDict['isSkelecog'] and (avId in cogDict['activeToons']) and self.isLocationMatch(zoneId)
 
 
 class SkelecogQuest(CogQuest, SkelecogQBase):
@@ -1550,7 +1551,7 @@ class DeliverGagQuest(Quest):
         gag = self.getGagType()
         inventory = av.inventory
         takenGags = 0
-        for i in xrange(self.getNumGags()):
+        for i in range(self.getNumGags()):
             if inventory.useItem(gag[0], gag[1]):
                 takenGags += 1
         av.b_setInventory(inventory.makeNetString())
@@ -1676,7 +1677,7 @@ class RecoverItemQuest(LocationBasedQuest):
 
     def testDone(self, progress):
         numberDone = progress & pow(2, 16) - 1
-        print 'Quest number done %s' % numberDone
+        print('Quest number done %s' % numberDone)
         if numberDone >= self.getNumItems():
             return 1
         else:
@@ -1833,8 +1834,8 @@ class RecoverItemQuest(LocationBasedQuest):
         questCogType = self.getHolder()
         if len(self.quest) > 6:
             questCogLevel = self.getCogLevel()
-            return (questCogType == Any or questCogType == cogDict[self.getHolderType()]) and avId in avList and self.isLocationMatch(zoneId) and questCogLevel <= cogDict['level']
-        return (questCogType == Any or questCogType == cogDict[self.getHolderType()]) and avId in avList and self.isLocationMatch(zoneId)
+            return (questCogType == Any or questCogType == cogDict[self.getHolderType()]) and avId in cogDict['activeToons'] and self.isLocationMatch(zoneId) and questCogLevel <= cogDict['level']
+        return (questCogType == Any or questCogType == cogDict[self.getHolderType()]) and avId in cogDict['activeToons'] and self.isLocationMatch(zoneId)
 
 
 class TrackChoiceQuest(Quest):
@@ -1861,8 +1862,8 @@ class TrackChoiceQuest(Quest):
 
     def getObjectiveStrings(self):
         trackA, trackB = self.getChoices()
-        trackAName = ToontownBattleGlobals.Tracks[trackA].capitalize()
-        trackBName = ToontownBattleGlobals.Tracks[trackB].capitalize()
+        trackAName = ToontownBattleGlobals.Tracks[trackA]
+        trackBName = ToontownBattleGlobals.Tracks[trackB]
         return [trackAName, trackBName]
 
     def getString(self):
@@ -1871,8 +1872,8 @@ class TrackChoiceQuest(Quest):
 
     def getSCStrings(self, toNpcId, progress):
         trackA, trackB = self.getChoices()
-        trackAName = ToontownBattleGlobals.Tracks[trackA].capitalize()
-        trackBName = ToontownBattleGlobals.Tracks[trackB].capitalize()
+        trackAName = ToontownBattleGlobals.Tracks[trackA]
+        trackBName = ToontownBattleGlobals.Tracks[trackB]
         return [TTLocalizer.QuestsTrackChoiceQuestSCString % {'trackA': trackAName,
           'trackB': trackBName}, TTLocalizer.QuestsTrackChoiceQuestMaybeSCString % trackAName, TTLocalizer.QuestsTrackChoiceQuestMaybeSCString % trackBName] + getVisitSCStrings(toNpcId)
 
@@ -3666,13 +3667,13 @@ QuestDict = {
     10206: (ELDER_TIER, Start, (BuildingNewbieQuest, Anywhere, 4, Any, 1, NEWBIE_HP), Any, ToonHQ, NA, 10207, DefaultDialog),
     10207: (ELDER_TIER, Cont, (DeliverItemQuest, 1000), Any, ToonTailor, 1000, NA, DefaultDialog) }
 
-if not config.GetBool('want-phone-quest', 1):
+if not ConfigVariableBool('want-phone-quest', True).getValue():
     QuestDict[150] = (TT_TIER, Cont, (FriendQuest,), Same, ToonHQ, 100, NA, DefaultDialog)
     QuestDict[175] = (TT_TIER, OBSOLETE, (PhoneQuest,), Same, ToonHQ, 100, NA, DialogDict[175])
 
 Tier2QuestsDict = {}
 
-for questId, questDesc in QuestDict.items():
+for questId, questDesc in list(QuestDict.items()):
     if questDesc[QuestDictStartIndex] == Start:
         tier = questDesc[QuestDictTierIndex]
         if tier in Tier2QuestsDict:
@@ -3696,7 +3697,7 @@ def findFinalRewardId(questId):
         try:
             questDesc = QuestDict[questId]
         except KeyError:
-            print 'findFinalRewardId: Quest ID: %d not found' % questId
+            print('findFinalRewardId: Quest ID: %d not found' % questId)
             return -1
 
         nextQuestId = questDesc[QuestDictNextQuestIndex]
@@ -3728,12 +3729,12 @@ def findFinalRewardId(questId):
     return (finalRewardId, remainingSteps)
 
 
-for questId in QuestDict.keys():
+for questId in list(QuestDict.keys()):
     findFinalRewardId(questId)
 
 def getStartingQuests(tier = None):
     startingQuests = []
-    for questId in QuestDict.keys():
+    for questId in list(QuestDict.keys()):
         if isStartingQuest(questId):
             if tier is None:
                 startingQuests.append(questId)
@@ -3811,7 +3812,7 @@ def filterQuests(entireQuestPool, currentNpc, av):
         notify.debug('filterQuests: entireQuestPool: %s' % entireQuestPool)
     validQuestPool = dict([ (questId, 1) for questId in entireQuestPool ])
     if isLoopingFinalTier(av.getRewardTier()):
-        history = map(lambda questDesc: questDesc[0], av.quests)
+        history = [questDesc[0] for questDesc in av.quests]
     else:
         history = av.getQuestHistory()
     if notify.getDebug():
@@ -3849,7 +3850,7 @@ def filterQuests(entireQuestPool, currentNpc, av):
                     notify.debug('filterQuests: Removed %s because npc involved' % questId)
                 break
 
-    finalQuestPool = filter(lambda key: validQuestPool[key], validQuestPool.keys())
+    finalQuestPool = [key for key in list(validQuestPool.keys()) if validQuestPool[key]]
     if notify.getDebug():
         notify.debug('filterQuests: finalQuestPool: %s' % finalQuestPool)
     return finalQuestPool
@@ -3983,7 +3984,7 @@ def transformReward(baseRewardId, av):
 
 def chooseBestQuests(tier, currentNpc, av):
     if isLoopingFinalTier(tier):
-        rewardHistory = map(lambda questDesc: questDesc[3], av.quests)
+        rewardHistory = [questDesc[3] for questDesc in av.quests]
     else:
         rewardHistory = av.getRewardHistory()[1]
 
@@ -4005,7 +4006,7 @@ def chooseBestQuests(tier, currentNpc, av):
     if numChoices == 0:
         numChoices = 1
     bestQuests = []
-    for i in xrange(numChoices):
+    for i in range(numChoices):
         if len(validQuestPool) == 0:
             break
         if len(rewards) == 0:
@@ -4384,7 +4385,7 @@ class TrackTrainingReward(Reward):
         qrc.trackProgress = 0
 
     def getString(self):
-        trackName = ToontownBattleGlobals.Tracks[self.getTrack()].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[self.getTrack()]
         return TTLocalizer.QuestsTrackTrainingReward % trackName
 
     def getPosterString(self):
@@ -4411,12 +4412,12 @@ class TrackProgressReward(Reward):
         qrc.addTrackProgress(self.getTrack(), self.getProgressIndex())
 
     def getString(self):
-        trackName = ToontownBattleGlobals.Tracks[self.getTrack()].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[self.getTrack()]
         return TTLocalizer.QuestsTrackProgressReward % {'frameNum': self.getProgressIndex(),
          'trackName': trackName}
 
     def getPosterString(self):
-        trackName = ToontownBattleGlobals.Tracks[self.getTrack()].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[self.getTrack()]
         return TTLocalizer.QuestsTrackProgressRewardPoster % {'trackName': trackName,
          'frameNum': self.getProgressIndex()}
 
@@ -4440,11 +4441,11 @@ class TrackCompleteReward(Reward):
         qrc.clearTrackProgress()
 
     def getString(self):
-        trackName = ToontownBattleGlobals.Tracks[self.getTrack()].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[self.getTrack()]
         return TTLocalizer.QuestsTrackCompleteReward % trackName
 
     def getPosterString(self):
-        trackName = ToontownBattleGlobals.Tracks[self.getTrack()].capitalize()
+        trackName = ToontownBattleGlobals.Tracks[self.getTrack()]
         return TTLocalizer.QuestsTrackCompleteRewardPoster % trackName
 
 
@@ -4612,7 +4613,7 @@ def getNextRewards(numChoices, tier, av):
     if av.getGameAccess() == OTPGlobals.AccessFull and tier == TT_TIER + 3:
         optRewards = []
     if isLoopingFinalTier(tier):
-        rewardHistory = map(lambda questDesc: questDesc[3], av.quests)
+        rewardHistory = [questDesc[3] for questDesc in av.quests]
         if notify.getDebug():
             notify.debug('getNextRewards: current rewards (history): %s' % rewardHistory)
     else:
@@ -4654,7 +4655,7 @@ def getNextRewards(numChoices, tier, av):
         else:
             return [rewardTier[0]]
     rewardPool = rewardTier[:numChoices]
-    for i in xrange(len(rewardPool), numChoices * 2):
+    for i in range(len(rewardPool), numChoices * 2):
         if optRewards:
             optionalReward = seededRandomChoice(optRewards)
             optRewards.remove(optionalReward)
@@ -4669,7 +4670,7 @@ def getNextRewards(numChoices, tier, av):
             notify.debug('getNextRewards: no rewards left at all')
         return []
     finalRewardPool = [rewardPool.pop(0)]
-    for i in xrange(numChoices - 1):
+    for i in range(numChoices - 1):
         if len(rewardPool) == 0:
             break
         selectedReward = seededRandomChoice(rewardPool)
@@ -5061,7 +5062,7 @@ def avatarHasCompletedPhoneQuest(av):
 def avatarWorkingOnRequiredRewards(av):
     tier = av.getRewardTier()
     rewardList = list(getRewardsInTier(tier))
-    for i in xrange(len(rewardList)):
+    for i in range(len(rewardList)):
         actualRewardId = transformReward(rewardList[i], av)
         rewardList[i] = actualRewardId
 
@@ -5086,7 +5087,7 @@ def avatarHasAllRequiredRewards(av, tier):
     avQuests = av.getQuests()
 
     # Iterate through the current quests.
-    for i in xrange(0, len(avQuests), 5):
+    for i in range(0, len(avQuests), 5):
         questDesc = avQuests[i:i + 5]
         questId, fromNpcId, toNpcId, rewardId, toonProgress = questDesc
         transformedRewardId = transformReward(rewardId, av)
@@ -5146,7 +5147,7 @@ def avatarHasAllRequiredRewards(av, tier):
 def nextQuestList(nextQuest):
     if nextQuest == NA:
         return
-    seqTypes = (types.ListType, types.TupleType)
+    seqTypes = (list, tuple)
     if type(nextQuest) in seqTypes:
         return nextQuest
     else:
@@ -5159,7 +5160,7 @@ def checkReward(questId, forked = 0):
     reward = quest[5]
     nextQuests = nextQuestList(quest[6])
     if nextQuests is None:
-        validRewards = RewardDict.keys() + [Any,
+        validRewards = list(RewardDict.keys()) + [Any,
          AnyCashbotSuitPart,
          AnyLawbotSuitPart,
          OBSOLETE]
@@ -5177,13 +5178,13 @@ def checkReward(questId, forked = 0):
 
 
 def assertAllQuestsValid():
-    for questId in QuestDict.keys():
+    for questId in list(QuestDict.keys()):
         try:
             quest = getQuest(questId)
-        except AssertionError, e:
+        except AssertionError as e:
             raise InvalidQuest('Invalid Quest Class args for %s' % questId)
 
-    for questId in QuestDict.keys():
+    for questId in list(QuestDict.keys()):
         quest = QuestDict[questId]
         tier, start, questDesc, fromNpc, toNpc, reward, nextQuest, dialog = quest
         if start:
@@ -5195,10 +5196,10 @@ def assertAllQuestsValid():
         if not isNPCValid(fromNpc, toNpc, start, questId):
             raise InvalidQuest('Invalid NPC for Quest %s' % questId)
 
-        if nextQuest not in QuestDict.keys() and nextQuest != NA:
+        if nextQuest not in list(QuestDict.keys()) and nextQuest != NA:
             if type(nextQuest) == tuple:
                 for qId in nextQuest:
-                    if qId not in QuestDict.keys():
+                    if qId not in list(QuestDict.keys()):
                       raise InvalidQuest('Invalid Next Quest %s for Quest %s' % (nextQuest, questId))
             else:
                 raise InvalidQuest('Invalid Next Quest %s for Quest %s' % (nextQuest, questId))
@@ -5208,7 +5209,7 @@ def assertAllQuestsValid():
 
 
 def isNPCValid(fromNpc, toNpc, start, questId):
-    validNPCS = NPCToons.NPCToonDict.keys()
+    validNPCS = list(NPCToons.NPCToonDict.keys())
     validNPCS.append(Any)
     validNPCS.append(ToonHQ)
 
@@ -5218,14 +5219,14 @@ def isNPCValid(fromNpc, toNpc, start, questId):
     validNPCS.append(None)
 
     if fromNpc not in validNPCS:
-        print 'quest %s has an invalid fromNPC %s!' % (questId, fromNpc)
+        print('quest %s has an invalid fromNPC %s!' % (questId, fromNpc))
         return False
 
     if start:
         validNPCS.append(Same)
 
     if toNpc not in validNPCS:
-        print 'quest %s has an invalid toNPC %s!' % (questId, toNpc)
+        print('quest %s has an invalid toNPC %s!' % (questId, toNpc))
         return False
 
     return True

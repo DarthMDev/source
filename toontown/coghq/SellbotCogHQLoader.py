@@ -1,16 +1,16 @@
+from panda3d.core import ConfigVariableBool, DecalEffect, NodePath
 from direct.directnotify import DirectNotifyGlobal
 from direct.fsm import StateData
-import CogHQLoader
+from . import CogHQLoader
 from toontown.toonbase import ToontownGlobals
 from direct.gui import DirectGui
 from toontown.toonbase import TTLocalizer
 from toontown.toon import Toon
 from direct.fsm import State
-import FactoryExterior
-import FactoryInterior
-import SellbotHQExterior
-import SellbotHQBossBattle
-from pandac.PandaModules import DecalEffect, NodePath
+from . import FactoryExterior
+from . import FactoryInterior
+from . import SellbotHQExterior
+from . import SellbotHQBossBattle
 aspectSF = 0.7227
 
 class SellbotCogHQLoader(CogHQLoader.CogHQLoader):
@@ -138,7 +138,7 @@ class SellbotCogHQLoader(CogHQLoader.CogHQLoader):
             cogSign.removeNode()
             self.geom.flattenMedium()
         elif zoneId == ToontownGlobals.SellbotLobby:
-            if base.config.GetBool('want-qa-regression', 0):
+            if ConfigVariableBool('want-qa-regression', False).getValue():
                 self.notify.info('QA-REGRESSION: COGHQ: Visit SellbotLobby')
             self.geom = loader.loadModel(self.cogHQLobbyModelPath)
             front = self.geom.find('**/frontWall')
