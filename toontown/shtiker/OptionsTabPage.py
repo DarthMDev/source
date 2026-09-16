@@ -886,6 +886,7 @@ class OptionsTabPage(DirectFrame):
             base.localAvatar.controlManager.reload()
             base.localAvatar.chatMgr.reloadWASD()
             base.localAvatar.controlManager.disable()
+        messenger.send('controlsRemapped')
 
     def __doToggleDoorInteract(self):
         messenger.send(EventGlobals.WakeUp)

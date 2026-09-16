@@ -1,13 +1,13 @@
 from panda3d.core import ModifierButtons
 from direct.showbase.DirectObject import DirectObject
-ROTATE_LEFT_KEY = base.MOVE_LEFT
-ROTATE_RIGHT_KEY = base.MOVE_RIGHT
-FORWARD_KEY = base.MOVE_UP
-BACKWARDS_KEY = base.MOVE_DOWN
-THROW_PIE_KEYS = [base.JUMP, 'delete', 'insert']
 
 class PartyCogActivityInput(DirectObject):
     notify = directNotify.newCategory('PartyCogActivityInput')
+    ROTATE_LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    ROTATE_RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
+    FORWARD_KEY = property(lambda self: base.MOVE_UP)
+    BACKWARDS_KEY = property(lambda self: base.MOVE_DOWN)
+    THROW_PIE_KEYS = property(lambda self: (base.JUMP, base.ACTION_BUTTON))
     leftPressed = 0
     rightPressed = 0
     upPressed = 0
@@ -36,14 +36,14 @@ class PartyCogActivityInput(DirectObject):
         self.ignore('escape')
 
     def enableThrowPieKeys(self):
-        for key in THROW_PIE_KEYS:
+        for key in self.THROW_PIE_KEYS:
             self.accept(key, self.handleThrowPieKeyPressed, [key])
 
         self.throwPiePressed = False
         self.readyToThrowPie = False
 
     def disableThrowPieKeys(self):
-        for key in THROW_PIE_KEYS:
+        for key in self.THROW_PIE_KEYS:
             self.ignore(key)
             self.ignore(key + '-up')
 
@@ -66,65 +66,65 @@ class PartyCogActivityInput(DirectObject):
         self.rightPressed = 0
         base.mouseWatcherNode.setModifierButtons(ModifierButtons())
         base.buttonThrowers[0].node().setModifierButtons(ModifierButtons())
-        self.accept(ROTATE_LEFT_KEY, self.__handleLeftKeyPressed)
-        self.accept(ROTATE_RIGHT_KEY, self.__handleRightKeyPressed)
-        self.accept(FORWARD_KEY, self.__handleUpKeyPressed)
-        self.accept(BACKWARDS_KEY, self.__handleDownKeyPressed)
+        self.accept(self.ROTATE_LEFT_KEY, self.__handleLeftKeyPressed)
+        self.accept(self.ROTATE_RIGHT_KEY, self.__handleRightKeyPressed)
+        self.accept(self.FORWARD_KEY, self.__handleUpKeyPressed)
+        self.accept(self.BACKWARDS_KEY, self.__handleDownKeyPressed)
 
     def disableAimKeys(self):
-        self.ignore(ROTATE_LEFT_KEY)
-        self.ignore(ROTATE_RIGHT_KEY)
-        self.ignore(FORWARD_KEY)
-        self.ignore(BACKWARDS_KEY)
+        self.ignore(self.ROTATE_LEFT_KEY)
+        self.ignore(self.ROTATE_RIGHT_KEY)
+        self.ignore(self.FORWARD_KEY)
+        self.ignore(self.BACKWARDS_KEY)
         self.leftPressed = 0
         self.rightPressed = 0
         self.upPressed = 0
         self.downPressed = 0
-        self.ignore(ROTATE_LEFT_KEY + '-up')
-        self.ignore(ROTATE_RIGHT_KEY + '-up')
-        self.ignore(FORWARD_KEY + '-up')
-        self.ignore(BACKWARDS_KEY + '-up')
+        self.ignore(self.ROTATE_LEFT_KEY + '-up')
+        self.ignore(self.ROTATE_RIGHT_KEY + '-up')
+        self.ignore(self.FORWARD_KEY + '-up')
+        self.ignore(self.BACKWARDS_KEY + '-up')
         base.mouseWatcherNode.setModifierButtons(self._prevModifierButtons)
         base.buttonThrowers[0].node().setModifierButtons(self._prevModifierButtons)
 
     def __handleLeftKeyPressed(self):
-        self.ignore(ROTATE_LEFT_KEY)
-        self.accept(ROTATE_LEFT_KEY + '-up', self.__handleLeftKeyReleased)
+        self.ignore(self.ROTATE_LEFT_KEY)
+        self.accept(self.ROTATE_LEFT_KEY + '-up', self.__handleLeftKeyReleased)
         self.__leftPressed()
 
     def __handleRightKeyPressed(self):
-        self.ignore(ROTATE_RIGHT_KEY)
-        self.accept(ROTATE_RIGHT_KEY + '-up', self.__handleRightKeyReleased)
+        self.ignore(self.ROTATE_RIGHT_KEY)
+        self.accept(self.ROTATE_RIGHT_KEY + '-up', self.__handleRightKeyReleased)
         self.__rightPressed()
 
     def __handleLeftKeyReleased(self):
-        self.ignore(ROTATE_LEFT_KEY + '-up')
-        self.accept(ROTATE_LEFT_KEY, self.__handleLeftKeyPressed)
+        self.ignore(self.ROTATE_LEFT_KEY + '-up')
+        self.accept(self.ROTATE_LEFT_KEY, self.__handleLeftKeyPressed)
         self.__leftReleased()
 
     def __handleRightKeyReleased(self):
-        self.ignore(ROTATE_RIGHT_KEY + '-up')
-        self.accept(ROTATE_RIGHT_KEY, self.__handleRightKeyPressed)
+        self.ignore(self.ROTATE_RIGHT_KEY + '-up')
+        self.accept(self.ROTATE_RIGHT_KEY, self.__handleRightKeyPressed)
         self.__rightReleased()
 
     def __handleUpKeyPressed(self):
-        self.ignore(FORWARD_KEY)
-        self.accept(FORWARD_KEY + '-up', self.__handleUpKeyReleased)
+        self.ignore(self.FORWARD_KEY)
+        self.accept(self.FORWARD_KEY + '-up', self.__handleUpKeyReleased)
         self.__upPressed()
 
     def __handleUpKeyReleased(self):
-        self.ignore(FORWARD_KEY + '-up')
-        self.accept(FORWARD_KEY, self.__handleUpKeyPressed)
+        self.ignore(self.FORWARD_KEY + '-up')
+        self.accept(self.FORWARD_KEY, self.__handleUpKeyPressed)
         self.__upReleased()
 
     def __handleDownKeyPressed(self):
-        self.ignore(BACKWARDS_KEY)
-        self.accept(BACKWARDS_KEY + '-up', self.__handleDownKeyReleased)
+        self.ignore(self.BACKWARDS_KEY)
+        self.accept(self.BACKWARDS_KEY + '-up', self.__handleDownKeyReleased)
         self.__downPressed()
 
     def __handleDownKeyReleased(self):
-        self.ignore(BACKWARDS_KEY + '-up')
-        self.accept(BACKWARDS_KEY, self.__handleDownKeyPressed)
+        self.ignore(self.BACKWARDS_KEY + '-up')
+        self.accept(self.BACKWARDS_KEY, self.__handleDownKeyPressed)
         self.__downReleased()
 
     def __leftPressed(self):

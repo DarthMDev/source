@@ -50,11 +50,11 @@ class DistributedCannonGame(DistributedMinigame):
     HIT_GROUND = 0
     HIT_TOWER = 1
     HIT_WATER = 2
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
     INTRO_TASK_NAME = 'CannonGameIntro'
     INTRO_TASK_NAME_CAMERA_LERP = 'CannonGameIntroCamera'
 

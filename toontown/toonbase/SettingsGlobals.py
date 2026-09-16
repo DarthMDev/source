@@ -31,7 +31,7 @@ ClassicKeymap = {
     "MOVE_DOWN": "arrow_down",
     "MOVE_LEFT": "arrow_left",
     "MOVE_RIGHT": "arrow_right",
-    "JUMP": "space",
+    "JUMP": "control",
     "ACTION_BUTTON": "delete",
     "INTERACT_KEY": "shift",
     "CHAT_HOTKEY": "t",
@@ -46,7 +46,8 @@ DefaultKeymap = dict(ClassicKeymap, **{
     "MOVE_UP": "w",
     "MOVE_LEFT": "a",
     "MOVE_DOWN": "s",
-    "MOVE_RIGHT": "d"
+    "MOVE_RIGHT": "d",
+    "JUMP": "space"
 })
 
 InitialSettings = {

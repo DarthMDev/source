@@ -663,7 +663,7 @@ class DistributedBanquetTable(DistributedObject.DistributedObject, FSM.FSM, Banq
         self.__cleanupPitcherAdvice()
         self.ignore('escape')
         self.ignore(base.JUMP)
-        self.ignore('control-up')
+        self.ignore(base.JUMP + '-up')
         self.ignore('InputState-forward')
         self.ignore('InputState-reverse')
         self.ignore('InputState-turnLeft')

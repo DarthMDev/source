@@ -380,6 +380,14 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
             del self.__catalogNotifyDialog
             self.cleanupTouchInterface()
 
+    def __acceptTossPieKey(self):
+        if hasattr(self, 'tossPieKey'):
+            self.ignore('time-' + self.tossPieKey)
+            self.ignore('time-' + self.tossPieKey + '-up')
+        self.tossPieKey = base.ACTION_BUTTON
+        self.accept('time-' + self.tossPieKey, self.__beginTossPie)
+        self.accept('time-' + self.tossPieKey + '-up', self.__endTossPie)
+
     def initInterface(self):
         self.newsButtonMgr = NewsPageButtonManager.NewsPageButtonManager()
         self.newsButtonMgr.request('Hidden')
@@ -450,10 +458,8 @@ class LocalToon(DistributedToon.DistributedToon, LocalAvatar.LocalAvatar):
         self.laffMeter.stop()
         self.questMap = QuestMap.QuestMap(self)
         self.questMap.stop()
-        self.accept('time-insert', self.__beginTossPie)
-        self.accept('time-insert-up', self.__endTossPie)
-        self.accept('time-delete', self.__beginTossPie)
-        self.accept('time-delete-up', self.__endTossPie)
+        self.__acceptTossPieKey()
+        self.accept('controlsRemapped', self.__acceptTossPieKey)
         self.accept('pieHit', self.__pieHit)
         self.accept('interrupt-pie', self.interruptPie)
         self.accept('InputState-jump', self.__toonMoved)

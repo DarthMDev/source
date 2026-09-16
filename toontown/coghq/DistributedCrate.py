@@ -11,10 +11,6 @@ from . import DistributedCrushableEntity
 
 class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
     notify = DirectNotifyGlobal.directNotify.newCategory('DistributedCrate')
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
     ModelPaths = ('phase_9/models/cogHQ/woodCrateB', 'phase_10/models/cashbotHQ/CBWoodCrate')
 
     def __init__(self, cr):
@@ -59,7 +55,7 @@ class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
         if self.pushable:
             self.__listenForCollisions(0)
             self.ignore(base.MOVE_UP)
-            self.ignore('arrow_up-up')
+            self.ignore(base.MOVE_UP + '-up')
         DistributedCrushableEntity.DistributedCrushableEntity.disable(self)
 
     def delete(self):
@@ -93,11 +89,11 @@ class DistributedCrate(DistributedCrushableEntity.DistributedCrushableEntity):
 
     def __upKeyPressed(self):
         self.ignore(base.MOVE_UP)
-        self.accept('arrow_up-up', self.__upKeyReleased)
+        self.accept(base.MOVE_UP + '-up', self.__upKeyReleased)
         self.upPressed = 1
 
     def __upKeyReleased(self):
-        self.ignore('arrow_up-up')
+        self.ignore(base.MOVE_UP + '-up')
         self.accept(base.MOVE_UP, self.__upKeyPressed)
         self.upPressed = 0
         if self.stuckToCrate:

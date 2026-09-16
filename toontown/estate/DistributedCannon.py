@@ -61,13 +61,12 @@ class DistributedCannon(DistributedObject.DistributedObject):
     HIT_GROUND = 0
     HIT_TOWER = 1
     HIT_WATER = 2
-    FIRE_KEY = base.JUMP
-    UP_KEY = base.MOVE_UP
-    DOWN_KEY = base.MOVE_DOWN
-    LEFT_KEY = base.MOVE_LEFT
-    RIGHT_KEY = base.MOVE_RIGHT
-    BUMPER_KEY = 'delete'
-    BUMPER_KEY2 = 'insert'
+    FIRE_KEY = property(lambda self: base.JUMP)
+    UP_KEY = property(lambda self: base.MOVE_UP)
+    DOWN_KEY = property(lambda self: base.MOVE_DOWN)
+    LEFT_KEY = property(lambda self: base.MOVE_LEFT)
+    RIGHT_KEY = property(lambda self: base.MOVE_RIGHT)
+    BUMPER_KEY = property(lambda self: base.ACTION_BUTTON)
     INTRO_TASK_NAME = 'CannonGameIntro'
     INTRO_TASK_NAME_CAMERA_LERP = 'CannonGameIntroCamera'
 
@@ -544,7 +543,6 @@ class DistributedCannon(DistributedObject.DistributedObject):
         self.accept(self.LEFT_KEY, self.__leftKeyPressed)
         self.accept(self.RIGHT_KEY, self.__rightKeyPressed)
         self.accept(self.BUMPER_KEY, self.__bumperKeyPressed)
-        self.accept(self.BUMPER_KEY2, self.__bumperKeyPressed)
         self.__spawnLocalCannonMoveTask()
 
     def __disableAimInterface(self):
@@ -1558,7 +1556,6 @@ class DistributedCannon(DistributedObject.DistributedObject):
             if not self.localToonShooting:
                 return
             self.ignore(self.BUMPER_KEY)
-            self.ignore(self.BUMPER_KEY2)
             self.notify.debug('renderPos %s' % renderPos)
             cannonPos = base.localAvatar.getPos(self.nodePath)
             self.notify.debug('cannonPos %s' % cannonPos)

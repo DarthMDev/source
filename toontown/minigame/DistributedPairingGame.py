@@ -233,7 +233,6 @@ class DistributedPairingGame(DistributedMinigame):
         orthoDrive = OrthoDrive(self.TOON_SPEED, maxFrameMove=self.MAX_FRAME_MOVE, customCollisionCallback=self.__doPairingGameCollisions)
         self.orthoWalk = OrthoWalk(orthoDrive, broadcast=not self.isSinglePlayer())
         self.orthoWalk.start()
-        self.accept('insert', self.__flipKeyPressed)
         self.accept(base.ACTION_BUTTON, self.__flipKeyPressed)
         self.accept('time-'+base.JUMP, self.__beginSignal)
         self.accept('time-'+base.JUMP+'-up', self.__endSignal)
