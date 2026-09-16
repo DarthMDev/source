@@ -19,9 +19,9 @@ class StrikeZoneAI(HoodDataAI.HoodDataAI):
     def startup(self):
         self.createSuitPlanner()
 
-        # self.strikeManager = CorporateStrikeManagerAI(self.air)
-        # self.strikeManager.registerStrike(StrikeAreaGlobals.STRIKE_BOSS)
-        # self.strikeManager.generate(self.zoneId)
+        self.strikeManager = CorporateStrikeManagerAI(self.air)
+        self.strikeManager.registerStrike(StrikeAreaGlobals.STRIKE_BOSS)
+        self.strikeManager.generate(self.zoneId)
 
     def createSuitPlanner(self):
         suitPlanner = DistributedSuitPlannerAI(self.air, self.zoneId)
