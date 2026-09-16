@@ -96,6 +96,7 @@ lGoofySpeedway = 'Goofy Speedway'
 lOutdoorZone = "Chip 'n Dale's Acorn Acres"
 lGolfZone = "Chip 'n Dale's MiniGolf"
 lPartyHood = 'Party Grounds'
+lResistanceGrounds = 'Resistance Grounds'
 lStrikeZone = 'Governaught Strike Zone'
 GlobalStreetNames = {20000: ('to', 'on', 'Tutorial Terrace'),
  1000: ('to the', 'in the', 'Playground'),
@@ -155,6 +156,7 @@ FunnyFarm = ('to', 'in', 'The Unpainted Playground')
 GoofySpeedway = ('to', 'in', lGoofySpeedway)
 DonaldsDreamland = ('to', 'in', lDonaldsDreamland)
 ResistanceGrounds = ('to the', 'in the', lResistanceGrounds)
+StrikeZone = ('to the', 'in the', lStrikeZone)
 BossbotHQ = ('to', 'in', 'Bossbot HQ')
 SellbotHQ = ('to', 'in', 'Sellbot HQ')
 CashbotHQ = ('to', 'in', 'Cashbot HQ')
