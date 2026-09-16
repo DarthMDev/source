@@ -93,7 +93,7 @@ class StrikeZone(CogHood):
         CogHood.exit(self)
 
     def startRain(self):
-        self.rain = BattleParticles.loadParticleFile('raindisk.ptf')
+        self.rain = BattleParticles.loadParticleFile('rain.ptf')
         self.rain.setPos(0, 0, 20)
         self.rainRender = render.attachNewNode('rainRender')
         self.rainRender.setDepthWrite(0)

@@ -43,7 +43,7 @@ class ToontownLoadingScreen:
         ToontownGlobals.CashbotHQ : 'phase_3.5/maps/loading/cbhq.jpg',
         ToontownGlobals.LawbotHQ : 'phase_3.5/maps/loading/lbhq.jpg',
         ToontownGlobals.BossbotHQ : 'phase_3.5/maps/loading/bbhq.jpg',
-        ToontownGlobals.StrikeZone : 'phase_3.5/maps/loading/gsz.jpg'
+        ToontownGlobals.StrikeZone : 'phase_3.5/maps/loading/default.jpg' # gsz is missing so we'll use default
     }
 
     def __init__(self):

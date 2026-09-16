@@ -5025,6 +5025,12 @@ def rain(self):
 
 
 @particle
+def raindisk(self):
+    # was never defined so just call rain instead
+    return rain(self)
+
+
+@particle
 def bossCogFrontAttack(self):
     self.reset()
     self.setPos(0.000, 0.000, 4.600)
