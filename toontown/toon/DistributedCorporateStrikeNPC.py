@@ -46,6 +46,7 @@ class DistributedCorporateStrikeNPC(DistributedNPCToonBase):
                 'hoodId': 19000,
                 'zoneId': 19000,
                 'shardId': None,
+                'avId': -1,
             })
 
     def _cleanupDispatchDialog(self):

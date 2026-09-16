@@ -24,7 +24,8 @@ class DistributedStrikeElevator(DistributedElevatorExt):
             'hoodId': ToontownGlobals.StrikeZoneBoss,
             'zoneId': zoneId,
             'strikeId': self.strikeId,
-            'shardId': None
+            'shardId': None,
+            'avId': -1
         }
         place.requestLeave(requestStatus)
 
