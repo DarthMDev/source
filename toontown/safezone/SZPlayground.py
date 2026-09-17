@@ -8,7 +8,7 @@ class SZPlayground(Playground.Playground):
         Playground.Playground.enter(self, requestStatus)
 
         dnaStorage = DNAStorage()
-        dnaFileName = ZoneUtil.genDNAFileName(19000)  # self.zoneId)
+        dnaFileName = ZoneUtil.genDNAFileName(19000)
 
         if not dnaFileName.endswith('19001.pdna'):
             DNAParser.loadDNAFileAI(dnaStorage, dnaFileName)

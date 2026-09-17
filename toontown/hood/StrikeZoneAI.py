@@ -30,7 +30,6 @@ class StrikeZoneAI(HoodDataAI.HoodDataAI):
         suitPlanner.initTasks()
         self.suitPlanners.append(suitPlanner)
         self.air.suitPlanners[self.zoneId] = suitPlanner
-        print('Suit planner created')
 
     def createLobbyManager(self):
         pass

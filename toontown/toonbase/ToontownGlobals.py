@@ -332,6 +332,7 @@ HoodIdToName = {
     GoofySpeedway: TTLocalizer.lGoofySpeedway,
     OutdoorZone: TTLocalizer.lOutdoorZone,
     StrikeZone: TTLocalizer.lStrikeZone,
+    StrikeZoneBoss: TTLocalizer.StrikeZoneBoss,
     BossbotHQ: TTLocalizer.BossbotHQ[2],
     SellbotHQ: TTLocalizer.SellbotHQ[2],
     CashbotHQ: TTLocalizer.CashbotHQ[2],
@@ -627,7 +628,8 @@ hoodNameMap = {
     MyEstate: TTLocalizer.MyEstate,
     GolfZone: TTLocalizer.GolfZone,
     PartyHood: TTLocalizer.PartyHood,
-    StrikeZone: TTLocalizer.StrikeZone
+    StrikeZone: TTLocalizer.StrikeZone,
+    StrikeZoneBoss: ('to the', 'in the', TTLocalizer.StrikeZoneBoss)
 }
 safeZoneCountMap = {
     MyEstate: 8,
@@ -676,7 +678,8 @@ hoodCountMap = {
     LawbotHQ: 2,
     GolfZone: 2,
     PartyHood: 2,
-    StrikeZone: 2
+    StrikeZone: 2,
+    StrikeZoneBoss: 2
 }
 NoTeleportZones = (
     CashbotLobby,

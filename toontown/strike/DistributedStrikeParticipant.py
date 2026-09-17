@@ -53,7 +53,7 @@ class DistributedStrikeParticipant(DistributedObject):
 
     def __broadcastPosition(self, task):
         pos = base.localAvatar.getPos()
-        self.sendUpdate('setPosition', [pos[0], pos[1]])
+        self.sendUpdate('setPosition', [pos[0], pos[1], base.localAvatar.getH()])
         return task.cont
 
     def disable(self):

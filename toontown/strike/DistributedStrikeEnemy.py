@@ -134,7 +134,7 @@ class DistributedStrikeEnemy(DistributedObject):
         self.smoother.setH(self.initialH)
         self.smoother.setPhonyTimestamp()
         self.smoother.markPosition()
-        self.smoother.applySmoothPosHpr(self.avatar, self.avatar)
+        self.smoother.applySmoothPosHpr(self.avatar, render)
         self.smoother.clearPositions(1)
         self.landing = False
         if self.pendingPosition:
@@ -146,7 +146,7 @@ class DistributedStrikeEnemy(DistributedObject):
         if self.dead or self.landing or self.flying:
             return task.cont
         previous = self.avatar.getPos()
-        self.smoother.computeAndApplySmoothPosHpr(self.avatar, self.avatar)
+        self.smoother.computeAndApplySmoothPosHpr(self.avatar, render)
         if (self.avatar.getPos() - previous).lengthSquared() > 0.00001:
             self.walkUntil = globalClock.getFrameTime() + 0.2
         if not self.attackTrack and not taskMgr.hasTaskNamed(self.postFlightTaskName):
@@ -216,7 +216,7 @@ class DistributedStrikeEnemy(DistributedObject):
         self.smoother.setH(h)
         self.smoother.setPhonyTimestamp()
         self.smoother.markPosition()
-        self.smoother.applySmoothPosHpr(self.avatar, self.avatar)
+        self.smoother.applySmoothPosHpr(self.avatar, render)
         self.smoother.clearPositions(1)
         self.flying = False
         self.flightTrack = None

@@ -5026,7 +5026,6 @@ def rain(self):
 
 @particle
 def raindisk(self):
-    # was never defined so just call rain instead
     return rain(self)
 
 
@@ -5325,4 +5324,3 @@ def floatingHearts(self):
     f0 = ForceGroup.ForceGroup('gravity')
     # Force parameters
     self.addForceGroup(f0)
-

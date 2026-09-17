@@ -4172,7 +4172,7 @@ dclass DistributedStrikeParticipant : DistributedObject {
   setHp(uint16) required broadcast;
   setMaxHp(uint16) required broadcast;
   setAmmo(uint8, uint8) required broadcast;
-  setPosition(int16/10, int16/10) clsend airecv;
+  setPosition(int16/10, int16/10, int16%360/10) clsend airecv;
   enterSpawnSphere(string) clsend airecv;
 };
 

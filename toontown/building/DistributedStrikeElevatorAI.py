@@ -27,9 +27,20 @@ class DistributedStrikeElevatorAI(DistributedElevatorExtAI):
         return zoneId
 
     def sendAvatarsToDestination(self, avIds):
-        avIds = [x for x in avIds]  # Remove avIds that are either zero or none
+        avIds = [avId for avId in avIds if avId]
 
-        if len(avIds) > 0:
+        if avIds:
             zoneId = self.generateStrike(avIds)
             for avId in avIds:
                 self.sendUpdateToAvatarId(avId, 'setStrikeZone', [zoneId])
+
+    def elevatorClosed(self):
+        avIds = [avId for avId in self.seats if avId]
+        if avIds:
+            self.sendAvatarsToDestination(avIds)
+            for seatIndex in range(len(self.seats)):
+                if self.seats[seatIndex]:
+                    self.clearFullNow(seatIndex)
+        else:
+            self.notify.warning('The Strike elevator left, but was empty.')
+        self.fsm.request('closed')

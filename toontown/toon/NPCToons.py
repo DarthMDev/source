@@ -100,7 +100,9 @@ def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
     from . import DistributedNPCLowdenClearAI
     from . import DistributedCorporateStrikeNPCAI
     canonicalZoneId, name, dnaType, gender, protected, type = desc
-    if type == NPC_REGULAR:
+    if npcId == 91925 or type == NPC_CORPORATE_STRIKE:
+        npc = DistributedCorporateStrikeNPCAI.DistributedCorporateStrikeNPCAI(air, npcId)
+    elif type == NPC_REGULAR:
         npc = DistributedNPCToonAI.DistributedNPCToonAI(air, npcId, questCallback=questCallback)
     elif type == NPC_HQ:
         npc = DistributedNPCToonAI.DistributedNPCToonAI(air, npcId, questCallback=questCallback, hq=1)
@@ -137,8 +139,6 @@ def createNPC(air, npcId, desc, zoneId, posIndex = 0, questCallback = None):
     elif type == NPC_RESISTANCE:
         if air.wantGuilds:
             npc = DistributedNPCLowdenClearAI.DistributedNPCLowdenClearAI(air, npcId)
-    elif type == NPC_CORPORATE_STRIKE:
-        npc = DistributedCorporateStrikeNPCAI.DistributedCorporateStrikeNPCAI(air, npcId)
     else:
         print('createNPC() error!!!')
 
@@ -11686,6 +11686,25 @@ NPCToonDict = {
          27,
          7,
          16),
+         'm',
+         0,
+         NPC_REGULAR),
+91925: (-1,
+        lnames[91925],
+        ('fll',
+         'ls',
+         'm',
+         'm',
+         0,
+         0,
+         0,
+         0,
+         97,
+         27,
+         86,
+         27,
+         37,
+         5),
         'm',
         0,
         NPC_REGULAR)}

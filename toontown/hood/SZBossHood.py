@@ -31,10 +31,14 @@ class SZBossPlace(Place):
 
     def enterWalk(self, teleportIn=False):
         self.walkStateData.enter()
+        for hotkey in self.walkStateData.hotkeys:
+            self.walkStateData.ignore(hotkey)
+        self.walkStateData.ignore('enterStickerBook')
         self.acceptOnce(self.walkDoneEvent, self.handleWalkDone)
         self.walkStateData.fsm.request('walking')
         base.localAvatar.book.hideButton()
         base.localAvatar.laffMeter.stop()
+        base.localAvatar.endAllowPies()
 
     def exitWalk(self):
         messenger.send('wakeup')
@@ -62,3 +66,9 @@ class SZBossHood(Hood):
     def loadLoader(self, requestStatus):
         self.place = SZBossPlace(self, 'strike-place-done')
         self.place.load()
+
+    def unload(self):
+        if self.place:
+            self.place.exit()
+            self.place.unload()
+            self.place = None

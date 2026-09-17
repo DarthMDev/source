@@ -8115,7 +8115,8 @@ NPCToonNames = {20000: 'Tutorial Tom',
 91921: 'Prof. Moochtopher',
 91922: 'Gideon',
 91923: 'Allen',
-91924: 'Philip Neuton'}
+91924: 'Philip Neuton',
+91925: 'Gyro Gearloose'}
 
 zone2TitleDict = {2513: ('Toon Hall', ''),
  2514: ('Toontown Bank', ''),

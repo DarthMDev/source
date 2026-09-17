@@ -52,7 +52,14 @@ class DistributedNPCToon(DistributedNPCToonBase):
             self.trackChoiceGui = None
 
     def handleCollisionSphereEnter(self, collEntry):
-        base.cr.playGame.getPlace().fsm.request('quest', [self])
+        place = base.cr.playGame.getPlace()
+        questState = place.fsm.getStateNamed('quest') if place else None
+        if questState is None:
+            self.setChatAbsolute('%s, I am busy preparing the Strike defenses.' %
+                                 base.localAvatar.getName(),
+                                 CFSpeech | CFTimeout)
+            return
+        place.fsm.request('quest', [self])
         self.sendUpdate('avatarEnter', [])
         self.nametag3d.setDepthTest(0)
         self.nametag3d.setBin('fixed', 0)

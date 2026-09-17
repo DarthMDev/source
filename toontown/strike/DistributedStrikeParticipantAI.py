@@ -2,13 +2,20 @@ from direct.distributed.DistributedObjectAI import DistributedObjectAI
 
 from toontown.strike import CorporateStrikeGlobals
 from toontown.strike import StrikePowerupGlobals
+from toontown.toonbase import ToontownGlobals
+from otp.otpbase import OTPGlobals
 
 import time
+import math
 
 from pandac.PandaModules import CollisionSphere, CollisionNode, NodePath
 
 
 class DistributedStrikeParticipantAI(DistributedObjectAI):
+    MAX_MOVE_SPEED = (OTPGlobals.ToonForwardSpeed *
+                      ToontownGlobals.BMovementSpeedMultiplier)
+    MOVE_TOLERANCE = 0.5
+
     def __init__(self, air, strike, avId):
         DistributedObjectAI.__init__(self, air)
 
@@ -25,6 +32,7 @@ class DistributedStrikeParticipantAI(DistributedObjectAI):
                      for gag in (CorporateStrikeGlobals.GAG_THROW,
                                  CorporateStrikeGlobals.GAG_SQUIRT)]
         self.powerups = {}
+        self.lastPositionTime = None
 
     def registerFlock(self, node, flock):
         self.node = node
@@ -34,13 +42,20 @@ class DistributedStrikeParticipantAI(DistributedObjectAI):
         cnp = self.node.attachNewNode(CollisionNode('cnode'))
         cnp.node().addSolid(cs)
 
-    def setPosition(self, x, y):
+    def setPosition(self, x, y, h):
         avId = self.air.getAvatarIdFromSender()
-        if avId != self.avId:
+        if avId != self.avId or self.node is None:
             return
-
+        now = time.time()
+        if self.lastPositionTime is not None:
+            distance = math.hypot(x - self.node.getX(), y - self.node.getY())
+            maximum = self.MAX_MOVE_SPEED * (now - self.lastPositionTime) + self.MOVE_TOLERANCE
+            if distance > maximum:
+                return
         self.node.setX(x)
         self.node.setY(y)
+        self.node.setH(h)
+        self.lastPositionTime = now
 
     def enterSpawnSphere(self, name):
         avId = self.air.getAvatarIdFromSender()

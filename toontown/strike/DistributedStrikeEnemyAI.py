@@ -187,8 +187,25 @@ class DistributedStrikeEnemyAI(DistributedObjectAI):
             return
 
         distance = (participant.node.getPos() - self.node.getPos()).length()
-        if (distance > CorporateStrikeGlobals.getGagRange(gagType, power) or
-                not participant.consumeAmmo(gagType)):
+        if distance > CorporateStrikeGlobals.getGagRange(gagType, power):
+            return
+
+        navigation = self.strike.world.navigation
+        if navigation:
+            start = navigation.floor(participant.node.getX(), participant.node.getY())
+            end = navigation.floor(self.node.getX(), self.node.getY())
+            if start is None or end is None or not navigation.segment(start, end):
+                return
+            direction = end - start
+            direction.z = 0
+            if direction.lengthSquared() > 0:
+                direction.normalize()
+                heading = math.radians(participant.node.getH())
+                forward = Point3(-math.sin(heading), math.cos(heading), 0)
+                if forward.dot(direction) < 0.25:
+                    return
+
+        if not participant.consumeAmmo(gagType):
             return
 
         self.lastHitByAvatar[avId] = now

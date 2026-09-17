@@ -803,12 +803,10 @@ class Suit(Avatar.Avatar):
                     part.instanceTo(loseNeck)
 
                 if self.isGovernaught:
-                    print('Is Governaught')
                     self.makeGovernaught(self.loseActor, self.style.dept)
                 elif self.isWaiter:
                     self.makeWaiter(self.loseActor)
                 else:
-                    print('Setting suit clothes..')
                     self.setSuitClothes(self.loseActor)
             else:
                 loseModel = 'phase_5/models/char/cog' + self.style.body.upper() + '_robot-lose-mod'

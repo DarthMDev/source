@@ -10,16 +10,14 @@ class StrikeZoneCogHQLoader(CogHQLoader.CogHQLoader):
         CogHQLoader.CogHQLoader.__init__(self, hood, parentFSM, doneEvent)
         self.musicFile = 'phase_4/audio/corpstrike/GOV_strikezone_nbrhood.ogg'
         self.cogHQExteriorModelPath = 'phase_4/models/corpstrike/toontown_central_strike_zone'
-        # self.dnaFile = 'phase_6/dna/cog_hq_strike_zone_sz.pdna'
-
         self.buildings = []
         self.props = []
-        self.fieldOffice = []
+        self.fieldOffice = None
         self.geom = None
 
     def load(self, zoneId):
         CogHQLoader.CogHQLoader.load(self, zoneId)
-        self.battleMusic = base.loadMusic('phase_4/audio/corpstrike/cs_courtyard_battleMusic.ogg')
+        self.battleMusic = base.loadMusic('phase_4/audio/corpstrike/cs_ost_bgm_1.ogg')
 
     def loadPlaceGeom(self, zoneId):
         self.geom = loader.loadModel(self.cogHQExteriorModelPath)
@@ -131,6 +129,7 @@ class StrikeZoneCogHQLoader(CogHQLoader.CogHQLoader):
             self.fieldOffice = loader.loadModel('phase_5/models/cogdominium/tt_m_ara_cbe_fieldOfficeMoverShaker')
         if self.fieldOffice:
             self.fieldOffice.reparentTo(render)
+            self.fieldOffice.setPosHpr(0, 0, 0, 0, 0, 0)
             self.buildings.append(self.fieldOffice)
 
         self.buildings.append(self.toonHall)

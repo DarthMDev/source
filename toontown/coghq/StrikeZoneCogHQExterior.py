@@ -61,7 +61,7 @@ class StrikeZoneCogHQExterior(CogHQExterior):
                 self.fsm.request('walk')
         elif where == 'exit':
             self.fsm.request('walk')
-        elif where == 'mintInterior':
+        elif where == 'strike' or where == 'mintInterior':
             self.doneStatus = doneStatus
             messenger.send(self.doneEvent)
         else:

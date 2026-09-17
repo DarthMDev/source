@@ -1,5 +1,4 @@
-from direct.distributed.DistributedObject import DistributedObject
-
+from toontown.building import DistributedElevator
 from toontown.building.DistributedElevatorExt import DistributedElevatorExt
 from toontown.toonbase import ToontownGlobals
 from toontown.toonbase import TTLocalizer
@@ -27,10 +26,36 @@ class DistributedStrikeElevator(DistributedElevatorExt):
             'shardId': None,
             'avId': -1
         }
-        place.requestLeave(requestStatus)
+        elevator = self.getPlaceElevator()
+        if elevator:
+            elevator.signalDone(requestStatus)
 
     def setupElevator(self):
-        self.isSetup = 1
+        self.elevatorModel = loader.loadModel('phase_4/models/modules/elevator')
+        self.elevatorModel.setScale(1.05)
+        fieldOffice = None
+        hood = getattr(self.cr.playGame, 'hood', None)
+        hoodLoader = getattr(hood, 'loader', None)
+        if hoodLoader:
+            fieldOffice = getattr(hoodLoader, 'fieldOffice', None)
+
+        if fieldOffice and not fieldOffice.isEmpty():
+            self.elevatorModel.reparentTo(fieldOffice)
+            self.elevatorModel.setPosHpr(0.0, 0.0, 0.0, 180.0, 0.0, 0.0)
+        else:
+            self.elevatorModel.reparentTo(render)
+            self.elevatorModel.setPosHpr(15.5, 28.0, 4.0, 315.0, 0.0, 0.0)
+        self.leftDoor = self.elevatorModel.find('**/left-door')
+        self.rightDoor = self.elevatorModel.find('**/right-door')
+        self.elevatorModel.find('**/light_panel').removeNode()
+        self.elevatorModel.find('**/light_panel_frame').removeNode()
+        DistributedElevator.DistributedElevator.setupElevator(self)
+
+    def getElevatorModel(self):
+        return self.elevatorModel
+
+    def getZoneId(self):
+        return 0
 
     def getDestName(self):
         if self.strikeId == StrikeAreaGlobals.STRIKE_BOSS:
@@ -38,16 +63,22 @@ class DistributedStrikeElevator(DistributedElevatorExt):
         return 'unknown strike id %d' % self.strikeId
 
     def enterWaitEmpty(self, ts):
-        pass
+        DistributedElevatorExt.enterWaitEmpty(self, ts)
 
     def exitWaitEmpty(self):
-        pass
+        DistributedElevatorExt.exitWaitEmpty(self)
 
     def enterWaitCountdown(self, ts):
-        pass
+        DistributedElevatorExt.enterWaitCountdown(self, ts)
 
     def exitWaitCountdown(self):
-        pass
+        DistributedElevatorExt.exitWaitCountdown(self)
+
+    def enterClosed(self, ts):
+        self.forceDoorsClosed()
 
     def delete(self):
-        DistributedObject.delete(self)
+        if hasattr(self, 'elevatorModel'):
+            self.elevatorModel.removeNode()
+            del self.elevatorModel
+        DistributedElevatorExt.delete(self)
