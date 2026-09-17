@@ -1,5 +1,10 @@
 from direct.distributed.DistributedObjectAI import DistributedObjectAI
 
+from toontown.strike import CorporateStrikeGlobals
+from toontown.strike import StrikePowerupGlobals
+
+import time
+
 from pandac.PandaModules import CollisionSphere, CollisionNode, NodePath
 
 
@@ -14,8 +19,12 @@ class DistributedStrikeParticipantAI(DistributedObjectAI):
 
         self.avId = avId
         self.points = 500
-        self.hp = 30
-        self.maxHp = 30
+        self.hp = 100
+        self.maxHp = 100
+        self.ammo = [CorporateStrikeGlobals.GAGS[gag]['maxAmmo']
+                     for gag in (CorporateStrikeGlobals.GAG_THROW,
+                                 CorporateStrikeGlobals.GAG_SQUIRT)]
+        self.powerups = {}
 
     def registerFlock(self, node, flock):
         self.node = node
@@ -47,6 +56,10 @@ class DistributedStrikeParticipantAI(DistributedObjectAI):
         if len(self.activeSpheres) == 3:
             self.activeSpheres.pop()
 
+    def unlockSpawnSphere(self, name):
+        if name not in self.activeSpheres:
+            self.activeSpheres.append(name)
+
     def getAvId(self):
         return self.avId
 
@@ -58,3 +71,60 @@ class DistributedStrikeParticipantAI(DistributedObjectAI):
 
     def getMaxHp(self):
         return self.maxHp
+
+    def getAmmo(self):
+        return tuple(self.ammo)
+
+    def d_setAmmo(self):
+        self.sendUpdate('setAmmo', self.getAmmo())
+
+    def addPoints(self, points):
+        if self.hasPowerup(StrikePowerupGlobals.DOUBLE_POINTS):
+            points *= 2
+        self.points += points
+        self.sendUpdate('setPoints', [self.points])
+
+    def spendPoints(self, points):
+        if self.points < points:
+            return False
+        self.points -= points
+        self.sendUpdate('setPoints', [self.points])
+        return True
+
+    def consumeAmmo(self, gagType):
+        if self.ammo[gagType] <= 0:
+            return False
+        self.ammo[gagType] -= 1
+        self.d_setAmmo()
+        return True
+
+    def takeStrikeDamage(self, damage):
+        self.hp = max(0, self.hp - damage)
+        self.sendUpdate('setHp', [self.hp])
+        if self.hp == 0:
+            self.strike.checkGameOver()
+
+    def restoreStrikeHp(self, amount):
+        if self.hp <= 0 or self.hp >= self.maxHp:
+            return False
+        self.hp = min(self.maxHp, self.hp + amount)
+        self.sendUpdate('setHp', [self.hp])
+        return True
+
+    def activatePowerup(self, powerupType):
+        self.powerups[powerupType] = time.time() + StrikePowerupGlobals.DURATION
+
+    def hasPowerup(self, powerupType):
+        return self.powerups.get(powerupType, 0) > time.time()
+
+    def refillAmmo(self):
+        self.ammo = [CorporateStrikeGlobals.GAGS[gag]['maxAmmo']
+                     for gag in (CorporateStrikeGlobals.GAG_THROW,
+                                 CorporateStrikeGlobals.GAG_SQUIRT)]
+        self.d_setAmmo()
+
+    def refillGag(self, gagType):
+        if gagType not in CorporateStrikeGlobals.GAGS:
+            return
+        self.ammo[gagType] = CorporateStrikeGlobals.GAGS[gagType]['maxAmmo']
+        self.d_setAmmo()

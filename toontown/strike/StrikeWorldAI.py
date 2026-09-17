@@ -1,53 +1,57 @@
-from direct.stdpy.threading2 import Thread
-
 from panda3d.core import NodePath
-from panda3d.ai import AIWorld, AICharacter, Flock
+from toontown.strike.OSTZCalculatorAI import OSTZCalculatorAI
+from toontown.strike.StrikeNavigationAI import StrikeNavigationAI
 
-import time
 
-
-class StrikeWorldAI(Thread):
+class StrikeWorldAI:
     def __init__(self, strike):
-        Thread.__init__(self, target=self.__process, name='strike-world-ai-%s' % id(self))
-
         self.strike = strike
 
         self.world = NodePath('strike-world-node-%s' % id(self))
-        self.aiWorld = AIWorld(self.world)
-
-        self.flocks = []
         self.enemies = []
+        self.navigation = None
+        self.taskName = 'strike-movement-%s' % id(self)
 
     def addEnemy(self, enemy):
         en = NodePath('enemy-%s' % id(self))
         en.reparentTo(self.world)
 
-        aiChar = AICharacter('strike-enemy-%s' % id(enemy), en, *enemy.getMotion())
-        self.aiWorld.addAiChar(aiChar)
-        behaviors = aiChar.getAiBehaviors()
-        behaviors.initPathFind(self.strike.NAVMESH)
-        enemy.registerAiChar(en, aiChar, behaviors)
+        enemy.node = en
 
         self.enemies.append(enemy)
 
     def removeEnemy(self, enemy):
-        pass
+        if enemy in self.enemies:
+            self.enemies.remove(enemy)
+        enemy.route = []
+        if enemy.node is not None:
+            enemy.node.removeNode()
+            enemy.node = None
 
     def registerParticipant(self, participant):
         pn = NodePath('participant-%s' % id(self))
         pn.reparentTo(self.world)
 
-        flock = Flock(id(participant), 180, 14, 1, 0, 0)
-        self.aiWorld.addFlock(flock)
-        self.aiWorld.flockOn(id(participant))
+        participant.registerFlock(pn, None)
 
-        # Create a new flock for the participant:
-        participant.registerFlock(pn, flock)
+    def start(self):
+        if self.navigation is None:
+            self.navigation = StrikeNavigationAI(OSTZCalculatorAI.INSTANCE.geom)
+            for index in range(2):
+                if self.strike.barricadeMask & (1 << index):
+                    self.navigation.unlock(index)
+        taskMgr.add(self.update, self.taskName)
 
-    def __process(self):
-        while True:
-            try:
-                self.aiWorld.update()
-            except:
-                pass
-            time.sleep(1.0/30)  # We only want to run this 30 times a second max
+    def update(self, task):
+        dt = min(globalClock.getDt(), 0.1)
+        for enemy in self.enemies[:]:
+            enemy.updateMovement(dt)
+        return task.cont
+
+    def destroy(self):
+        taskMgr.remove(self.taskName)
+        for enemy in self.enemies[:]:
+            self.removeEnemy(enemy)
+        if self.navigation:
+            self.navigation.destroy()
+        self.world.removeNode()

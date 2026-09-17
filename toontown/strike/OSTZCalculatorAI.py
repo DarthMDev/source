@@ -1,6 +1,8 @@
 from direct.stdpy.threading2 import Thread
 from direct.controls.ControlManager import CollisionHandlerRayStart
 
+from queue import Empty, Queue
+
 from toontown.toonbase import ToontownGlobals
 from toontown.dna.DNAStorage import DNAStorage
 from toontown.dna import DNAParser
@@ -38,19 +40,18 @@ class OSTZCalculatorAI(Thread):
         self.cHandler = CollisionHandlerQueue()
         self.cTrav.addCollider(cnp, self.cHandler)
 
-        self.queue = []
+        self.requests = Queue()
+        self.results = Queue()
 
     def calculateZ(self, x, y, callback):
-        self.queue.append((x, y, callback))
+        self.requests.put((x, y, callback))
 
     def __process(self):
         while True:
-            if len(self.queue) == 0:
-                continue
-
-            x, y, callback = self.queue.pop(0)
+            x, y, callback = self.requests.get()
             self.np.setPos(x, y, 0)
 
+            self.cHandler.clearEntries()
             self.cTrav.traverse(self.parent)
 
             entries = []
@@ -59,16 +60,27 @@ class OSTZCalculatorAI(Thread):
                 entry = self.cHandler.getEntry(i)
                 entries.append(entry)
 
-            entries.sort(lambda x, y: cmp(y.getSurfacePoint(self.parent).getZ(),
-                                          x.getSurfacePoint(self.parent).getZ()))
+            entries.sort(key=lambda entry: entry.getSurfacePoint(self.parent).getZ(),
+                         reverse=True)
             if len(entries) > 0:
                 z = entries[0].getSurfacePoint(self.parent).getZ()
             else:
                 z = 0
 
+            self.results.put((callback, z))
+
+    def deliverResults(self, task):
+        while True:
+            try:
+                callback, z = self.results.get_nowait()
+            except Empty:
+                break
             callback(z)
+        return task.cont
 
     @staticmethod
     def createInstance():
         OSTZCalculatorAI.INSTANCE = OSTZCalculatorAI()
+        taskMgr.add(OSTZCalculatorAI.INSTANCE.deliverResults,
+                    'ost-z-calculator-results')
         OSTZCalculatorAI.INSTANCE.start()

@@ -347,6 +347,9 @@ from toontown.strike import StrikeLobby/AI
 from toontown.strike import DistributedCorporateStrike/AI
 from toontown.strike import DistributedStrikeParticipant/AI
 from toontown.strike import DistributedStrikeEnemy/AI
+from toontown.strike import DistributedStrikePowerup/AI
+from toontown.strike import DistributedStrikeHealth/AI
+from toontown.strike import DistributedStrikeAmmoStation/AI
 from toontown.strike import DistributedOperationSaveToontown/AI
 from toontown.zone import ZoneManager/AI/UD
 from toontown.zone import ZoneBlobSender/UD
@@ -2357,8 +2360,11 @@ dclass DistributedNPCToon : DistributedNPCToonBase {
 };
 
 dclass DistributedCorporateStrikeNPC : DistributedNPCToonBase {
+  setStrikeAmmoVendor(uint8) required broadcast ram;
   requestEnterStrikeZone() airecv clsend;
   enterStrikeZone();
+  requestStrikeAmmoRefill() airecv clsend;
+  strikeAmmoPurchaseResult(uint8);
 };
 
 dclass DistributedNPCLowdenClear : DistributedNPCToonBase {
@@ -4154,6 +4160,10 @@ dclass DistributedCorporateStrike : DistributedObject {
   setDropPoint(int16/10, int16/10, int16/10, int16%360/10);
   setRound(uint16) broadcast;
   setParticipantIds(uint32[1-4]) broadcast;
+  setBarricadeMask(uint8) required broadcast;
+  requestUnlockBarricade(uint8) clsend airecv;
+  powerupCollected(uint32, string, uint8, string) broadcast ram;
+  gameOver() broadcast;
 };
 
 dclass DistributedStrikeParticipant : DistributedObject {
@@ -4161,6 +4171,7 @@ dclass DistributedStrikeParticipant : DistributedObject {
   setPoints(uint16) required broadcast;
   setHp(uint16) required broadcast;
   setMaxHp(uint16) required broadcast;
+  setAmmo(uint8, uint8) required broadcast;
   setPosition(int16/10, int16/10) clsend airecv;
   enterSpawnSphere(string) clsend airecv;
 };
@@ -4169,9 +4180,38 @@ dclass DistributedStrikeEnemy : DistributedObject {
   setType(string) required broadcast;
   setInitialPos(int16/10, int16/10, int16/10, int16%360/10) broadcast required;
   setPosition(int16/10, int16/10, int16/10, int16%360/10, int16) broadcast;
+  setHp(uint16) required broadcast;
+  setMaxHp(uint16) required broadcast;
+  setLevel(uint8) required broadcast;
+  hit(uint32, uint8, uint16) broadcast ram;
+  attack(uint32, uint16) broadcast ram;
+  flyTo(int16/10, int16/10, int16/10, int16%360/10) broadcast;
+  requestHit(uint8, uint8) clsend airecv;
+};
+
+dclass DistributedStrikePowerup : DistributedObject {
+  setType(string) required broadcast;
+  setPosition(int16/10, int16/10, int16/10) required broadcast;
+  requestPickup() clsend airecv;
+};
+
+dclass DistributedStrikeHealth : DistributedObject {
+  setPosition(int16/10, int16/10, int16/10) required broadcast;
+  setAvailable(uint8) required broadcast ram;
+  requestPickup() clsend airecv;
 };
 
 dclass DistributedOperationSaveToontown : DistributedCorporateStrike {};
+
+dclass DistributedStrikeAmmoStation : DistributedObject {
+  setStrikeId(uint32) required broadcast ram;
+  setPosition(int16/10, int16/10, int16/10) required broadcast ram;
+  setHeading(int16/10) required broadcast ram;
+  setGagType(uint8) required broadcast ram;
+  setCost(uint16) required broadcast ram;
+  requestRefill() airecv clsend;
+  refillResult(uint8);
+};
 
 
 dclass ZoneManager : DistributedObject {

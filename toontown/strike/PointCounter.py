@@ -25,6 +25,7 @@ class PointLabel:
         self.frame = None
         self.points = None
         self.name = None
+        self.head = None
 
     def initialize(self):
         self.frame = DirectFrame(parent=self.counter, frameSize=(-1.0, 1.0, -1.0, 1.0),
@@ -34,6 +35,7 @@ class PointLabel:
         color = ToonDNA.allColorsList[av.style.headColor]
 
         head = self.generateToonHead(av.style)
+        self.head = head
         scale = self.frame.attachNewNode('scale')
         head.reparentTo(scale)
         head.setH(-150)
@@ -61,6 +63,17 @@ class PointLabel:
     def updatePoints(self, points):
         self.points['text'] = str(points)
 
+    def destroy(self):
+        if self.head:
+            self.head.cleanup()
+            self.head.removeNode()
+            self.head = None
+        if self.frame:
+            self.frame.destroy()
+            self.frame = None
+        self.points = None
+        self.name = None
+
 
 class PointCounter(NodePath):
     def __init__(self, strike):
@@ -83,3 +96,9 @@ class PointCounter(NodePath):
         label.initialize()
         label.updatePoints(participant.points)
         self.pointLabels[participant.avId] = label
+
+    def destroy(self):
+        for label in self.pointLabels.values():
+            label.destroy()
+        self.pointLabels = {}
+        self.removeNode()

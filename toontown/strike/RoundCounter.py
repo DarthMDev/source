@@ -1,21 +1,26 @@
 from panda3d.core import NodePath, TextNode, Vec4
 
 from direct.interval.IntervalGlobal import *
+import random
 
 
 class RoundCounter(NodePath):
     FONT = 'phase_3/models/fonts/vtRemingtonPortable.ttf'
-    ROUND_END_SFX = 'phase_4/audio/corpstrike/ost_round_end.ogg'
-    ROUND_START_SFX = 'phase_4/audio/corpstrike/ost_round_start.ogg'
+    ROUND_START_SFX = (
+        'phase_4/audio/corpstrike/cs_ost_round_start_1.ogg',
+        'phase_4/audio/corpstrike/cs_ost_round_start_2.ogg',
+        'phase_4/audio/corpstrike/cs_ost_round_start_3.ogg',
+    )
 
     def __init__(self):
         NodePath.__init__(self, 'round-counter')
 
         self.round = None
+        self.track = None
 
     def initialize(self):
-        self.reparentTo(base.a2dBottomLeft)
-        self.setPos(0.055, 0, 0.06)
+        self.reparentTo(base.a2dBottomRight)
+        self.setPos(-0.25, 0, 0.06)
 
     def generateRoundText(self, round):
         tn = TextNode('round-text')
@@ -35,6 +40,8 @@ class RoundCounter(NodePath):
         node.setScale(0.3)
 
     def transitionRound(self, round):
+        if self.track:
+            self.track.pause()
         newText = self.generateRoundText(round)
 
         if self.round is not None:
@@ -47,7 +54,6 @@ class RoundCounter(NodePath):
                         Func(self.clearTransparency),
                         Func(self.hide)
                     ),
-                    Func(base.playSfx, loader.loadSfx(self.ROUND_END_SFX), volume=0.25),
                 ),
                 Func(self.removeRoundText),
                 Wait(5)
@@ -66,12 +72,19 @@ class RoundCounter(NodePath):
                     Func(self.clearTransparency)
                  ),
             ),
-            Func(base.playSfx, loader.loadSfx(self.ROUND_START_SFX), volume=0.25),
+            Func(base.playSfx, loader.loadSfx(random.choice(self.ROUND_START_SFX)), volume=0.35),
         )
 
-        Sequence(
+        self.track = Sequence(
             roundEnd,
             roundStart,
-        ).start()
+        )
+        self.track.start()
 
         self.round = round
+
+    def destroy(self):
+        if self.track:
+            self.track.pause()
+            self.track = None
+        self.removeNode()
